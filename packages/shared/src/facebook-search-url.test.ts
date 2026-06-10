@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildFacebookMarketplaceSearchUrl } from "../../../apps/worker/src/lib/facebook-search-url.ts";
+import { buildFacebookMarketplaceSearchUrl } from "./facebook-search-url.ts";
 
 describe("buildFacebookMarketplaceSearchUrl", () => {
   it("builds a marketplace search url from keywords", () => {

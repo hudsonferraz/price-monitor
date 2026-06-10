@@ -1,0 +1,19 @@
+{
+  "name": "@price-monitor/worker",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "spike:facebook": "tsx scripts/spike-facebook.ts",
+    "save:facebook-session": "tsx scripts/save-facebook-session.ts"
+  },
+  "dependencies": {
+    "@price-monitor/shared": "*",
+    "linkedom": "^0.18.12",
+    "playwright": "^1.52.0"
+  },
+  "devDependencies": {
+    "tsx": "^4.19.4",
+    "typescript": "^5.8.3"
+  }
+}

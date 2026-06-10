@@ -1,8 +1,8 @@
 import type { Page, Response } from "playwright";
-import { parseBrazilianPriceToCents } from "../../../../packages/shared/src/parse-price.ts";
-import type { NormalizedListing, SearchInput } from "../../../../packages/shared/src/types.ts";
-import { SOURCE } from "../../../../packages/shared/src/types.ts";
-import { buildFacebookMarketplaceSearchUrl } from "../lib/facebook-search-url.ts";
+import { buildFacebookMarketplaceSearchUrl } from "@price-monitor/shared/facebook-search-url";
+import { parseBrazilianPriceToCents } from "@price-monitor/shared/parse-price";
+import type { NormalizedListing, SearchInput } from "@price-monitor/shared/types";
+import { SOURCE } from "@price-monitor/shared/types";
 import { parseListingsFromEmbeddedJson } from "./facebook-embedded-json-parser.ts";
 import { parseListingsFromHtml, type RawFacebookListing } from "./facebook-dom-parser.ts";
 

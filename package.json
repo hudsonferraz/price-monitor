@@ -1,21 +1,25 @@
 {
   "name": "price-monitor",
   "private": true,
-  "type": "module",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
   "scripts": {
-    "spike:facebook": "tsx apps/worker/scripts/spike-facebook.ts",
-    "save:facebook-session": "tsx apps/worker/scripts/save-facebook-session.ts",
+    "dev": "turbo dev",
+    "build": "turbo build",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "spike:facebook": "npm run spike:facebook --workspace=@price-monitor/worker",
+    "save:facebook-session": "npm run save:facebook-session --workspace=@price-monitor/worker",
+    "db:generate": "npm run db:generate --workspace=@price-monitor/database",
+    "db:push": "npm run db:push --workspace=@price-monitor/database",
+    "postinstall": "npm run db:generate --workspace=@price-monitor/database"
   },
   "devDependencies": {
     "@types/node": "^22.15.21",
-    "tsx": "^4.19.4",
+    "turbo": "^2.5.4",
     "typescript": "^5.8.3",
     "vitest": "^3.1.4"
-  },
-  "dependencies": {
-    "linkedom": "^0.18.12",
-    "playwright": "^1.52.0"
   }
 }

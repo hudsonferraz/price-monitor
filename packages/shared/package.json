@@ -1,0 +1,12 @@
+{
+  "name": "@price-monitor/shared",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./*": "./src/*.ts"
+  },
+  "dependencies": {
+    "zod": "^3.24.4"
+  }
+}

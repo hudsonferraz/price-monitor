@@ -10,7 +10,8 @@
     "noEmit": true,
     "baseUrl": ".",
     "paths": {
-      "@price-monitor/shared/*": ["packages/shared/src/*"]
+      "@price-monitor/shared/*": ["packages/shared/src/*"],
+      "@price-monitor/database": ["packages/database/src/index.ts"]
     }
   },
   "include": ["apps/**/*.ts", "packages/**/*.ts", "vitest.config.ts"]

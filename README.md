@@ -13,6 +13,28 @@ npm install
 npx playwright install chromium
 ```
 
+Copy `.env.example` to `apps/web/.env.local` and fill in your values:
+
+- `DATABASE_URL` — PostgreSQL connection string (Neon or Supabase work well)
+- `AUTH_SECRET` — run `openssl rand -base64 32`
+- `AUTH_GITHUB_ID` / `AUTH_GITHUB_SECRET` — from a GitHub OAuth app (callback URL: `http://localhost:3000/api/auth/callback/github`)
+
+Push the schema to your database:
+
+```bash
+npm run db:push
+```
+
+## Development
+
+Start the web app:
+
+```bash
+npm run dev --workspace=@price-monitor/web
+```
+
+Open [http://localhost:3000](http://localhost:3000). Sign in with GitHub, then create saved searches on the dashboard.
+
 ## Run the live spike
 
 ```bash
@@ -48,3 +70,11 @@ On failure, debug artifacts are saved under `fixtures/debug/`.
 ```bash
 npm test
 ```
+
+## Deploy (Vercel)
+
+1. Import the repo and set the root directory to `apps/web`.
+2. Add environment variables from `.env.example`.
+3. Run `npm run db:push` against your production database before first deploy.
+
+The background worker is stubbed for Phase 1; polling and alerts arrive in Phase 2.
