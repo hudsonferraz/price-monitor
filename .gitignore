@@ -1,0 +1,11 @@
+node_modules/
+dist/
+.env
+.env.*
+!.env.example
+fixtures/debug/
+fixtures/facebook-search-iphone-13.html
+facebook-storage-state.json
+test-results/
+*.log
+.DS_Store

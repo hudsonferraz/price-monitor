@@ -1,0 +1,17 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "strict": true,
+    "skipLibCheck": true,
+    "esModuleInterop": true,
+    "resolveJsonModule": true,
+    "noEmit": true,
+    "baseUrl": ".",
+    "paths": {
+      "@price-monitor/shared/*": ["packages/shared/src/*"]
+    }
+  },
+  "include": ["apps/**/*.ts", "packages/**/*.ts", "vitest.config.ts"]
+}
