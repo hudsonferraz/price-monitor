@@ -74,8 +74,10 @@ npm test
 
 ## Deploy (Vercel)
 
-1. Import the repo and set the root directory to `apps/web`.
-2. Add environment variables from `.env.example`.
-3. Run `npm run db:push` against your production database before first deploy.
+1. Import the repo and set the **Root Directory** to `apps/web`.
+2. Vercel uses `apps/web/vercel.json` to install from the monorepo root and build only the web app (avoids Turbo workspace issues).
+3. Add environment variables from `.env.example` in the Vercel project settings.
+4. Run `npm run db:push` against your production database before first deploy (if not already done).
+5. Update GitHub and Google OAuth callback URLs to your production domain.
 
 The background worker is stubbed for Phase 1; polling and alerts arrive in Phase 2.
