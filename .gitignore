@@ -11,3 +11,5 @@ facebook-storage-state.json
 test-results/
 *.log
 .DS_Store
+.agents/
+skills-lock.json

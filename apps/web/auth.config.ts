@@ -1,16 +1,23 @@
 import type { NextAuthConfig } from "next-auth";
 import GitHub from "next-auth/providers/github";
+import Google from "next-auth/providers/google";
 
 export const authConfig = {
   trustHost: true,
-  providers: [GitHub],
+  providers: [GitHub, Google],
   pages: {
     signIn: "/sign-in",
   },
   callbacks: {
-    session({ session, user }) {
+    jwt({ token, user }) {
+      if (user?.id) {
+        token.id = user.id;
+      }
+      return token;
+    },
+    session({ session, token }) {
       if (session.user) {
-        session.user.id = user.id;
+        session.user.id = (token.id as string | undefined) ?? token.sub ?? "";
       }
       return session;
     },

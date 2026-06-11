@@ -17,7 +17,8 @@ Copy `.env.example` to `apps/web/.env.local` and fill in your values:
 
 - `DATABASE_URL` — PostgreSQL connection string (Neon or Supabase work well)
 - `AUTH_SECRET` — run `openssl rand -base64 32`
-- `AUTH_GITHUB_ID` / `AUTH_GITHUB_SECRET` — from a GitHub OAuth app (callback URL: `http://localhost:3000/api/auth/callback/github`)
+- `AUTH_GITHUB_ID` / `AUTH_GITHUB_SECRET` — GitHub OAuth app (callback: `http://localhost:3000/api/auth/callback/github`)
+- `AUTH_GOOGLE_ID` / `AUTH_GOOGLE_SECRET` — Google OAuth client (redirect: `http://localhost:3000/api/auth/callback/google`)
 
 Push the schema to your database:
 
@@ -33,7 +34,7 @@ Start the web app:
 npm run dev --workspace=@price-monitor/web
 ```
 
-Open [http://localhost:3000](http://localhost:3000). Sign in with GitHub, then create saved searches on the dashboard.
+Open [http://localhost:3000](http://localhost:3000). Sign in with Google or GitHub, then create saved searches on the dashboard.
 
 ## Run the live spike
 
