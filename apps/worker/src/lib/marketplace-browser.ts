@@ -1,6 +1,6 @@
 import { chromium, type Browser, type BrowserContext, type Page } from "playwright";
-import { FacebookMarketplaceAdapter } from "../adapters/facebook-marketplace.adapter.ts";
-import { getMockListings, isMockMarketplaceEnabled } from "./mock-marketplace.ts";
+import { FacebookMarketplaceAdapter } from "../adapters/facebook-marketplace.adapter";
+import { getMockListings, isMockMarketplaceEnabled } from "./mock-marketplace";
 import type { NormalizedListing, SearchInput } from "@price-monitor/shared/types";
 
 let browser: Browser | undefined;

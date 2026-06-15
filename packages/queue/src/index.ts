@@ -105,4 +105,9 @@ export async function registerScheduler(): Promise<void> {
   );
 }
 
-export { POLL_SEARCH_JOB, SCHEDULE_POLLS_JOB };
+export {
+  POLL_SEARCH_JOB,
+  POLL_SEARCH_QUEUE,
+  SCHEDULE_POLLS_JOB,
+  SCHEDULE_POLLS_QUEUE,
+} from "@price-monitor/shared/queue";

@@ -1,5 +1,5 @@
 import { parseHTML } from "linkedom";
-import type { RawFacebookListing } from "./facebook-dom-parser.ts";
+import type { RawFacebookListing } from "./facebook-dom-parser";
 
 interface FacebookListingRecord {
   id?: string;

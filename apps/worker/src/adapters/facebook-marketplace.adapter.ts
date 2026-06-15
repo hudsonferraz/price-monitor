@@ -3,8 +3,8 @@ import { buildFacebookMarketplaceSearchUrl } from "@price-monitor/shared/faceboo
 import { parseBrazilianPriceToCents } from "@price-monitor/shared/parse-price";
 import type { NormalizedListing, SearchInput } from "@price-monitor/shared/types";
 import { SOURCE } from "@price-monitor/shared/types";
-import { parseListingsFromEmbeddedJson } from "./facebook-embedded-json-parser.ts";
-import { parseListingsFromHtml, type RawFacebookListing } from "./facebook-dom-parser.ts";
+import { parseListingsFromEmbeddedJson } from "./facebook-embedded-json-parser";
+import { parseListingsFromHtml, type RawFacebookListing } from "./facebook-dom-parser";
 
 const DEFAULT_MIN_RESULTS = 5;
 const DEFAULT_SCROLL_ATTEMPTS = 4;

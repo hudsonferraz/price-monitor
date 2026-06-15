@@ -1,7 +1,7 @@
 import { prisma, MarketplaceSource, PollRunStatus } from "@price-monitor/database";
 import { DEFAULT_LISTING_LIMIT } from "@price-monitor/shared/queue";
 import type { NormalizedListing } from "@price-monitor/shared/types";
-import { searchMarketplace } from "../lib/marketplace-browser.ts";
+import { searchMarketplace } from "../lib/marketplace-browser";
 
 export interface PollSearchResult {
   pollRunId: string;

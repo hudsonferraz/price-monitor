@@ -1,5 +1,5 @@
 import { parseHTML } from "linkedom";
-import { parseListingsFromEmbeddedJson } from "./facebook-embedded-json-parser.ts";
+import { parseListingsFromEmbeddedJson } from "./facebook-embedded-json-parser";
 
 export interface RawFacebookListing {
   externalId: string;

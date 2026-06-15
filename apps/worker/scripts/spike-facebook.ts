@@ -2,8 +2,8 @@ import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { chromium, type BrowserContextOptions } from "playwright";
-import { parseListingsFromHtml } from "../src/adapters/facebook-dom-parser.ts";
-import { FacebookMarketplaceAdapter } from "../src/adapters/facebook-marketplace.adapter.ts";
+import { FacebookMarketplaceAdapter } from "../src/adapters/facebook-marketplace.adapter";
+import { parseListingsFromHtml } from "../src/adapters/facebook-dom-parser";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const projectRoot = path.resolve(__dirname, "../../..");

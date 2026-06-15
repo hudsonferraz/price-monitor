@@ -1,16 +1,13 @@
 import { Worker } from "bullmq";
 import {
   getRedisConnectionOptions,
-  POLL_SEARCH_JOB,
   POLL_SEARCH_QUEUE,
   registerScheduler,
-  SCHEDULE_POLLS_JOB,
   SCHEDULE_POLLS_QUEUE,
 } from "@price-monitor/queue";
 import type { PollSearchJobData } from "@price-monitor/shared/queue";
-import { closeBrowser } from "../lib/marketplace-browser.ts";
-import { executePollSearch, scheduleDuePolls } from "./jobs/poll-search.job.ts";
-
+import { closeBrowser } from "./lib/marketplace-browser";
+import { executePollSearch, scheduleDuePolls } from "./jobs/poll-search.job";
 async function main(): Promise<void> {
   const connection = getRedisConnectionOptions();
 
