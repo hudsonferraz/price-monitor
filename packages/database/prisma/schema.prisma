@@ -7,6 +7,17 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+enum MarketplaceSource {
+  FACEBOOK
+}
+
+enum PollRunStatus {
+  PENDING
+  RUNNING
+  SUCCESS
+  FAILED
+}
+
 model User {
   id            String        @id @default(cuid())
   name          String?
@@ -16,6 +27,7 @@ model User {
   accounts      Account[]
   sessions      Session[]
   savedSearches SavedSearch[]
+  alerts        Alert[]
   createdAt     DateTime      @default(now())
   updatedAt     DateTime      @updatedAt
 }
@@ -57,18 +69,66 @@ model VerificationToken {
 }
 
 model SavedSearch {
-  id              String    @id @default(cuid())
+  id              String        @id @default(cuid())
   userId          String
   name            String
   keywords        String
   minPriceCents   Int?
   maxPriceCents   Int?
-  pollIntervalMin Int       @default(30)
-  isEnabled       Boolean   @default(true)
+  pollIntervalMin Int           @default(30)
+  isEnabled       Boolean       @default(true)
   lastPolledAt    DateTime?
-  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
+  user            User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  alerts          Alert[]
+  pollRuns        PollRun[]
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
 
   @@index([userId])
+  @@index([isEnabled, lastPolledAt])
+}
+
+model Listing {
+  id         String            @id @default(cuid())
+  source     MarketplaceSource
+  externalId String
+  title      String
+  priceCents Int?
+  currency   String            @default("BRL")
+  url        String
+  imageUrl   String?
+  location   String?
+  alerts     Alert[]
+  createdAt  DateTime          @default(now())
+  updatedAt  DateTime          @updatedAt
+
+  @@unique([source, externalId])
+}
+
+model Alert {
+  id            String      @id @default(cuid())
+  userId        String
+  savedSearchId String
+  listingId     String
+  user          User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  savedSearch   SavedSearch @relation(fields: [savedSearchId], references: [id], onDelete: Cascade)
+  listing       Listing     @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  createdAt     DateTime    @default(now())
+
+  @@unique([savedSearchId, listingId])
+  @@index([userId, createdAt(sort: Desc)])
+}
+
+model PollRun {
+  id            String        @id @default(cuid())
+  savedSearchId String
+  status        PollRunStatus @default(PENDING)
+  listingsFound Int           @default(0)
+  newAlerts     Int           @default(0)
+  errorMessage  String?
+  startedAt     DateTime      @default(now())
+  finishedAt    DateTime?
+  savedSearch   SavedSearch   @relation(fields: [savedSearchId], references: [id], onDelete: Cascade)
+
+  @@index([savedSearchId, startedAt(sort: Desc)])
 }

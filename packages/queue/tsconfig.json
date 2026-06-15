@@ -1,0 +1,10 @@
+{
+  "extends": "../../tsconfig.json",
+  "compilerOptions": {
+    "baseUrl": ".",
+    "paths": {
+      "@price-monitor/shared/*": ["../shared/src/*"]
+    }
+  },
+  "include": ["src/**/*.ts"]
+}

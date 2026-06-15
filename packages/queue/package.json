@@ -1,0 +1,13 @@
+{
+  "name": "@price-monitor/queue",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@price-monitor/shared": "*",
+    "bullmq": "^5.53.2"
+  }
+}

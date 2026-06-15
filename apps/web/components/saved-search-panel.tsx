@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { PollRunHistory, type PollRunRecord } from "@/components/poll-run-history";
 
 export interface SavedSearchRecord {
   id: string;
@@ -14,6 +15,7 @@ export interface SavedSearchRecord {
   lastPolledAt: string | null;
   createdAt: string;
   updatedAt: string;
+  recentPollRuns: PollRunRecord[];
 }
 
 function centsToReaisInput(cents: number | null): string {
@@ -213,6 +215,30 @@ interface SavedSearchListProps {
 export function SavedSearchList({ searches }: SavedSearchListProps) {
   const router = useRouter();
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [pollingId, setPollingId] = useState<string | null>(null);
+  const [pollMessage, setPollMessage] = useState<string | null>(null);
+
+  async function pollNow(searchId: string) {
+    setPollingId(searchId);
+    setPollMessage(null);
+
+    try {
+      const response = await fetch(`/api/searches/${searchId}/poll`, { method: "POST" });
+      const data = await response.json().catch(() => null);
+
+      if (!response.ok) {
+        setPollMessage(data?.error ?? "Failed to queue poll");
+        return;
+      }
+
+      setPollMessage(data?.message ?? "Poll queued.");
+      router.refresh();
+    } catch {
+      setPollMessage("Failed to queue poll");
+    } finally {
+      setPollingId(null);
+    }
+  }
 
   async function toggleEnabled(search: SavedSearchRecord) {
     await fetch("/api/searches", {
@@ -242,7 +268,14 @@ export function SavedSearchList({ searches }: SavedSearchListProps) {
   }
 
   return (
-    <ul className="space-y-4">
+    <div className="space-y-4">
+      {pollMessage ? (
+        <p className="rounded-md border border-[var(--border)] bg-[var(--card)] px-4 py-3 text-sm">
+          {pollMessage}
+        </p>
+      ) : null}
+
+      <ul className="space-y-4">
       {searches.map((search) => {
         const isEditing = editingId === search.id;
 
@@ -296,7 +329,17 @@ export function SavedSearchList({ searches }: SavedSearchListProps) {
                   </div>
                 </dl>
 
+                <PollRunHistory pollRuns={search.recentPollRuns} />
+
                 <div className="flex flex-wrap gap-2 pt-1">
+                  <button
+                    type="button"
+                    onClick={() => pollNow(search.id)}
+                    disabled={!search.isEnabled || pollingId === search.id}
+                    className="rounded-md bg-[var(--accent)] px-3 py-1.5 text-sm font-medium text-white hover:bg-[var(--accent-hover)] disabled:opacity-50"
+                  >
+                    {pollingId === search.id ? "Queuing..." : "Poll now"}
+                  </button>
                   <button
                     type="button"
                     onClick={() => setEditingId(search.id)}
@@ -324,7 +367,8 @@ export function SavedSearchList({ searches }: SavedSearchListProps) {
           </li>
         );
       })}
-    </ul>
+      </ul>
+    </div>
   );
 }
 

@@ -15,6 +15,7 @@
     "save:facebook-session": "npm run save:facebook-session --workspace=@price-monitor/worker",
     "db:generate": "npm run db:generate --workspace=@price-monitor/database",
     "db:push": "npm run db:push --workspace=@price-monitor/database",
+    "worker:dev": "npm run dev --workspace=@price-monitor/worker",
     "postinstall": "npm run db:generate --workspace=@price-monitor/database"
   },
   "devDependencies": {

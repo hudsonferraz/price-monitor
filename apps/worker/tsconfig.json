@@ -3,7 +3,9 @@
   "compilerOptions": {
     "baseUrl": ".",
     "paths": {
-      "@price-monitor/shared/*": ["../../packages/shared/src/*"]
+      "@price-monitor/shared/*": ["../../packages/shared/src/*"],
+      "@price-monitor/database": ["../../packages/database/src/index.ts"],
+      "@price-monitor/queue": ["../../packages/queue/src/index.ts"]
     }
   },
   "include": ["scripts/**/*.ts", "src/**/*.ts"]
