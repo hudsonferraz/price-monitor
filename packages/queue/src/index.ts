@@ -45,19 +45,23 @@ export function getPollSearchQueue(): Queue {
   return pollSearchQueue;
 }
 
+export type PollJobState = "active" | "waiting" | "delayed" | "completed" | "failed" | "unknown";
+
 export async function enqueuePollSearch(
   savedSearchId: string,
   triggeredBy: PollTrigger,
-): Promise<{ queued: boolean; jobId: string }> {
+): Promise<{ queued: boolean; jobId: string; state?: PollJobState }> {
   const queue = getPollSearchQueue();
   const jobId = `poll-${savedSearchId}`;
 
   const existingJob = await queue.getJob(jobId);
   if (existingJob) {
-    const state = await existingJob.getState();
+    const state = (await existingJob.getState()) as PollJobState;
     if (state === "active" || state === "waiting" || state === "delayed") {
-      return { queued: false, jobId };
+      return { queued: false, jobId, state };
     }
+
+    await existingJob.remove();
   }
 
   await queue.add(

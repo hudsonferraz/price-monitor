@@ -272,8 +272,10 @@ export function SavedSearchList({ searches }: SavedSearchListProps) {
       {pollMessage ? (
         <p
           className={`rounded-md border px-4 py-3 text-sm ${
-            pollMessage.toLowerCase().includes("wait")
-              ? "border-amber-200 bg-amber-50 text-amber-900"
+            pollMessage.toLowerCase().includes("wait") ||
+            pollMessage.toLowerCase().includes("minute") ||
+            pollMessage.toLowerCase().includes("queued")
+              ? "border-amber-200 bg-amber-50 text-amber-900 dark:border-amber-900/50 dark:bg-amber-950/30 dark:text-amber-200"
               : "border-[var(--border)] bg-[var(--card)]"
           }`}
         >

@@ -1,6 +1,8 @@
 import { auth } from "@/auth";
 import { queuePollSearch } from "@/lib/queue";
+import { wakeWorker } from "@/lib/wake-worker";
 import { prisma } from "@price-monitor/database";
+import type { PollJobState } from "@price-monitor/queue";
 import {
   formatPollCooldownMessage,
   getPollCooldownRemainingMs,
@@ -10,6 +12,22 @@ import { NextResponse } from "next/server";
 
 interface RouteContext {
   params: Promise<{ id: string }>;
+}
+
+function formatPollQueueMessage(queued: boolean, state?: PollJobState): string {
+  if (queued) {
+    return "Poll queued. The worker may take up to a minute to start, then results will appear shortly.";
+  }
+
+  if (state === "active") {
+    return "A poll is already running for this search.";
+  }
+
+  if (state === "waiting" || state === "delayed") {
+    return "A poll is already queued. The worker may take up to a minute to start on the free tier.";
+  }
+
+  return "A poll is already in progress for this search.";
 }
 
 export async function POST(_request: Request, context: RouteContext) {
@@ -45,13 +63,13 @@ export async function POST(_request: Request, context: RouteContext) {
   }
 
   try {
+    wakeWorker();
     const result = await queuePollSearch(id, "manual");
     return NextResponse.json({
       queued: result.queued,
       jobId: result.jobId,
-      message: result.queued
-        ? "Poll queued. Results will appear shortly."
-        : "A poll is already in progress for this search.",
+      state: result.state,
+      message: formatPollQueueMessage(result.queued, result.state),
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Failed to queue poll";

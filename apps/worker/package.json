@@ -14,7 +14,7 @@
     "@price-monitor/queue": "*",
     "@price-monitor/shared": "*",
     "linkedom": "^0.18.12",
-    "playwright": "^1.52.0",
+    "playwright": "1.60.0",
     "resend": "^4.5.1",
     "tsx": "^4.19.4"
   },

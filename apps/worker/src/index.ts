@@ -1,3 +1,4 @@
+import "./env-bootstrap.js";
 import { Worker } from "bullmq";
 import {
   getRedisConnectionOptions,
@@ -40,6 +41,7 @@ async function main(): Promise<void> {
     {
       connection,
       concurrency: 1,
+      lockDuration: 120_000,
     },
   );
 
