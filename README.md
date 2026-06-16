@@ -96,13 +96,14 @@ npm test
 
 **Worker (Render):**
 
-The worker runs Playwright + BullMQ and cannot run on Vercel. Use the included `render.yaml`:
+The worker runs Playwright + BullMQ and cannot run on Vercel. Use `render.yaml` (web service on free tier):
 
-1. Connect the repo on [Render](https://render.com)
+1. Connect the repo on [Render](https://render.com) → **Blueprint**
 2. Set env vars: `DATABASE_URL`, `REDIS_URL`, `RESEND_API_KEY`, `EMAIL_FROM`, `APP_URL`
-3. Upload `facebook-storage-state.json` as a secret file (or use `MOCK_MARKETPLACE=true` for demos)
+3. Upload `facebook-storage-state.json` as a secret file at `/etc/secrets/facebook-storage-state.json`
+4. On free tier, ping `/health` every 5 min (e.g. UptimeRobot) or upgrade to Starter for always-on
 
-You can also run the worker locally while using production Vercel + Upstash — both must share the same `REDIS_URL` and `DATABASE_URL`.
+See [docs/render-deploy.md](docs/render-deploy.md) for the full walkthrough.
 
 ## Architecture
 

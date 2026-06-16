@@ -1,10 +1,14 @@
 services:
-  - type: worker
+  # Render free tier does not support `type: worker`.
+  # Deploy as a web service with /health so Render keeps the process alive.
+  # Optional: use UptimeRobot (free) to ping /health every 5 min on free tier.
+  - type: web
     name: price-monitor-worker
     runtime: docker
     dockerfilePath: ./apps/worker/Dockerfile
     dockerContext: .
     plan: free
+    healthCheckPath: /health
     envVars:
       - key: DATABASE_URL
         sync: false
