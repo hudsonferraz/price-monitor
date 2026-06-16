@@ -1,6 +1,11 @@
 import { auth } from "@/auth";
 import { queuePollSearch } from "@/lib/queue";
 import { prisma } from "@price-monitor/database";
+import {
+  formatPollCooldownMessage,
+  getPollCooldownRemainingMs,
+  MIN_MANUAL_POLL_INTERVAL_MS,
+} from "@price-monitor/shared/poll-rate-limit";
 import { NextResponse } from "next/server";
 
 interface RouteContext {
@@ -25,6 +30,18 @@ export async function POST(_request: Request, context: RouteContext) {
 
   if (!savedSearch.isEnabled) {
     return NextResponse.json({ error: "Search is disabled" }, { status: 400 });
+  }
+
+  const cooldownRemainingMs = getPollCooldownRemainingMs(savedSearch.lastPolledAt);
+  if (cooldownRemainingMs > 0) {
+    return NextResponse.json(
+      {
+        error: formatPollCooldownMessage(cooldownRemainingMs),
+        retryAfterSeconds: Math.ceil(cooldownRemainingMs / 1000),
+        minPollIntervalMinutes: MIN_MANUAL_POLL_INTERVAL_MS / 60_000,
+      },
+      { status: 429 },
+    );
   }
 
   try {

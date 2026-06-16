@@ -1,12 +1,14 @@
 import { prisma, MarketplaceSource, PollRunStatus } from "@price-monitor/database";
 import { DEFAULT_LISTING_LIMIT } from "@price-monitor/shared/queue";
 import type { NormalizedListing } from "@price-monitor/shared/types";
+import { sendNewAlertsEmail } from "../lib/email-notifications";
 import { searchMarketplace } from "../lib/marketplace-browser";
 
 export interface PollSearchResult {
   pollRunId: string;
   listingsFound: number;
   newAlerts: number;
+  emailSent: boolean;
 }
 
 export async function executePollSearch(savedSearchId: string): Promise<PollSearchResult> {
@@ -37,7 +39,11 @@ export async function executePollSearch(savedSearchId: string): Promise<PollSear
       limit: DEFAULT_LISTING_LIMIT,
     });
 
-    const newAlerts = await persistListingsAndAlerts(savedSearch.id, savedSearch.userId, listings);
+    const { newAlerts, alertIds } = await persistListingsAndAlerts(
+      savedSearch.id,
+      savedSearch.userId,
+      listings,
+    );
 
     await prisma.pollRun.update({
       where: { id: pollRun.id },
@@ -54,10 +60,20 @@ export async function executePollSearch(savedSearchId: string): Promise<PollSear
       data: { lastPolledAt: new Date() },
     });
 
+    let emailSent = false;
+    if (newAlerts > 0) {
+      try {
+        emailSent = await sendNewAlertsEmail(savedSearch.userId, savedSearch.id, alertIds);
+      } catch (error) {
+        console.error("Failed to send alert email:", error instanceof Error ? error.message : error);
+      }
+    }
+
     return {
       pollRunId: pollRun.id,
       listingsFound: listings.length,
       newAlerts,
+      emailSent,
     };
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : "Unknown poll error";
@@ -80,12 +96,17 @@ export async function executePollSearch(savedSearchId: string): Promise<PollSear
   }
 }
 
+interface PersistResult {
+  newAlerts: number;
+  alertIds: string[];
+}
+
 async function persistListingsAndAlerts(
   savedSearchId: string,
   userId: string,
   listings: NormalizedListing[],
-): Promise<number> {
-  let newAlerts = 0;
+): Promise<PersistResult> {
+  const alertIds: string[] = [];
 
   for (const listing of listings) {
     const storedListing = await prisma.listing.upsert({
@@ -128,7 +149,7 @@ async function persistListingsAndAlerts(
       continue;
     }
 
-    await prisma.alert.create({
+    const alert = await prisma.alert.create({
       data: {
         userId,
         savedSearchId,
@@ -136,10 +157,13 @@ async function persistListingsAndAlerts(
       },
     });
 
-    newAlerts += 1;
+    alertIds.push(alert.id);
   }
 
-  return newAlerts;
+  return {
+    newAlerts: alertIds.length,
+    alertIds,
+  };
 }
 
 export async function scheduleDuePolls(): Promise<number> {

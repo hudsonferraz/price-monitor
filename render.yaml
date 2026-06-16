@@ -1,0 +1,24 @@
+services:
+  - type: worker
+    name: price-monitor-worker
+    runtime: docker
+    dockerfilePath: ./apps/worker/Dockerfile
+    dockerContext: .
+    plan: free
+    envVars:
+      - key: DATABASE_URL
+        sync: false
+      - key: REDIS_URL
+        sync: false
+      - key: RESEND_API_KEY
+        sync: false
+      - key: EMAIL_FROM
+        sync: false
+      - key: APP_URL
+        sync: false
+      - key: FACEBOOK_STORAGE_STATE_PATH
+        value: /etc/secrets/facebook-storage-state.json
+      - key: PLAYWRIGHT_HEADLESS
+        value: "true"
+      - key: MOCK_MARKETPLACE
+        value: "false"

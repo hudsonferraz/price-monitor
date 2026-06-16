@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "dotenv -e ../../.env -- tsx src/index.ts",
-    "start": "dotenv -e ../../.env -- tsx src/index.ts",
+    "start": "tsx src/index.ts",
     "spike:facebook": "tsx scripts/spike-facebook.ts",
     "save:facebook-session": "tsx scripts/save-facebook-session.ts"
   },
@@ -14,11 +14,12 @@
     "@price-monitor/queue": "*",
     "@price-monitor/shared": "*",
     "linkedom": "^0.18.12",
-    "playwright": "^1.52.0"
+    "playwright": "^1.52.0",
+    "resend": "^4.5.1",
+    "tsx": "^4.19.4"
   },
   "devDependencies": {
     "dotenv-cli": "^8.0.0",
-    "tsx": "^4.19.4",
     "typescript": "^5.8.3"
   }
 }

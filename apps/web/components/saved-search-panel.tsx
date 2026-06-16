@@ -270,7 +270,13 @@ export function SavedSearchList({ searches }: SavedSearchListProps) {
   return (
     <div className="space-y-4">
       {pollMessage ? (
-        <p className="rounded-md border border-[var(--border)] bg-[var(--card)] px-4 py-3 text-sm">
+        <p
+          className={`rounded-md border px-4 py-3 text-sm ${
+            pollMessage.toLowerCase().includes("wait")
+              ? "border-amber-200 bg-amber-50 text-amber-900"
+              : "border-[var(--border)] bg-[var(--card)]"
+          }`}
+        >
           {pollMessage}
         </p>
       ) : null}

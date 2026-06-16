@@ -1,4 +1,5 @@
 import { AlertsFeed, type AlertRecord } from "@/components/alerts-feed";
+import { NotificationSettings } from "@/components/notification-settings";
 import type { PollRunRecord } from "@/components/poll-run-history";
 import { SiteHeader } from "@/components/site-header";
 import { SavedSearchForm, SavedSearchList, type SavedSearchRecord } from "@/components/saved-search-panel";
@@ -13,7 +14,7 @@ export default async function DashboardPage() {
     redirect("/sign-in");
   }
 
-  const [searches, alerts, pollRuns] = await Promise.all([
+  const [searches, alerts, pollRuns, user] = await Promise.all([
     prisma.savedSearch.findMany({
       where: { userId: session.user.id },
       orderBy: { createdAt: "desc" },
@@ -31,6 +32,10 @@ export default async function DashboardPage() {
       where: { savedSearch: { userId: session.user.id } },
       orderBy: { startedAt: "desc" },
       take: 100,
+    }),
+    prisma.user.findUnique({
+      where: { id: session.user.id },
+      select: { emailNotificationsEnabled: true },
     }),
   ]);
 
@@ -92,6 +97,12 @@ export default async function DashboardPage() {
             Monitor Facebook Marketplace searches and review new listing alerts.
           </p>
         </div>
+
+        <section className="mb-10">
+          <NotificationSettings
+            emailNotificationsEnabled={user?.emailNotificationsEnabled ?? true}
+          />
+        </section>
 
         <section className="mb-10">
           <h2 className="mb-4 text-lg font-semibold">Alerts</h2>

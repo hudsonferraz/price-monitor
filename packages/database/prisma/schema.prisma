@@ -19,17 +19,18 @@ enum PollRunStatus {
 }
 
 model User {
-  id            String        @id @default(cuid())
-  name          String?
-  email         String        @unique
-  emailVerified DateTime?
-  image         String?
-  accounts      Account[]
-  sessions      Session[]
-  savedSearches SavedSearch[]
-  alerts        Alert[]
-  createdAt     DateTime      @default(now())
-  updatedAt     DateTime      @updatedAt
+  id                        String        @id @default(cuid())
+  name                      String?
+  email                     String        @unique
+  emailVerified             DateTime?
+  image                     String?
+  emailNotificationsEnabled Boolean       @default(true)
+  accounts                  Account[]
+  sessions                  Session[]
+  savedSearches             SavedSearch[]
+  alerts                    Alert[]
+  createdAt                 DateTime      @default(now())
+  updatedAt                 DateTime      @updatedAt
 }
 
 model Account {
@@ -110,6 +111,7 @@ model Alert {
   userId        String
   savedSearchId String
   listingId     String
+  emailSentAt   DateTime?
   user          User        @relation(fields: [userId], references: [id], onDelete: Cascade)
   savedSearch   SavedSearch @relation(fields: [savedSearchId], references: [id], onDelete: Cascade)
   listing       Listing     @relation(fields: [listingId], references: [id], onDelete: Cascade)
