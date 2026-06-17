@@ -2,32 +2,16 @@ import { auth } from "@/auth";
 import { queuePollSearch } from "@/lib/queue";
 import { wakeWorker } from "@/lib/wake-worker";
 import { prisma } from "@price-monitor/database";
-import type { PollJobState } from "@price-monitor/queue";
 import {
   formatPollCooldownMessage,
   getPollCooldownRemainingMs,
   MIN_MANUAL_POLL_INTERVAL_MS,
 } from "@price-monitor/shared/poll-rate-limit";
+import { formatPollQueueMessage } from "@price-monitor/shared/poll-queue-messages";
 import { NextResponse } from "next/server";
 
 interface RouteContext {
   params: Promise<{ id: string }>;
-}
-
-function formatPollQueueMessage(queued: boolean, state?: PollJobState): string {
-  if (queued) {
-    return "Poll queued. The worker may take up to a minute to start, then results will appear shortly.";
-  }
-
-  if (state === "active") {
-    return "A poll is already running for this search.";
-  }
-
-  if (state === "waiting" || state === "delayed") {
-    return "A poll is already queued. The worker may take up to a minute to start on the free tier.";
-  }
-
-  return "A poll is already in progress for this search.";
 }
 
 export async function POST(_request: Request, context: RouteContext) {
@@ -65,11 +49,27 @@ export async function POST(_request: Request, context: RouteContext) {
   try {
     wakeWorker();
     const result = await queuePollSearch(id, "manual");
+    const blockingSearch = result.queueContext?.blockingSavedSearchId
+      ? await prisma.savedSearch.findUnique({
+          where: { id: result.queueContext.blockingSavedSearchId },
+          select: { name: true },
+        })
+      : null;
+
+    const message = formatPollQueueMessage({
+      queued: result.queued,
+      jobState: result.state ?? result.queueContext?.jobState,
+      blockingSearchName: blockingSearch?.name ?? null,
+      waitingPosition: result.queueContext?.waitingPosition,
+    });
+
     return NextResponse.json({
       queued: result.queued,
       jobId: result.jobId,
-      state: result.state,
-      message: formatPollQueueMessage(result.queued, result.state),
+      state: result.state ?? result.queueContext?.jobState,
+      blockingSearchName: blockingSearch?.name ?? null,
+      waitingPosition: result.queueContext?.waitingPosition ?? null,
+      message,
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Failed to queue poll";

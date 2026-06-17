@@ -15,6 +15,7 @@ export async function GET(request: Request) {
   const alerts = await prisma.alert.findMany({
     where: {
       userId: session.user.id,
+      dismissedAt: null,
       ...(savedSearchId ? { savedSearchId } : {}),
     },
     include: {

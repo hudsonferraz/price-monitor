@@ -24,6 +24,7 @@ export default async function DashboardPage() {
       orderBy: { createdAt: "desc" },
       include: {
         alerts: {
+          where: { dismissedAt: null },
           include: { listing: true },
           orderBy: { createdAt: "desc" },
           take: 50,

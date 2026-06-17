@@ -1,10 +1,17 @@
-import { enqueuePollSearch, releaseStaleActivePollJobs, type PollJobState } from "@price-monitor/queue";
+import {
+  enqueuePollSearch,
+  getPollQueueContext,
+  releaseStaleActivePollJobs,
+  type PollJobState,
+  type PollQueueContext,
+} from "@price-monitor/queue";
 import type { PollTrigger } from "@price-monitor/shared/queue";
 
 export type QueuePollSearchResult = {
   queued: boolean;
   jobId: string;
   state?: PollJobState;
+  queueContext?: PollQueueContext;
 };
 
 export function isRedisConfigured(): boolean {
@@ -20,5 +27,13 @@ export async function queuePollSearch(
   }
 
   await releaseStaleActivePollJobs();
-  return enqueuePollSearch(savedSearchId, triggeredBy);
+  const result = await enqueuePollSearch(savedSearchId, triggeredBy);
+  const queueContext = await getPollQueueContext(savedSearchId);
+
+  return {
+    ...result,
+    queueContext,
+  };
 }
+
+export { getPollQueueContext };

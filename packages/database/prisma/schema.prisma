@@ -101,6 +101,7 @@ model Listing {
   imageUrl   String?
   location   String?
   alerts     Alert[]
+  snapshots  PollSnapshotListing[]
   createdAt  DateTime          @default(now())
   updatedAt  DateTime          @updatedAt
 
@@ -115,6 +116,8 @@ model Alert {
   emailSentAt   DateTime?
   previousPriceCents Int?
   priceDroppedAt     DateTime?
+  seenAt             DateTime?
+  dismissedAt        DateTime?
   user          User        @relation(fields: [userId], references: [id], onDelete: Cascade)
   savedSearch   SavedSearch @relation(fields: [savedSearchId], references: [id], onDelete: Cascade)
   listing       Listing     @relation(fields: [listingId], references: [id], onDelete: Cascade)
@@ -122,6 +125,20 @@ model Alert {
 
   @@unique([savedSearchId, listingId])
   @@index([userId, createdAt(sort: Desc)])
+  @@index([savedSearchId, dismissedAt])
+}
+
+model PollSnapshotListing {
+  id         String   @id @default(cuid())
+  pollRunId  String
+  listingId  String
+  priceCents Int?
+  pollRun    PollRun  @relation(fields: [pollRunId], references: [id], onDelete: Cascade)
+  listing    Listing  @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  createdAt  DateTime @default(now())
+
+  @@unique([pollRunId, listingId])
+  @@index([pollRunId])
 }
 
 model PollRun {
@@ -134,7 +151,8 @@ model PollRun {
   durationMs    Int?
   startedAt     DateTime      @default(now())
   finishedAt    DateTime?
-  savedSearch   SavedSearch   @relation(fields: [savedSearchId], references: [id], onDelete: Cascade)
+  savedSearch   SavedSearch           @relation(fields: [savedSearchId], references: [id], onDelete: Cascade)
+  snapshots     PollSnapshotListing[]
 
   @@index([savedSearchId, startedAt(sort: Desc)])
 }

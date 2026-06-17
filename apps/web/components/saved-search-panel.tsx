@@ -270,13 +270,37 @@ export function SavedSearchList({ searches }: SavedSearchListProps) {
     const searchId = watchingPollSearchId;
 
     async function checkPollStatus(): Promise<boolean> {
-      const response = await fetch(`/api/searches/${searchId}/poll-runs?limit=1`).catch(() => null);
+      const [runsResponse, statusResponse] = await Promise.all([
+        fetch(`/api/searches/${searchId}/poll-runs?limit=1`).catch(() => null),
+        fetch(`/api/searches/${searchId}/poll-status`).catch(() => null),
+      ]);
 
-      if (!response?.ok) {
+      if (statusResponse?.ok) {
+        const status = (await statusResponse.json()) as {
+          jobState?: string;
+          message?: string;
+        };
+
+        if (status.jobState === "waiting" || status.jobState === "delayed") {
+          updateSearchPollState(searchId, {
+            phase: "queued",
+            message: status.message ?? "Poll queued. Updating automatically.",
+          });
+        }
+
+        if (status.jobState === "active") {
+          updateSearchPollState(searchId, {
+            phase: "running",
+            message: "Checking Facebook Marketplace — usually takes 1–2 minutes.",
+          });
+        }
+      }
+
+      if (!runsResponse?.ok) {
         return false;
       }
 
-      const runs = (await response.json()) as PollRunRecord[];
+      const runs = (await runsResponse.json()) as PollRunRecord[];
       const latestRun = runs[0];
       router.refresh();
 
@@ -357,7 +381,7 @@ export function SavedSearchList({ searches }: SavedSearchListProps) {
 
       updateSearchPollState(searchId, {
         phase: "queued",
-        message: `${data?.message ?? "Poll queued."} Updating automatically.`,
+        message: data?.message ?? "Poll queued. Updating automatically.",
       });
       setWatchingPollSearchId(searchId);
       router.refresh();

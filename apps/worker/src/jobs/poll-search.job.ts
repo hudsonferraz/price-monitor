@@ -63,6 +63,7 @@ export async function executePollSearch(savedSearchId: string): Promise<PollSear
     const { newAlerts, alertIds } = await persistListingsAndAlerts(
       savedSearch.id,
       savedSearch.userId,
+      pollRun.id,
       listings,
     );
 
@@ -140,9 +141,15 @@ interface PersistResult {
 async function persistListingsAndAlerts(
   savedSearchId: string,
   userId: string,
+  pollRunId: string,
   listings: NormalizedListing[],
 ): Promise<PersistResult> {
   const alertIds: string[] = [];
+  const snapshotEntries: Array<{
+    pollRunId: string;
+    listingId: string;
+    priceCents: number | null;
+  }> = [];
 
   for (const listing of listings) {
     const existingListing = await prisma.listing.findUnique({
@@ -183,6 +190,12 @@ async function persistListingsAndAlerts(
       },
     });
 
+    snapshotEntries.push({
+      pollRunId,
+      listingId: storedListing.id,
+      priceCents: listing.priceCents,
+    });
+
     const existingAlert = await prisma.alert.findUnique({
       where: {
         savedSearchId_listingId: {
@@ -191,6 +204,10 @@ async function persistListingsAndAlerts(
         },
       },
     });
+
+    if (existingAlert?.dismissedAt) {
+      continue;
+    }
 
     const priceDropped =
       existingListing != null &&
@@ -218,11 +235,25 @@ async function persistListingsAndAlerts(
           previousPriceCents,
           priceDroppedAt: new Date(),
           emailSentAt: null,
+          seenAt: null,
         },
       });
 
       alertIds.push(existingAlert.id);
+      continue;
     }
+
+    await prisma.alert.update({
+      where: { id: existingAlert.id },
+      data: { seenAt: new Date() },
+    });
+  }
+
+  if (snapshotEntries.length > 0) {
+    await prisma.pollSnapshotListing.createMany({
+      data: snapshotEntries,
+      skipDuplicates: true,
+    });
   }
 
   return {

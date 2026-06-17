@@ -22,7 +22,10 @@ export async function DELETE(_request: Request, context: RouteContext) {
     return NextResponse.json({ error: "Alert not found" }, { status: 404 });
   }
 
-  await prisma.alert.delete({ where: { id } });
+  await prisma.alert.update({
+    where: { id },
+    data: { dismissedAt: new Date() },
+  });
 
   return new NextResponse(null, { status: 204 });
 }

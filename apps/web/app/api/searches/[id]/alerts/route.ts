@@ -22,9 +22,10 @@ export async function DELETE(_request: Request, context: RouteContext) {
     return NextResponse.json({ error: "Search not found" }, { status: 404 });
   }
 
-  const result = await prisma.alert.deleteMany({
-    where: { savedSearchId, userId: session.user.id },
+  const result = await prisma.alert.updateMany({
+    where: { savedSearchId, userId: session.user.id, dismissedAt: null },
+    data: { dismissedAt: new Date() },
   });
 
-  return NextResponse.json({ deleted: result.count });
+  return NextResponse.json({ dismissed: result.count });
 }

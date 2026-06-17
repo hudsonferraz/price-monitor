@@ -47,6 +47,13 @@ export function getPollSearchQueue(): Queue {
 
 export type PollJobState = "active" | "waiting" | "delayed" | "completed" | "failed" | "unknown";
 
+export interface PollQueueContext {
+  jobState?: PollJobState;
+  isQueued: boolean;
+  blockingSavedSearchId?: string;
+  waitingPosition?: number;
+}
+
 const DEFAULT_STALE_ACTIVE_POLL_MS = 5 * 60 * 1000;
 
 export async function releaseStaleActivePollJobs(
@@ -105,6 +112,37 @@ export async function enqueuePollSearch(
   );
 
   return { queued: true, jobId };
+}
+
+export async function getPollQueueContext(savedSearchId: string): Promise<PollQueueContext> {
+  const queue = getPollSearchQueue();
+  const jobId = `poll-${savedSearchId}`;
+  const myJob = await queue.getJob(jobId);
+  const jobState = myJob ? ((await myJob.getState()) as PollJobState) : undefined;
+  const isQueued =
+    jobState === "active" || jobState === "waiting" || jobState === "delayed";
+
+  const activeJobs = await queue.getJobs(["active"], 0, 5);
+  const blockingActiveJob = activeJobs.find((job) => {
+    const data = job.data as PollSearchJobData;
+    return data.savedSearchId !== savedSearchId;
+  });
+
+  let waitingPosition: number | undefined;
+  if (jobState === "waiting" || jobState === "delayed") {
+    const waitingJobs = await queue.getJobs(["waiting", "delayed"], 0, 50);
+    const index = waitingJobs.findIndex((job) => job.id === jobId);
+    waitingPosition = index >= 0 ? index + 1 : undefined;
+  }
+
+  return {
+    jobState,
+    isQueued,
+    blockingSavedSearchId: blockingActiveJob
+      ? (blockingActiveJob.data as PollSearchJobData).savedSearchId
+      : undefined,
+    waitingPosition,
+  };
 }
 
 let schedulePollsQueue: Queue | undefined;
