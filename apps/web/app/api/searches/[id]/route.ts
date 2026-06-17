@@ -1,4 +1,5 @@
 import { auth } from "@/auth";
+import { cancelPollSearchJob } from "@price-monitor/queue";
 import { prisma } from "@price-monitor/database";
 import { NextResponse } from "next/server";
 
@@ -23,6 +24,7 @@ export async function DELETE(_request: Request, context: RouteContext) {
   }
 
   await prisma.savedSearch.delete({ where: { id } });
+  await cancelPollSearchJob(id);
 
   return new NextResponse(null, { status: 204 });
 }

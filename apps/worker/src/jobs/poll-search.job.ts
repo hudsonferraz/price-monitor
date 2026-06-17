@@ -17,12 +17,31 @@ export async function executePollSearch(savedSearchId: string): Promise<PollSear
   });
 
   if (!savedSearch) {
-    throw new Error(`Saved search not found: ${savedSearchId}`);
+    console.warn(`Skipping poll for missing search: ${savedSearchId}`);
+    return {
+      pollRunId: "",
+      listingsFound: 0,
+      newAlerts: 0,
+      emailSent: false,
+    };
   }
 
   if (!savedSearch.isEnabled) {
     throw new Error(`Saved search is disabled: ${savedSearchId}`);
   }
+
+  await prisma.pollRun.updateMany({
+    where: {
+      savedSearchId,
+      status: PollRunStatus.RUNNING,
+      startedAt: { lt: new Date(Date.now() - 5 * 60 * 1000) },
+    },
+    data: {
+      status: PollRunStatus.FAILED,
+      errorMessage: "Poll timed out before completing.",
+      finishedAt: new Date(),
+    },
+  });
 
   const pollRun = await prisma.pollRun.create({
     data: {

@@ -47,12 +47,46 @@ export function getPollSearchQueue(): Queue {
 
 export type PollJobState = "active" | "waiting" | "delayed" | "completed" | "failed" | "unknown";
 
+const DEFAULT_STALE_ACTIVE_POLL_MS = 5 * 60 * 1000;
+
+export async function releaseStaleActivePollJobs(
+  maxActiveMs: number = DEFAULT_STALE_ACTIVE_POLL_MS,
+): Promise<number> {
+  const queue = getPollSearchQueue();
+  const activeJobs = await queue.getJobs(["active"], 0, 50);
+  let released = 0;
+
+  for (const job of activeJobs) {
+    const processedOn = job.processedOn;
+    if (!processedOn || Date.now() - processedOn < maxActiveMs) {
+      continue;
+    }
+
+    await job.remove();
+    released += 1;
+  }
+
+  return released;
+}
+
+export async function cancelPollSearchJob(savedSearchId: string): Promise<void> {
+  const queue = getPollSearchQueue();
+  const job = await queue.getJob(`poll-${savedSearchId}`);
+  if (!job) {
+    return;
+  }
+
+  await job.remove();
+}
+
 export async function enqueuePollSearch(
   savedSearchId: string,
   triggeredBy: PollTrigger,
 ): Promise<{ queued: boolean; jobId: string; state?: PollJobState }> {
   const queue = getPollSearchQueue();
   const jobId = `poll-${savedSearchId}`;
+
+  await releaseStaleActivePollJobs();
 
   const existingJob = await queue.getJob(jobId);
   if (existingJob) {

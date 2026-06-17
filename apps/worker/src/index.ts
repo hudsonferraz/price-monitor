@@ -7,6 +7,7 @@ import {
   SCHEDULE_POLLS_QUEUE,
 } from "@price-monitor/queue";
 import type { PollSearchJobData } from "@price-monitor/shared/queue";
+import { cleanupPollJobs } from "./lib/poll-job-cleanup";
 import { closeBrowser } from "./lib/marketplace-browser";
 import { startHealthServer } from "./lib/health-server";
 import { executePollSearch, scheduleDuePolls } from "./jobs/poll-search.job";
@@ -42,8 +43,17 @@ async function main(): Promise<void> {
       connection,
       concurrency: 1,
       lockDuration: 120_000,
+      stalledInterval: 30_000,
+      maxStalledCount: 1,
     },
   );
+
+  const cleanup = await cleanupPollJobs();
+  if (cleanup.staleReleased > 0 || cleanup.orphansRemoved > 0) {
+    console.log(
+      `Cleaned poll queue: ${cleanup.staleReleased} stale, ${cleanup.orphansRemoved} orphan job(s).`,
+    );
+  }
 
   pollWorker.on("failed", (job, error) => {
     console.error(`Poll job ${job?.id} failed:`, error.message);

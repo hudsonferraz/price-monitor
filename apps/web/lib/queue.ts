@@ -1,4 +1,4 @@
-import { enqueuePollSearch, type PollJobState } from "@price-monitor/queue";
+import { enqueuePollSearch, releaseStaleActivePollJobs, type PollJobState } from "@price-monitor/queue";
 import type { PollTrigger } from "@price-monitor/shared/queue";
 
 export type QueuePollSearchResult = {
@@ -19,5 +19,6 @@ export async function queuePollSearch(
     throw new Error("REDIS_URL is not configured. Start the worker with Redis to enable polling.");
   }
 
+  await releaseStaleActivePollJobs();
   return enqueuePollSearch(savedSearchId, triggeredBy);
 }
