@@ -96,6 +96,7 @@ export default async function DashboardPage() {
       updatedAt: search.updatedAt.toISOString(),
       recentPollRuns,
       alerts,
+      latestPollStartedAt: latestSuccess?.startedAt ?? null,
       isFirstPollResults:
         successPollCount === 1 &&
         latestSuccess != null &&

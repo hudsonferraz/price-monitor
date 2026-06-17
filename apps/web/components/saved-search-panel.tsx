@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { SearchAlertsSection, type AlertRecord } from "@/components/alerts-feed";
+import { PollStatusBanner, type SearchPollState } from "@/components/poll-status-banner";
 import { PollRunHistory, type PollRunRecord } from "@/components/poll-run-history";
 
 export interface SavedSearchRecord {
@@ -19,6 +20,7 @@ export interface SavedSearchRecord {
   recentPollRuns: PollRunRecord[];
   alerts: AlertRecord[];
   isFirstPollResults: boolean;
+  latestPollStartedAt: string | null;
 }
 
 function centsToReaisInput(cents: number | null): string {
@@ -219,8 +221,18 @@ export function SavedSearchList({ searches }: SavedSearchListProps) {
   const router = useRouter();
   const [editingId, setEditingId] = useState<string | null>(null);
   const [pollingId, setPollingId] = useState<string | null>(null);
-  const [pollMessage, setPollMessage] = useState<string | null>(null);
   const [watchingPollSearchId, setWatchingPollSearchId] = useState<string | null>(null);
+  const [searchPollStates, setSearchPollStates] = useState<Record<string, SearchPollState>>({});
+
+  function updateSearchPollState(searchId: string, state: SearchPollState | null) {
+    setSearchPollStates((current) => {
+      if (!state) {
+        const { [searchId]: _removed, ...rest } = current;
+        return rest;
+      }
+      return { ...current, [searchId]: state };
+    });
+  }
 
   useEffect(() => {
     if (!watchingPollSearchId) {
@@ -230,11 +242,10 @@ export function SavedSearchList({ searches }: SavedSearchListProps) {
     let cancelled = false;
     const startedAt = Date.now();
     const maxWaitMs = 3 * 60 * 1000;
+    const searchId = watchingPollSearchId;
 
     async function checkPollStatus(): Promise<boolean> {
-      const response = await fetch(
-        `/api/searches/${watchingPollSearchId}/poll-runs?limit=1`,
-      ).catch(() => null);
+      const response = await fetch(`/api/searches/${searchId}/poll-runs?limit=1`).catch(() => null);
 
       if (!response?.ok) {
         return false;
@@ -244,22 +255,36 @@ export function SavedSearchList({ searches }: SavedSearchListProps) {
       const latestRun = runs[0];
       router.refresh();
 
+      if (latestRun?.status === "RUNNING") {
+        updateSearchPollState(searchId, {
+          phase: "running",
+          message: "Checking Facebook Marketplace — usually takes 1–2 minutes.",
+        });
+        return false;
+      }
+
       if (latestRun?.status === "SUCCESS") {
-        setPollMessage(
-          `Poll complete — ${latestRun.newAlerts} new alert(s) from ${latestRun.listingsFound} listing(s).`,
-        );
+        updateSearchPollState(searchId, {
+          phase: "success",
+          message: `Found ${latestRun.listingsFound} listing(s), ${latestRun.newAlerts} new.`,
+        });
+        window.setTimeout(() => updateSearchPollState(searchId, null), 8_000);
         return true;
       }
 
       if (latestRun?.status === "FAILED") {
-        setPollMessage(latestRun.errorMessage ?? "Poll failed. Try again in a few minutes.");
+        updateSearchPollState(searchId, {
+          phase: "failed",
+          message: latestRun.errorMessage ?? "Poll failed. Try again in a few minutes.",
+        });
         return true;
       }
 
       if (Date.now() - startedAt > maxWaitMs) {
-        setPollMessage(
-          "Poll is taking longer than expected. Refresh the page in a minute to see results.",
-        );
+        updateSearchPollState(searchId, {
+          phase: "failed",
+          message: "Poll is taking longer than expected. Refresh the page in a minute.",
+        });
         return true;
       }
 
@@ -287,25 +312,35 @@ export function SavedSearchList({ searches }: SavedSearchListProps) {
 
   async function pollNow(searchId: string) {
     setPollingId(searchId);
-    setPollMessage(null);
     setWatchingPollSearchId(null);
+    updateSearchPollState(searchId, {
+      phase: "queuing",
+      message: "Sending poll request...",
+    });
 
     try {
       const response = await fetch(`/api/searches/${searchId}/poll`, { method: "POST" });
       const data = await response.json().catch(() => null);
 
       if (!response.ok) {
-        setPollMessage(data?.error ?? "Failed to queue poll");
+        updateSearchPollState(searchId, {
+          phase: "failed",
+          message: data?.error ?? "Failed to queue poll",
+        });
         return;
       }
 
-      setPollMessage(
-        `${data?.message ?? "Poll queued."} This page will update automatically in 1–2 minutes.`,
-      );
+      updateSearchPollState(searchId, {
+        phase: "queued",
+        message: `${data?.message ?? "Poll queued."} Updating automatically.`,
+      });
       setWatchingPollSearchId(searchId);
       router.refresh();
     } catch {
-      setPollMessage("Failed to queue poll");
+      updateSearchPollState(searchId, {
+        phase: "failed",
+        message: "Failed to queue poll",
+      });
     } finally {
       setPollingId(null);
     }
@@ -340,23 +375,18 @@ export function SavedSearchList({ searches }: SavedSearchListProps) {
 
   return (
     <div className="space-y-4">
-      {pollMessage ? (
-        <p
-          className={`rounded-md border px-4 py-3 text-sm ${
-            pollMessage.toLowerCase().includes("wait") ||
-            pollMessage.toLowerCase().includes("minute") ||
-            pollMessage.toLowerCase().includes("queued")
-              ? "border-amber-200 bg-amber-50 text-amber-900 dark:border-amber-900/50 dark:bg-amber-950/30 dark:text-amber-200"
-              : "border-[var(--border)] bg-[var(--card)]"
-          }`}
-        >
-          {pollMessage}
-        </p>
-      ) : null}
-
       <ul className="space-y-4">
       {searches.map((search) => {
         const isEditing = editingId === search.id;
+        const latestRun = search.recentPollRuns[0];
+        const livePollState =
+          searchPollStates[search.id] ??
+          (latestRun?.status === "RUNNING"
+            ? {
+                phase: "running" as const,
+                message: "Checking Facebook Marketplace — usually takes 1–2 minutes.",
+              }
+            : null);
 
         return (
           <li
@@ -415,21 +445,33 @@ export function SavedSearchList({ searches }: SavedSearchListProps) {
                   </div>
                 </dl>
 
+                {livePollState ? <PollStatusBanner pollState={livePollState} /> : null}
+
                 <PollRunHistory pollRuns={search.recentPollRuns} />
 
                 <SearchAlertsSection
+                  savedSearchId={search.id}
                   alerts={search.alerts}
                   isFirstPollResults={search.isFirstPollResults}
+                  latestPollStartedAt={search.latestPollStartedAt}
                 />
 
                 <div className="flex flex-wrap gap-2 pt-1">
                   <button
                     type="button"
                     onClick={() => pollNow(search.id)}
-                    disabled={!search.isEnabled || pollingId === search.id}
+                    disabled={
+                      !search.isEnabled ||
+                      pollingId === search.id ||
+                      latestRun?.status === "RUNNING"
+                    }
                     className="rounded-md bg-[var(--accent)] px-3 py-1.5 text-sm font-medium text-white hover:bg-[var(--accent-hover)] disabled:opacity-50"
                   >
-                    {pollingId === search.id ? "Queuing..." : "Poll now"}
+                    {pollingId === search.id
+                      ? "Queuing..."
+                      : latestRun?.status === "RUNNING"
+                        ? "Polling..."
+                        : "Poll now"}
                   </button>
                   <button
                     type="button"
