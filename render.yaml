@@ -26,3 +26,5 @@ services:
         value: "true"
       - key: MOCK_MARKETPLACE
         value: "false"
+      - key: NODE_OPTIONS
+        value: --max-old-space-size=384

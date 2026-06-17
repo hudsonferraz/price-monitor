@@ -3,11 +3,14 @@ import { buildFacebookMarketplaceSearchUrl } from "@price-monitor/shared/faceboo
 import { parseBrazilianPriceToCents } from "@price-monitor/shared/parse-price";
 import type { NormalizedListing, SearchInput } from "@price-monitor/shared/types";
 import { SOURCE } from "@price-monitor/shared/types";
+import {
+  getScrollAttemptsForLimit,
+  MAX_GRAPHQL_RESPONSE_BYTES,
+} from "@price-monitor/shared/scroll-attempts";
 import { parseListingsFromEmbeddedJson } from "./facebook-embedded-json-parser";
 import { parseListingsFromHtml, type RawFacebookListing } from "./facebook-dom-parser";
 
 const DEFAULT_MIN_RESULTS = 5;
-const DEFAULT_SCROLL_ATTEMPTS = 4;
 
 export interface FacebookMarketplaceAdapterOptions {
   storageStatePath?: string;
@@ -21,18 +24,27 @@ export class FacebookMarketplaceAdapter {
   async search(page: Page, input: SearchInput): Promise<NormalizedListing[]> {
     const limit = input.limit ?? 24;
     const apiListings: RawFacebookListing[] = [];
+    const maxApiListings = limit * 2;
 
     const responseListener = (response: Response) => {
       if (!shouldInspectGraphqlResponse(response.url(), response.request().method())) {
         return;
       }
 
+      if (apiListings.length >= maxApiListings) {
+        return;
+      }
+
       response
         .text()
         .then((body) => {
+          if (body.length > MAX_GRAPHQL_RESPONSE_BYTES) {
+            return;
+          }
+
           const parsed = parseFacebookGraphqlPayload(body);
           if (parsed.length > 0) {
-            apiListings.push(...parsed);
+            apiListings.push(...parsed.slice(0, maxApiListings - apiListings.length));
           }
         })
         .catch(() => undefined);
@@ -43,7 +55,7 @@ export class FacebookMarketplaceAdapter {
     try {
       await navigateToSearchResults(page, input);
       await scrollSearchResults(page, limit);
-      await page.waitForTimeout(2_000);
+      await page.waitForTimeout(1_000);
 
       const html = await page.content();
       const embeddedListings = parseListingsFromEmbeddedJson(html, limit);
@@ -74,8 +86,9 @@ export async function navigateToSearchResults(page: Page, input: SearchInput): P
 
 export async function scrollSearchResults(page: Page, targetCount: number): Promise<void> {
   let previousCount = 0;
+  const scrollAttempts = getScrollAttemptsForLimit(targetCount);
 
-  for (let attempt = 0; attempt < DEFAULT_SCROLL_ATTEMPTS; attempt += 1) {
+  for (let attempt = 0; attempt < scrollAttempts; attempt += 1) {
     const html = await page.content();
     const currentCount = parseListingsFromEmbeddedJson(html, targetCount).length;
 
@@ -88,8 +101,8 @@ export async function scrollSearchResults(page: Page, targetCount: number): Prom
     }
 
     previousCount = currentCount;
-    await page.mouse.wheel(0, 2_500);
-    await page.waitForTimeout(1_500);
+    await page.mouse.wheel(0, 1_800);
+    await page.waitForTimeout(1_000);
   }
 }
 
@@ -104,7 +117,7 @@ export async function dismissCookieBanner(page: Page): Promise<void> {
 }
 
 export async function waitForSearchResults(page: Page, minimumResults: number): Promise<void> {
-  await page.waitForLoadState("networkidle", { timeout: 25_000 }).catch(() => undefined);
+  await page.waitForLoadState("domcontentloaded", { timeout: 25_000 }).catch(() => undefined);
 
   const currentUrl = page.url();
   if (/login|checkpoint/i.test(currentUrl)) {
