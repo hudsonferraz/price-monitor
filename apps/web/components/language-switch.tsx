@@ -1,34 +1,11 @@
-"use client";
+import { setLocaleAction } from "@/app/actions/locale";
+import { getTranslator } from "@/lib/i18n";
+import { getLocale } from "@/lib/i18n/get-locale";
+import { APP_LOCALES, getLocaleLabel } from "@/lib/i18n/locales";
 
-import { useRouter } from "next/navigation";
-import { useState } from "react";
-import { APP_LOCALES, getLocaleLabel, type AppLocale } from "@/lib/i18n/locales";
-import { useLocale, useTranslations } from "@/components/locale-provider";
-
-export function LanguageSwitch() {
-  const router = useRouter();
-  const locale = useLocale();
-  const t = useTranslations();
-  const [isSaving, setIsSaving] = useState(false);
-
-  async function handleChange(nextLocale: AppLocale) {
-    if (nextLocale === locale || isSaving) {
-      return;
-    }
-
-    setIsSaving(true);
-
-    try {
-      await fetch("/api/locale", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ locale: nextLocale }),
-      });
-      router.refresh();
-    } finally {
-      setIsSaving(false);
-    }
-  }
+export async function LanguageSwitch() {
+  const locale = await getLocale();
+  const t = await getTranslator(locale);
 
   return (
     <div className="flex items-center gap-2">
@@ -44,20 +21,20 @@ export function LanguageSwitch() {
           const isActive = locale === option;
 
           return (
-            <button
-              key={option}
-              type="button"
-              disabled={isSaving}
-              onClick={() => handleChange(option)}
-              className={`rounded px-2.5 py-1 text-xs font-medium transition-colors disabled:opacity-50 ${
-                isActive
-                  ? "bg-[var(--accent)] text-white"
-                  : "text-[var(--muted)] hover:text-[var(--foreground)]"
-              }`}
-              aria-pressed={isActive}
-            >
-              {getLocaleLabel(option)}
-            </button>
+            <form key={option} action={setLocaleAction}>
+              <input type="hidden" name="locale" value={option} />
+              <button
+                type="submit"
+                className={`rounded px-2.5 py-1 text-xs font-medium transition-colors ${
+                  isActive
+                    ? "bg-[var(--accent)] text-white"
+                    : "text-[var(--muted)] hover:text-[var(--foreground)]"
+                }`}
+                aria-pressed={isActive}
+              >
+                {getLocaleLabel(option)}
+              </button>
+            </form>
           );
         })}
       </div>
