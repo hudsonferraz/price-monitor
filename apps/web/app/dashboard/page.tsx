@@ -4,7 +4,6 @@ import { MarketplaceLocationHint } from "@/components/marketplace-location-hint"
 import { NotificationSettings } from "@/components/notification-settings";
 import type { PollRunRecord } from "@/components/poll-run-history";
 import { SearchStatsPanel } from "@/components/search-stats-panel";
-import { SiteHeader } from "@/components/site-header";
 import { SavedSearchForm, SavedSearchList, type SavedSearchRecord } from "@/components/saved-search-panel";
 import { SystemStatusPanel } from "@/components/system-status-panel";
 import { auth } from "@/auth";
@@ -131,7 +130,6 @@ export default async function DashboardPage() {
 
   return (
     <div className="min-h-screen">
-      <SiteHeader />
       <main className="mx-auto max-w-3xl px-4 py-10">
         <div className="mb-8">
           <h1 className="text-2xl font-bold">{t("dashboardTitle")}</h1>

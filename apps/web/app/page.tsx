@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { SiteHeader } from "@/components/site-header";
 import { getTranslator } from "@/lib/i18n";
 import { getLocale } from "@/lib/i18n/get-locale";
 
@@ -24,7 +23,6 @@ export default async function HomePage() {
 
   return (
     <div className="min-h-screen">
-      <SiteHeader />
       <main className="mx-auto max-w-5xl px-4 py-16">
         <section className="space-y-6">
           <p className="text-sm font-medium uppercase tracking-wide text-[var(--accent)]">

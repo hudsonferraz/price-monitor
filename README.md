@@ -91,8 +91,8 @@ npm test
 **Web (Vercel):**
 
 1. Root Directory: `apps/web`
-2. Env vars: `DATABASE_URL`, `REDIS_URL`, `AUTH_*`, OAuth keys, `APP_URL`, `WORKER_HEALTH_URL`, `CRON_SECRET`
-3. `apps/web/vercel.json` handles monorepo install/build and a 5-minute cron to keep the Render worker awake
+2. Env vars: `DATABASE_URL`, `REDIS_URL`, `AUTH_*`, OAuth keys, `APP_URL`, `WORKER_HEALTH_URL`
+3. `apps/web/vercel.json` handles monorepo install/build. **Root Directory must be `apps/web`.**
 
 **Worker (Render):**
 
@@ -101,7 +101,7 @@ The worker runs Playwright + BullMQ and cannot run on Vercel. Use `render.yaml` 
 1. Connect the repo on [Render](https://render.com) → **Blueprint**
 2. Set env vars: `DATABASE_URL`, `REDIS_URL`, `RESEND_API_KEY`, `EMAIL_FROM`, `APP_URL`
 3. Upload `facebook-storage-state.json` as a secret file at `/etc/secrets/facebook-storage-state.json`
-4. On free tier, set `CRON_SECRET` on Vercel (auto wake every 5 min) or ping `/health` with UptimeRobot
+4. On free tier, ping worker `/health` every 5 min with [UptimeRobot](https://uptimerobot.com) (Vercel Hobby cannot use sub-daily crons — they block deploys)
 
 See [docs/render-deploy.md](docs/render-deploy.md) for the full walkthrough.
 

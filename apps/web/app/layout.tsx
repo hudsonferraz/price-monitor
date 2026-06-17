@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import { LocaleProvider } from "@/components/locale-provider";
+import { SiteHeader } from "@/components/site-header";
 import { getLocale } from "@/lib/i18n/get-locale";
 import { getMessages } from "@/lib/i18n";
 import "./globals.css";
@@ -32,6 +33,7 @@ export default async function RootLayout({
     <html lang={locale}>
       <body className={`${inter.variable} font-sans antialiased`}>
         <LocaleProvider locale={locale} messages={messages}>
+          <SiteHeader />
           {children}
         </LocaleProvider>
       </body>

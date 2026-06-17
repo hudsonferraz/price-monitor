@@ -2,7 +2,6 @@ import Link from "next/link";
 import { auth } from "@/auth";
 import { SignInButtons } from "@/components/sign-in-buttons";
 import { SignInErrorAlert } from "@/components/sign-in-error-alert";
-import { SiteHeader } from "@/components/site-header";
 import { getTranslator } from "@/lib/i18n";
 import { getLocale } from "@/lib/i18n/get-locale";
 import { redirect } from "next/navigation";
@@ -23,7 +22,6 @@ export default async function SignInPage({ searchParams }: SignInPageProps) {
 
   return (
     <div className="min-h-screen">
-      <SiteHeader />
       <main className="mx-auto flex max-w-md flex-col px-4 py-16">
         <h1 className="text-2xl font-bold">{t("signInTitle")}</h1>
         <p className="mt-2 text-sm text-[var(--muted)]">{t("signInDescription")}</p>
