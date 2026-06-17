@@ -43,6 +43,14 @@ export async function executePollSearch(savedSearchId: string): Promise<PollSear
     },
   });
 
+  const successfulPollCountBeforeRun = await prisma.pollRun.count({
+    where: {
+      savedSearchId,
+      status: PollRunStatus.SUCCESS,
+    },
+  });
+  const isBaselinePoll = successfulPollCountBeforeRun === 0;
+
   const pollRun = await prisma.pollRun.create({
     data: {
       savedSearchId,
@@ -65,6 +73,7 @@ export async function executePollSearch(savedSearchId: string): Promise<PollSear
       savedSearch.userId,
       pollRun.id,
       listings,
+      isBaselinePoll,
     );
 
     const finishedAt = new Date();
@@ -87,11 +96,14 @@ export async function executePollSearch(savedSearchId: string): Promise<PollSear
 
     await prisma.savedSearch.update({
       where: { id: savedSearchId },
-      data: { lastPolledAt: new Date() },
+      data: {
+        lastAttemptedAt: finishedAt,
+        lastSuccessfulPollAt: finishedAt,
+      },
     });
 
     let emailSent = false;
-    if (newAlerts > 0) {
+    if (newAlerts > 0 && !isBaselinePoll) {
       try {
         emailSent = await sendNewAlertsEmail(savedSearch.userId, savedSearch.id, alertIds);
       } catch (error) {
@@ -126,7 +138,7 @@ export async function executePollSearch(savedSearchId: string): Promise<PollSear
 
     await prisma.savedSearch.update({
       where: { id: savedSearchId },
-      data: { lastPolledAt: new Date() },
+      data: { lastAttemptedAt: finishedAt },
     });
 
     throw error;
@@ -143,6 +155,7 @@ async function persistListingsAndAlerts(
   userId: string,
   pollRunId: string,
   listings: NormalizedListing[],
+  isBaselinePoll: boolean,
 ): Promise<PersistResult> {
   const alertIds: string[] = [];
   const snapshotEntries: Array<{
@@ -221,10 +234,13 @@ async function persistListingsAndAlerts(
           userId,
           savedSearchId,
           listingId: storedListing.id,
+          seenAt: isBaselinePoll ? new Date() : null,
         },
       });
 
-      alertIds.push(alert.id);
+      if (!isBaselinePoll) {
+        alertIds.push(alert.id);
+      }
       continue;
     }
 
@@ -276,7 +292,7 @@ export async function scheduleDuePolls(): Promise<number> {
     select: {
       id: true,
       pollIntervalMin: true,
-      lastPolledAt: true,
+      lastSuccessfulPollAt: true,
     },
   });
 
@@ -285,8 +301,9 @@ export async function scheduleDuePolls(): Promise<number> {
 
   for (const search of enabledSearches) {
     const intervalMs = search.pollIntervalMin * 60_000;
-    const lastPolledAt = search.lastPolledAt?.getTime() ?? 0;
-    const isDue = search.lastPolledAt == null || now - lastPolledAt >= intervalMs;
+    const lastSuccessfulPollAt = search.lastSuccessfulPollAt?.getTime() ?? 0;
+    const isDue =
+      search.lastSuccessfulPollAt == null || now - lastSuccessfulPollAt >= intervalMs;
 
     if (!isDue) {
       continue;

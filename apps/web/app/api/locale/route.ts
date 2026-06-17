@@ -8,7 +8,10 @@ export async function POST(request: Request) {
   const locale = body?.locale;
 
   if (!isAppLocale(locale)) {
-    return NextResponse.json({ error: "locale must be en-US or pt-BR" }, { status: 400 });
+    return NextResponse.json(
+      { error: "locale must be en-US or pt-BR" },
+      { status: 400 },
+    );
   }
 
   const session = await auth();

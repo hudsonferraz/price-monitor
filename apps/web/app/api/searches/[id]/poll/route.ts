@@ -34,7 +34,7 @@ export async function POST(_request: Request, context: RouteContext) {
     return NextResponse.json({ error: "Search is disabled" }, { status: 400 });
   }
 
-  const cooldownRemainingMs = getPollCooldownRemainingMs(savedSearch.lastPolledAt);
+  const cooldownRemainingMs = getPollCooldownRemainingMs(savedSearch.lastAttemptedAt);
   if (cooldownRemainingMs > 0) {
     return NextResponse.json(
       {

@@ -18,13 +18,19 @@ export interface SavedSearchRecord {
   pollIntervalMin: number;
   listingLimit: number;
   isEnabled: boolean;
-  lastPolledAt: string | null;
+  lastAttemptedAt: string | null;
+  lastSuccessfulPollAt: string | null;
   createdAt: string;
   updatedAt: string;
   recentPollRuns: PollRunRecord[];
   alerts: AlertRecord[];
   isFirstPollResults: boolean;
   latestPollStartedAt: string | null;
+  reliability: {
+    consecutiveFailures: number;
+    lastFailureMessage: string | null;
+    hasFacebookSessionFailure: boolean;
+  };
 }
 
 function centsToReaisInput(cents: number | null): string {
@@ -247,6 +253,48 @@ export function SavedSearchForm({ initialSearch, onSuccess, onCancel }: SavedSea
 interface SavedSearchListProps {
   searches: SavedSearchRecord[];
   emptyMessage: string;
+}
+
+function SearchReliabilitySummary({ search }: { search: SavedSearchRecord }) {
+  const locale = useLocale();
+  const t = useTranslations();
+
+  if (
+    search.reliability.consecutiveFailures === 0 &&
+    !search.reliability.lastFailureMessage &&
+    search.lastSuccessfulPollAt
+  ) {
+    return (
+      <p className="text-xs text-[var(--muted)]">
+        {t("searchReliabilityHealthy", {
+          date: formatDateTime(search.lastSuccessfulPollAt, locale),
+        })}
+      </p>
+    );
+  }
+
+  return (
+    <div className="rounded-md bg-[var(--background)] px-3 py-2 text-xs text-[var(--muted)]">
+      {search.lastSuccessfulPollAt ? (
+        <p>{t("searchLastSuccessfulPoll", { date: formatDateTime(search.lastSuccessfulPollAt, locale) })}</p>
+      ) : (
+        <p>{t("searchNoSuccessfulPollYet")}</p>
+      )}
+      {search.reliability.consecutiveFailures > 0 ? (
+        <p className="mt-1 text-red-600">
+          {t("searchConsecutiveFailures", {
+            count: search.reliability.consecutiveFailures,
+          })}
+        </p>
+      ) : null}
+      {search.reliability.hasFacebookSessionFailure ? (
+        <p className="mt-1 text-amber-600">{t("searchSessionFailureHint")}</p>
+      ) : null}
+      {search.reliability.lastFailureMessage ? (
+        <p className="mt-1">{search.reliability.lastFailureMessage}</p>
+      ) : null}
+    </div>
+  );
 }
 
 export function SavedSearchList({ searches, emptyMessage }: SavedSearchListProps) {
@@ -504,14 +552,16 @@ export function SavedSearchList({ searches, emptyMessage }: SavedSearchListProps
                       <dd>{t("searchListingsPerPoll", { count: search.listingLimit })}</dd>
                     </div>
                     <div>
-                      <dt className="text-[var(--muted)]">{t("searchLastPolled")}</dt>
+                      <dt className="text-[var(--muted)]">{t("searchLastAttempted")}</dt>
                       <dd>
-                        {search.lastPolledAt
-                          ? formatDateTime(search.lastPolledAt, locale)
+                        {search.lastAttemptedAt
+                          ? formatDateTime(search.lastAttemptedAt, locale)
                           : t("searchNever")}
                       </dd>
                     </div>
                   </dl>
+
+                  <SearchReliabilitySummary search={search} />
 
                   {livePollState ? <PollStatusBanner pollState={livePollState} /> : null}
 
@@ -521,6 +571,9 @@ export function SavedSearchList({ searches, emptyMessage }: SavedSearchListProps
                     savedSearchId={search.id}
                     listingLimit={search.listingLimit}
                     alerts={search.alerts}
+                    searchKeywords={search.keywords}
+                    minPriceCents={search.minPriceCents}
+                    maxPriceCents={search.maxPriceCents}
                     isFirstPollResults={search.isFirstPollResults}
                     latestPollStartedAt={search.latestPollStartedAt}
                   />

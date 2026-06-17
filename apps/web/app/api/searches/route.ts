@@ -16,7 +16,8 @@ function serializeSavedSearch(search: {
   pollIntervalMin: number;
   listingLimit: number;
   isEnabled: boolean;
-  lastPolledAt: Date | null;
+  lastAttemptedAt: Date | null;
+  lastSuccessfulPollAt: Date | null;
   createdAt: Date;
   updatedAt: Date;
 }) {
@@ -29,7 +30,8 @@ function serializeSavedSearch(search: {
     pollIntervalMin: search.pollIntervalMin,
     listingLimit: search.listingLimit,
     isEnabled: search.isEnabled,
-    lastPolledAt: search.lastPolledAt?.toISOString() ?? null,
+    lastAttemptedAt: search.lastAttemptedAt?.toISOString() ?? null,
+    lastSuccessfulPollAt: search.lastSuccessfulPollAt?.toISOString() ?? null,
     createdAt: search.createdAt.toISOString(),
     updatedAt: search.updatedAt.toISOString(),
   };

@@ -81,6 +81,8 @@ model SavedSearch {
   listingLimit    Int           @default(24)
   isEnabled       Boolean       @default(true)
   lastPolledAt    DateTime?
+  lastAttemptedAt DateTime?
+  lastSuccessfulPollAt DateTime?
   user            User          @relation(fields: [userId], references: [id], onDelete: Cascade)
   alerts          Alert[]
   pollRuns        PollRun[]
@@ -88,7 +90,7 @@ model SavedSearch {
   updatedAt       DateTime      @updatedAt
 
   @@index([userId])
-  @@index([isEnabled, lastPolledAt])
+  @@index([isEnabled, lastSuccessfulPollAt])
 }
 
 model Listing {

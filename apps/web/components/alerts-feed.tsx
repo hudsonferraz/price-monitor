@@ -71,14 +71,34 @@ function splitAlertsByPoll(
 
 interface AlertCardProps {
   alert: AlertRecord;
+  searchKeywords: string;
+  minPriceCents: number | null;
+  maxPriceCents: number | null;
+  isBaselineResults: boolean;
+  isNewMatch: boolean;
   onDismiss?: (alertId: string) => void;
   isDismissing?: boolean;
 }
 
-function AlertCard({ alert, onDismiss, isDismissing = false }: AlertCardProps) {
+function AlertCard({
+  alert,
+  searchKeywords,
+  minPriceCents,
+  maxPriceCents,
+  isBaselineResults,
+  isNewMatch,
+  onDismiss,
+  isDismissing = false,
+}: AlertCardProps) {
   const locale = useLocale();
   const t = useTranslations();
   const hasPriceDrop = alert.priceDroppedAt != null && alert.previousPriceCents != null;
+  const matchedKeyword = getMatchedKeyword(alert.listing.title, searchKeywords);
+  const isWithinPriceRange = isListingWithinPriceRange(
+    alert.listing.priceCents,
+    minPriceCents,
+    maxPriceCents,
+  );
 
   return (
     <li className="flex flex-col gap-3 rounded-md border border-[var(--border)] bg-[var(--background)] p-3 sm:flex-row">
@@ -95,13 +115,35 @@ function AlertCard({ alert, onDismiss, isDismissing = false }: AlertCardProps) {
       )}
 
       <div className="min-w-0 flex-1 space-y-1">
-        {hasPriceDrop ? (
-          <span className="inline-block rounded-full bg-orange-100 px-2 py-0.5 text-xs font-medium text-orange-900 dark:bg-orange-900/40 dark:text-orange-200">
-            {t("alertsPriceDrop", {
-              price: formatPriceCents(alert.previousPriceCents, locale),
-            })}
-          </span>
-        ) : null}
+        <div className="flex flex-wrap gap-1.5">
+          {hasPriceDrop ? (
+            <span className="inline-block rounded-full bg-orange-100 px-2 py-0.5 text-xs font-medium text-orange-900 dark:bg-orange-900/40 dark:text-orange-200">
+              {t("alertsPriceDrop", {
+                price: formatPriceCents(alert.previousPriceCents, locale),
+              })}
+            </span>
+          ) : null}
+          {matchedKeyword ? (
+            <span className="inline-block rounded-full bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-900 dark:bg-blue-900/40 dark:text-blue-200">
+              {t("alertsWhyKeyword", { keyword: matchedKeyword })}
+            </span>
+          ) : null}
+          {isWithinPriceRange ? (
+            <span className="inline-block rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-medium text-emerald-900 dark:bg-emerald-900/40 dark:text-emerald-200">
+              {t("alertsWhyPriceRange")}
+            </span>
+          ) : null}
+          {isBaselineResults ? (
+            <span className="inline-block rounded-full bg-sky-100 px-2 py-0.5 text-xs font-medium text-sky-900 dark:bg-sky-900/40 dark:text-sky-200">
+              {t("alertsWhyBaseline")}
+            </span>
+          ) : null}
+          {!isBaselineResults && isNewMatch ? (
+            <span className="inline-block rounded-full bg-violet-100 px-2 py-0.5 text-xs font-medium text-violet-900 dark:bg-violet-900/40 dark:text-violet-200">
+              {t("alertsWhyNew")}
+            </span>
+          ) : null}
+        </div>
         <h4 className="text-sm font-medium leading-snug">{alert.listing.title}</h4>
         <p className="text-sm font-semibold">{formatPriceCents(alert.listing.priceCents, locale)}</p>
         {alert.listing.location ? (
@@ -145,6 +187,11 @@ function AlertCard({ alert, onDismiss, isDismissing = false }: AlertCardProps) {
 interface AlertListGroupProps {
   title: string;
   alerts: AlertRecord[];
+  searchKeywords: string;
+  minPriceCents: number | null;
+  maxPriceCents: number | null;
+  isBaselineResults: boolean;
+  isNewMatch: boolean;
   onDismiss?: (alertId: string) => void;
   dismissingId: string | null;
   defaultExpanded?: boolean;
@@ -153,6 +200,11 @@ interface AlertListGroupProps {
 function AlertListGroup({
   title,
   alerts,
+  searchKeywords,
+  minPriceCents,
+  maxPriceCents,
+  isBaselineResults,
+  isNewMatch,
   onDismiss,
   dismissingId,
   defaultExpanded = true,
@@ -188,6 +240,11 @@ function AlertListGroup({
               <AlertCard
                 key={alert.id}
                 alert={alert}
+                searchKeywords={searchKeywords}
+                minPriceCents={minPriceCents}
+                maxPriceCents={maxPriceCents}
+                isBaselineResults={isBaselineResults}
+                isNewMatch={isNewMatch}
                 onDismiss={onDismiss}
                 isDismissing={dismissingId === alert.id}
               />
@@ -223,6 +280,9 @@ interface SearchAlertsSectionProps {
   savedSearchId: string;
   listingLimit: number;
   alerts: AlertRecord[];
+  searchKeywords: string;
+  minPriceCents: number | null;
+  maxPriceCents: number | null;
   isFirstPollResults?: boolean;
   latestPollStartedAt?: string | null;
 }
@@ -231,6 +291,9 @@ export function SearchAlertsSection({
   savedSearchId,
   listingLimit,
   alerts,
+  searchKeywords,
+  minPriceCents,
+  maxPriceCents,
   isFirstPollResults = false,
   latestPollStartedAt = null,
 }: SearchAlertsSectionProps) {
@@ -336,7 +399,7 @@ export function SearchAlertsSection({
         <div className="space-y-4">
           {isFirstPollResults ? (
             <p className="rounded-md bg-blue-50 px-3 py-2 text-xs text-blue-900 dark:bg-blue-950/40 dark:text-blue-200">
-              {t("alertsFirstPollBanner", { limit: listingLimit })}
+              {t("alertsBaselineBanner", { limit: listingLimit })}
             </p>
           ) : null}
 
@@ -344,6 +407,11 @@ export function SearchAlertsSection({
             <AlertListGroup
               title={t("alertsNewSincePoll", { count: newAlerts.length })}
               alerts={newAlerts}
+              searchKeywords={searchKeywords}
+              minPriceCents={minPriceCents}
+              maxPriceCents={maxPriceCents}
+              isBaselineResults={false}
+              isNewMatch
               onDismiss={dismissAlert}
               dismissingId={dismissingId}
               defaultExpanded
@@ -354,6 +422,11 @@ export function SearchAlertsSection({
             <AlertListGroup
               title={t("alertsPreviousListings", { count: previousAlerts.length })}
               alerts={previousAlerts}
+              searchKeywords={searchKeywords}
+              minPriceCents={minPriceCents}
+              maxPriceCents={maxPriceCents}
+              isBaselineResults={false}
+              isNewMatch={false}
               onDismiss={dismissAlert}
               dismissingId={dismissingId}
               defaultExpanded={newAlerts.length === 0}
@@ -362,8 +435,13 @@ export function SearchAlertsSection({
 
           {isFirstPollResults ? (
             <AlertListGroup
-              title={t("alertsAllMatches", { count: sortedAlerts.length })}
+              title={t("alertsBaselineResults", { count: sortedAlerts.length })}
               alerts={sortedAlerts}
+              searchKeywords={searchKeywords}
+              minPriceCents={minPriceCents}
+              maxPriceCents={maxPriceCents}
+              isBaselineResults
+              isNewMatch={false}
               onDismiss={dismissAlert}
               dismissingId={dismissingId}
               defaultExpanded
@@ -386,6 +464,44 @@ interface AlertsFeedProps {
 /** @deprecated Use SearchAlertsSection inside each saved search card. */
 export function AlertsFeed({ alerts }: AlertsFeedProps) {
   return (
-    <SearchAlertsSection savedSearchId="" listingLimit={24} alerts={alerts} isFirstPollResults />
+    <SearchAlertsSection
+      savedSearchId=""
+      listingLimit={24}
+      alerts={alerts}
+      searchKeywords=""
+      minPriceCents={null}
+      maxPriceCents={null}
+      isFirstPollResults
+    />
   );
+}
+
+function getMatchedKeyword(title: string, searchKeywords: string): string | null {
+  const normalizedTitle = title.toLowerCase();
+  const terms = searchKeywords
+    .split(/[\s,]+/)
+    .map((term) => term.trim().toLowerCase())
+    .filter((term) => term.length >= 3);
+
+  return terms.find((term) => normalizedTitle.includes(term)) ?? null;
+}
+
+function isListingWithinPriceRange(
+  priceCents: number | null,
+  minPriceCents: number | null,
+  maxPriceCents: number | null,
+): boolean {
+  if (priceCents == null) {
+    return false;
+  }
+
+  if (minPriceCents != null && priceCents < minPriceCents) {
+    return false;
+  }
+
+  if (maxPriceCents != null && priceCents > maxPriceCents) {
+    return false;
+  }
+
+  return minPriceCents != null || maxPriceCents != null;
 }

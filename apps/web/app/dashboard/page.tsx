@@ -3,14 +3,12 @@ import { FacebookSessionWarning } from "@/components/facebook-session-warning";
 import { MarketplaceLocationHint } from "@/components/marketplace-location-hint";
 import { NotificationSettings } from "@/components/notification-settings";
 import type { PollRunRecord } from "@/components/poll-run-history";
-import { SearchStatsPanel } from "@/components/search-stats-panel";
 import { SavedSearchForm, SavedSearchList, type SavedSearchRecord } from "@/components/saved-search-panel";
-import { SystemStatusPanel } from "@/components/system-status-panel";
 import { auth } from "@/auth";
 import { formatSearchSummary, getTranslator } from "@/lib/i18n";
 import { getLocale } from "@/lib/i18n/get-locale";
-import { fetchSearchStatsSummaries } from "@/lib/search-stats";
-import { fetchWorkerHealthStatus, summarizeRecentPollHealth } from "@/lib/system-health";
+import { summarizeRecentPollHealth } from "@/lib/system-health";
+import { isFacebookSessionError } from "@price-monitor/shared/poll-errors";
 import { prisma } from "@price-monitor/database";
 import { redirect } from "next/navigation";
 
@@ -24,7 +22,7 @@ export default async function DashboardPage() {
   const locale = await getLocale();
   const t = await getTranslator(locale);
 
-  const [searches, pollRuns, user, workerHealth, searchStats] = await Promise.all([
+  const [searches, pollRuns, user] = await Promise.all([
     prisma.savedSearch.findMany({
       where: { userId: session.user.id },
       orderBy: { createdAt: "desc" },
@@ -46,13 +44,12 @@ export default async function DashboardPage() {
       where: { id: session.user.id },
       select: { emailNotificationsEnabled: true },
     }),
-    fetchWorkerHealthStatus(),
-    fetchSearchStatsSummaries(session.user.id),
   ]);
 
   const pollHealth = summarizeRecentPollHealth(pollRuns);
 
   const pollRunsBySearchId = new Map<string, PollRunRecord[]>();
+  const allPollRunsBySearchId = new Map<string, PollRunRecord[]>();
   const successPollCountBySearchId = new Map<string, number>();
 
   for (const run of pollRuns) {
@@ -63,24 +60,31 @@ export default async function DashboardPage() {
       );
     }
 
+    const serializedRun = {
+      id: run.id,
+      status: run.status,
+      listingsFound: run.listingsFound,
+      newAlerts: run.newAlerts,
+      errorMessage: run.errorMessage,
+      durationMs: run.durationMs,
+      startedAt: run.startedAt.toISOString(),
+      finishedAt: run.finishedAt?.toISOString() ?? null,
+    };
+
+    const allRuns = allPollRunsBySearchId.get(run.savedSearchId) ?? [];
+    allRuns.push(serializedRun);
+    allPollRunsBySearchId.set(run.savedSearchId, allRuns);
+
     const existing = pollRunsBySearchId.get(run.savedSearchId) ?? [];
     if (existing.length < 3) {
-      existing.push({
-        id: run.id,
-        status: run.status,
-        listingsFound: run.listingsFound,
-        newAlerts: run.newAlerts,
-        errorMessage: run.errorMessage,
-        durationMs: run.durationMs,
-        startedAt: run.startedAt.toISOString(),
-        finishedAt: run.finishedAt?.toISOString() ?? null,
-      });
+      existing.push(serializedRun);
       pollRunsBySearchId.set(run.savedSearchId, existing);
     }
   }
 
   const serializedSearches: SavedSearchRecord[] = searches.map((search) => {
     const recentPollRuns = pollRunsBySearchId.get(search.id) ?? [];
+    const allPollRuns = allPollRunsBySearchId.get(search.id) ?? [];
     const latestSuccess = recentPollRuns.find((run) => run.status === "SUCCESS");
     const successPollCount = successPollCountBySearchId.get(search.id) ?? 0;
     const alerts: AlertRecord[] = search.alerts.map((alert) => ({
@@ -112,17 +116,21 @@ export default async function DashboardPage() {
       pollIntervalMin: search.pollIntervalMin,
       listingLimit: search.listingLimit,
       isEnabled: search.isEnabled,
-      lastPolledAt: search.lastPolledAt?.toISOString() ?? null,
+      lastAttemptedAt: search.lastAttemptedAt?.toISOString() ?? null,
+      lastSuccessfulPollAt: search.lastSuccessfulPollAt?.toISOString() ?? null,
       createdAt: search.createdAt.toISOString(),
       updatedAt: search.updatedAt.toISOString(),
       recentPollRuns,
       alerts,
       latestPollStartedAt: latestSuccess?.startedAt ?? null,
-      isFirstPollResults:
-        successPollCount === 1 &&
-        latestSuccess != null &&
-        latestSuccess.newAlerts === alerts.length &&
-        alerts.length > 0,
+      isFirstPollResults: successPollCount === 1 && latestSuccess != null && alerts.length > 0,
+      reliability: {
+        consecutiveFailures: countConsecutiveFailures(allPollRuns),
+        lastFailureMessage: allPollRuns.find((run) => run.status === "FAILED")?.errorMessage ?? null,
+        hasFacebookSessionFailure: allPollRuns.some(
+          (run) => run.status === "FAILED" && isFacebookSessionError(run.errorMessage),
+        ),
+      },
     };
   });
 
@@ -143,16 +151,6 @@ export default async function DashboardPage() {
         </section>
 
         <FacebookSessionWarning show={pollHealth.hasFacebookSessionIssue} />
-
-        <SystemStatusPanel
-          workerConfigured={workerHealth.configured}
-          workerOnline={workerHealth.online}
-          workerLatencyMs={workerHealth.latencyMs}
-          failedPollCount24h={pollHealth.failedPollCount24h}
-          averagePollDurationMs={pollHealth.averageDurationMs}
-        />
-
-        <SearchStatsPanel summaries={searchStats} />
 
         <section className="mb-10">
           <MarketplaceLocationHint />
@@ -179,4 +177,17 @@ export default async function DashboardPage() {
       </main>
     </div>
   );
+}
+
+function countConsecutiveFailures(pollRuns: PollRunRecord[]): number {
+  let count = 0;
+
+  for (const run of pollRuns) {
+    if (run.status !== "FAILED") {
+      break;
+    }
+    count += 1;
+  }
+
+  return count;
 }
