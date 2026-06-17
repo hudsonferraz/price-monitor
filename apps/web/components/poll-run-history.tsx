@@ -45,6 +45,11 @@ export function PollRunHistory({ pollRuns }: PollRunHistoryProps) {
                 {run.listingsFound} listings · {run.newAlerts} new alert(s)
               </p>
             ) : null}
+            {run.status === "RUNNING" ? (
+              <p className="mt-1 text-[var(--muted)]">
+                Checking Facebook Marketplace — usually takes 1–2 minutes.
+              </p>
+            ) : null}
             {run.status === "FAILED" && run.errorMessage ? (
               <p className="mt-1 text-red-600">{run.errorMessage}</p>
             ) : null}

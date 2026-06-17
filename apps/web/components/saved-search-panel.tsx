@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { PollRunHistory, type PollRunRecord } from "@/components/poll-run-history";
 
 export interface SavedSearchRecord {
@@ -217,10 +217,75 @@ export function SavedSearchList({ searches }: SavedSearchListProps) {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [pollingId, setPollingId] = useState<string | null>(null);
   const [pollMessage, setPollMessage] = useState<string | null>(null);
+  const [watchingPollSearchId, setWatchingPollSearchId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!watchingPollSearchId) {
+      return;
+    }
+
+    let cancelled = false;
+    const startedAt = Date.now();
+    const maxWaitMs = 3 * 60 * 1000;
+
+    async function checkPollStatus(): Promise<boolean> {
+      const response = await fetch(
+        `/api/searches/${watchingPollSearchId}/poll-runs?limit=1`,
+      ).catch(() => null);
+
+      if (!response?.ok) {
+        return false;
+      }
+
+      const runs = (await response.json()) as PollRunRecord[];
+      const latestRun = runs[0];
+      router.refresh();
+
+      if (latestRun?.status === "SUCCESS") {
+        setPollMessage(
+          `Poll complete — ${latestRun.newAlerts} new alert(s) from ${latestRun.listingsFound} listing(s).`,
+        );
+        return true;
+      }
+
+      if (latestRun?.status === "FAILED") {
+        setPollMessage(latestRun.errorMessage ?? "Poll failed. Try again in a few minutes.");
+        return true;
+      }
+
+      if (Date.now() - startedAt > maxWaitMs) {
+        setPollMessage(
+          "Poll is taking longer than expected. Refresh the page in a minute to see results.",
+        );
+        return true;
+      }
+
+      return false;
+    }
+
+    const intervalId = window.setInterval(async () => {
+      if (cancelled) {
+        return;
+      }
+
+      const isFinished = await checkPollStatus();
+      if (isFinished) {
+        setWatchingPollSearchId(null);
+      }
+    }, 10_000);
+
+    void checkPollStatus();
+
+    return () => {
+      cancelled = true;
+      window.clearInterval(intervalId);
+    };
+  }, [watchingPollSearchId, router]);
 
   async function pollNow(searchId: string) {
     setPollingId(searchId);
     setPollMessage(null);
+    setWatchingPollSearchId(null);
 
     try {
       const response = await fetch(`/api/searches/${searchId}/poll`, { method: "POST" });
@@ -231,7 +296,10 @@ export function SavedSearchList({ searches }: SavedSearchListProps) {
         return;
       }
 
-      setPollMessage(data?.message ?? "Poll queued.");
+      setPollMessage(
+        `${data?.message ?? "Poll queued."} This page will update automatically in 1–2 minutes.`,
+      );
+      setWatchingPollSearchId(searchId);
       router.refresh();
     } catch {
       setPollMessage("Failed to queue poll");

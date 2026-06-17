@@ -43,7 +43,8 @@ export function AlertsFeed({ alerts }: AlertsFeedProps) {
   if (alerts.length === 0) {
     return (
       <div className="rounded-lg border border-dashed border-[var(--border)] p-8 text-center text-sm text-[var(--muted)]">
-        No alerts yet. Click &quot;Poll now&quot; on a saved search to check Facebook Marketplace.
+        No alerts yet. Create a saved search below, click <strong>Poll now</strong>, then wait
+        1–2 minutes for Facebook Marketplace results to appear here.
       </div>
     );
   }
