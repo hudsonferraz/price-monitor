@@ -1,8 +1,14 @@
+"use client";
+
+import { useTranslations } from "@/components/locale-provider";
+
 interface FacebookSessionWarningProps {
   show: boolean;
 }
 
 export function FacebookSessionWarning({ show }: FacebookSessionWarningProps) {
+  const t = useTranslations();
+
   if (!show) {
     return null;
   }
@@ -13,20 +19,16 @@ export function FacebookSessionWarning({ show }: FacebookSessionWarningProps) {
       role="alert"
     >
       <h2 className="text-sm font-semibold text-amber-900 dark:text-amber-200">
-        Facebook session needs refresh
+        {t("facebookSessionTitle")}
       </h2>
       <p className="mt-2 text-sm text-amber-900/90 dark:text-amber-100/90">
-        Recent polls failed because the worker lost its Facebook login. This usually happens every
-        few weeks on Render.
+        {t("facebookSessionDescription")}
       </p>
       <ol className="mt-3 list-decimal space-y-1 pl-5 text-sm text-amber-900/90 dark:text-amber-100/90">
-        <li>On your PC, run <code className="rounded bg-amber-100 px-1 dark:bg-amber-900/60">npm run save:facebook-session</code> and sign in to Facebook.</li>
-        <li>Open Render → worker service → Environment → Secret Files.</li>
-        <li>
-          Replace <code className="rounded bg-amber-100 px-1 dark:bg-amber-900/60">/etc/secrets/facebook-storage-state.json</code>{" "}
-          with the new file contents.
-        </li>
-        <li>Redeploy the worker, then click Poll now again.</li>
+        <li>{t("facebookSessionStep1")}</li>
+        <li>{t("facebookSessionStep2")}</li>
+        <li>{t("facebookSessionStep3")}</li>
+        <li>{t("facebookSessionStep4")}</li>
       </ol>
       <p className="mt-3 text-sm">
         <a
@@ -35,7 +37,7 @@ export function FacebookSessionWarning({ show }: FacebookSessionWarningProps) {
           target="_blank"
           rel="noreferrer"
         >
-          Full walkthrough in render-deploy.md
+          {t("facebookSessionDocs")}
         </a>
       </p>
     </section>

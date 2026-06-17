@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { useTranslations } from "@/components/locale-provider";
 
 interface NotificationSettingsProps {
   emailNotificationsEnabled: boolean;
@@ -11,6 +12,7 @@ export function NotificationSettings({
   emailNotificationsEnabled: initialEnabled,
 }: NotificationSettingsProps) {
   const router = useRouter();
+  const t = useTranslations();
   const [enabled, setEnabled] = useState(initialEnabled);
   const [isSaving, setIsSaving] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
@@ -31,19 +33,17 @@ export function NotificationSettings({
       const data = await response.json().catch(() => null);
 
       if (!response.ok) {
-        setError(data?.error ?? "Failed to update notification settings");
+        setError(data?.error ?? t("notificationsUpdateFailed"));
         return;
       }
 
       setEnabled(data.emailNotificationsEnabled);
       setMessage(
-        data.emailNotificationsEnabled
-          ? "Email alerts enabled."
-          : "Email alerts disabled.",
+        data.emailNotificationsEnabled ? t("notificationsEnabled") : t("notificationsDisabled"),
       );
       router.refresh();
     } catch {
-      setError("Failed to update notification settings");
+      setError(t("notificationsUpdateFailed"));
     } finally {
       setIsSaving(false);
     }
@@ -51,10 +51,8 @@ export function NotificationSettings({
 
   return (
     <section className="rounded-lg border border-[var(--border)] bg-[var(--card)] p-5">
-      <h2 className="text-lg font-semibold">Notifications</h2>
-      <p className="mt-1 text-sm text-[var(--muted)]">
-        Get an email when new Facebook Marketplace listings match your saved searches.
-      </p>
+      <h2 className="text-lg font-semibold">{t("notificationsTitle")}</h2>
+      <p className="mt-1 text-sm text-[var(--muted)]">{t("notificationsDescription")}</p>
 
       <label className="mt-4 flex items-start gap-3 text-sm">
         <input
@@ -65,10 +63,8 @@ export function NotificationSettings({
           className="mt-0.5 rounded border-[var(--border)]"
         />
         <span>
-          <span className="font-medium">Email me about new matches</span>
-          <span className="mt-1 block text-[var(--muted)]">
-            Requires Resend to be configured on the worker.
-          </span>
+          <span className="font-medium">{t("notificationsEmailLabel")}</span>
+          <span className="mt-1 block text-[var(--muted)]">{t("notificationsEmailHint")}</span>
         </span>
       </label>
 

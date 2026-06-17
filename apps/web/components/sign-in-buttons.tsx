@@ -2,9 +2,11 @@ import { signIn } from "@/auth";
 
 interface SignInButtonsProps {
   callbackUrl?: string;
+  googleLabel: string;
+  githubLabel: string;
 }
 
-export function SignInButtons({ callbackUrl }: SignInButtonsProps) {
+export function SignInButtons({ callbackUrl, googleLabel, githubLabel }: SignInButtonsProps) {
   const redirectTo = callbackUrl ?? "/dashboard";
 
   return (
@@ -19,7 +21,7 @@ export function SignInButtons({ callbackUrl }: SignInButtonsProps) {
           type="submit"
           className="w-full rounded-md border border-[var(--border)] bg-[var(--card)] px-4 py-2.5 text-sm font-medium hover:bg-[var(--background)]"
         >
-          Continue with Google
+          {googleLabel}
         </button>
       </form>
 
@@ -33,7 +35,7 @@ export function SignInButtons({ callbackUrl }: SignInButtonsProps) {
           type="submit"
           className="w-full rounded-md bg-[var(--accent)] px-4 py-2.5 text-sm font-medium text-white hover:bg-[var(--accent-hover)]"
         >
-          Continue with GitHub
+          {githubLabel}
         </button>
       </form>
     </div>

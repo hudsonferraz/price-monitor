@@ -3,8 +3,10 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { SearchAlertsSection, type AlertRecord } from "@/components/alerts-feed";
+import { useLocale, useTranslations } from "@/components/locale-provider";
 import { PollStatusBanner, type SearchPollState } from "@/components/poll-status-banner";
 import { PollRunHistory, type PollRunRecord } from "@/components/poll-run-history";
+import { formatAnyPrice, formatDateTime, formatPriceCents } from "@/lib/i18n";
 import { LISTING_LIMIT_OPTIONS } from "@price-monitor/shared/queue";
 
 export interface SavedSearchRecord {
@@ -32,11 +34,12 @@ function centsToReaisInput(cents: number | null): string {
   return String(cents / 100);
 }
 
-function formatPrice(cents: number | null): string {
+function formatPriceRange(cents: number | null, locale: ReturnType<typeof useLocale>): string {
   if (cents == null) {
-    return "Any";
+    return formatAnyPrice(locale);
   }
-  return `R$ ${(cents / 100).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`;
+
+  return formatPriceCents(cents, locale);
 }
 
 interface SavedSearchFormProps {
@@ -47,6 +50,7 @@ interface SavedSearchFormProps {
 
 export function SavedSearchForm({ initialSearch, onSuccess, onCancel }: SavedSearchFormProps) {
   const router = useRouter();
+  const t = useTranslations();
   const [name, setName] = useState(initialSearch?.name ?? "");
   const [keywords, setKeywords] = useState(initialSearch?.keywords ?? "");
   const [minPriceReais, setMinPriceReais] = useState(
@@ -90,14 +94,14 @@ export function SavedSearchForm({ initialSearch, onSuccess, onCancel }: SavedSea
 
       if (!response.ok) {
         const data = await response.json().catch(() => null);
-        setError(data?.error ?? "Failed to save search");
+        setError(data?.error ?? t("searchFormSaveFailed"));
         return;
       }
 
       onSuccess?.();
       router.refresh();
     } catch {
-      setError("Failed to save search");
+      setError(t("searchFormSaveFailed"));
     } finally {
       setIsSubmitting(false);
     }
@@ -107,7 +111,7 @@ export function SavedSearchForm({ initialSearch, onSuccess, onCancel }: SavedSea
     <form onSubmit={handleSubmit} className="space-y-4">
       <div>
         <label htmlFor="name" className="mb-1 block text-sm font-medium">
-          Name
+          {t("searchFormName")}
         </label>
         <input
           id="name"
@@ -116,13 +120,13 @@ export function SavedSearchForm({ initialSearch, onSuccess, onCancel }: SavedSea
           required
           maxLength={100}
           className="w-full rounded-md border border-[var(--border)] bg-[var(--background)] px-3 py-2 text-sm"
-          placeholder="iPhone 13 deals"
+          placeholder={t("searchFormNamePlaceholder")}
         />
       </div>
 
       <div>
         <label htmlFor="keywords" className="mb-1 block text-sm font-medium">
-          Keywords
+          {t("searchFormKeywords")}
         </label>
         <input
           id="keywords"
@@ -131,14 +135,14 @@ export function SavedSearchForm({ initialSearch, onSuccess, onCancel }: SavedSea
           required
           maxLength={200}
           className="w-full rounded-md border border-[var(--border)] bg-[var(--background)] px-3 py-2 text-sm"
-          placeholder="iphone 13"
+          placeholder={t("searchFormKeywordsPlaceholder")}
         />
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2">
         <div>
           <label htmlFor="minPriceReais" className="mb-1 block text-sm font-medium">
-            Min price (R$)
+            {t("searchFormMinPrice")}
           </label>
           <input
             id="minPriceReais"
@@ -153,7 +157,7 @@ export function SavedSearchForm({ initialSearch, onSuccess, onCancel }: SavedSea
         </div>
         <div>
           <label htmlFor="maxPriceReais" className="mb-1 block text-sm font-medium">
-            Max price (R$)
+            {t("searchFormMaxPrice")}
           </label>
           <input
             id="maxPriceReais"
@@ -170,7 +174,7 @@ export function SavedSearchForm({ initialSearch, onSuccess, onCancel }: SavedSea
 
       <div>
         <label htmlFor="pollIntervalMin" className="mb-1 block text-sm font-medium">
-          Poll interval (minutes)
+          {t("searchFormPollInterval")}
         </label>
         <input
           id="pollIntervalMin"
@@ -185,7 +189,7 @@ export function SavedSearchForm({ initialSearch, onSuccess, onCancel }: SavedSea
 
       <div>
         <label htmlFor="listingLimit" className="mb-1 block text-sm font-medium">
-          Max listings per poll
+          {t("searchFormListingLimit")}
         </label>
         <select
           id="listingLimit"
@@ -195,13 +199,11 @@ export function SavedSearchForm({ initialSearch, onSuccess, onCancel }: SavedSea
         >
           {LISTING_LIMIT_OPTIONS.map((limit) => (
             <option key={limit} value={limit}>
-              {limit} listings
+              {t("searchListingsPerPoll", { count: limit })}
             </option>
           ))}
         </select>
-        <p className="mt-1 text-xs text-[var(--muted)]">
-          Higher limits take longer to scrape and may be less reliable on the free worker tier.
-        </p>
+        <p className="mt-1 text-xs text-[var(--muted)]">{t("searchFormListingLimitHint")}</p>
       </div>
 
       <label className="flex items-center gap-2 text-sm">
@@ -211,7 +213,7 @@ export function SavedSearchForm({ initialSearch, onSuccess, onCancel }: SavedSea
           onChange={(event) => setIsEnabled(event.target.checked)}
           className="rounded border-[var(--border)]"
         />
-        Enabled
+        {t("searchFormEnabled")}
       </label>
 
       {error ? <p className="text-sm text-red-600">{error}</p> : null}
@@ -222,7 +224,11 @@ export function SavedSearchForm({ initialSearch, onSuccess, onCancel }: SavedSea
           disabled={isSubmitting}
           className="rounded-md bg-[var(--accent)] px-4 py-2 text-sm font-medium text-white hover:bg-[var(--accent-hover)] disabled:opacity-50"
         >
-          {isSubmitting ? "Saving..." : isEditing ? "Update search" : "Create search"}
+          {isSubmitting
+            ? t("searchFormSaving")
+            : isEditing
+              ? t("searchFormUpdate")
+              : t("searchFormCreate")}
         </button>
         {onCancel ? (
           <button
@@ -230,7 +236,7 @@ export function SavedSearchForm({ initialSearch, onSuccess, onCancel }: SavedSea
             onClick={onCancel}
             className="rounded-md border border-[var(--border)] px-4 py-2 text-sm hover:bg-[var(--background)]"
           >
-            Cancel
+            {t("searchFormCancel")}
           </button>
         ) : null}
       </div>
@@ -240,10 +246,13 @@ export function SavedSearchForm({ initialSearch, onSuccess, onCancel }: SavedSea
 
 interface SavedSearchListProps {
   searches: SavedSearchRecord[];
+  emptyMessage: string;
 }
 
-export function SavedSearchList({ searches }: SavedSearchListProps) {
+export function SavedSearchList({ searches, emptyMessage }: SavedSearchListProps) {
   const router = useRouter();
+  const locale = useLocale();
+  const t = useTranslations();
   const [editingId, setEditingId] = useState<string | null>(null);
   const [pollingId, setPollingId] = useState<string | null>(null);
   const [watchingPollSearchId, setWatchingPollSearchId] = useState<string | null>(null);
@@ -284,14 +293,14 @@ export function SavedSearchList({ searches }: SavedSearchListProps) {
         if (status.jobState === "waiting" || status.jobState === "delayed") {
           updateSearchPollState(searchId, {
             phase: "queued",
-            message: status.message ?? "Poll queued. Updating automatically.",
+            message: status.message ?? t("pollStatusQueuedAuto"),
           });
         }
 
         if (status.jobState === "active") {
           updateSearchPollState(searchId, {
             phase: "running",
-            message: "Checking Facebook Marketplace — usually takes 1–2 minutes.",
+            message: t("pollCheckingMarketplace"),
           });
         }
       }
@@ -307,7 +316,7 @@ export function SavedSearchList({ searches }: SavedSearchListProps) {
       if (latestRun?.status === "RUNNING") {
         updateSearchPollState(searchId, {
           phase: "running",
-          message: "Checking Facebook Marketplace — usually takes 1–2 minutes.",
+          message: t("pollCheckingMarketplace"),
         });
         return false;
       }
@@ -315,7 +324,10 @@ export function SavedSearchList({ searches }: SavedSearchListProps) {
       if (latestRun?.status === "SUCCESS") {
         updateSearchPollState(searchId, {
           phase: "success",
-          message: `Found ${latestRun.listingsFound} listing(s), ${latestRun.newAlerts} new.`,
+          message: t("pollStatusSuccessSummary", {
+            listings: latestRun.listingsFound,
+            alerts: latestRun.newAlerts,
+          }),
         });
         window.setTimeout(() => updateSearchPollState(searchId, null), 8_000);
         return true;
@@ -324,7 +336,7 @@ export function SavedSearchList({ searches }: SavedSearchListProps) {
       if (latestRun?.status === "FAILED") {
         updateSearchPollState(searchId, {
           phase: "failed",
-          message: latestRun.errorMessage ?? "Poll failed. Try again in a few minutes.",
+          message: latestRun.errorMessage ?? t("pollStatusFailedGeneric"),
         });
         return true;
       }
@@ -332,7 +344,7 @@ export function SavedSearchList({ searches }: SavedSearchListProps) {
       if (Date.now() - startedAt > maxWaitMs) {
         updateSearchPollState(searchId, {
           phase: "failed",
-          message: "Poll is taking longer than expected. Refresh the page in a minute.",
+          message: t("pollStatusTimeout"),
         });
         return true;
       }
@@ -357,14 +369,14 @@ export function SavedSearchList({ searches }: SavedSearchListProps) {
       cancelled = true;
       window.clearInterval(intervalId);
     };
-  }, [watchingPollSearchId, router]);
+  }, [watchingPollSearchId, router, t]);
 
   async function pollNow(searchId: string) {
     setPollingId(searchId);
     setWatchingPollSearchId(null);
     updateSearchPollState(searchId, {
       phase: "queuing",
-      message: "Sending poll request...",
+      message: t("pollStatusSending"),
     });
 
     try {
@@ -374,21 +386,21 @@ export function SavedSearchList({ searches }: SavedSearchListProps) {
       if (!response.ok) {
         updateSearchPollState(searchId, {
           phase: "failed",
-          message: data?.error ?? "Failed to queue poll",
+          message: data?.error ?? t("pollStatusFailedQueue"),
         });
         return;
       }
 
       updateSearchPollState(searchId, {
         phase: "queued",
-        message: data?.message ?? "Poll queued. Updating automatically.",
+        message: data?.message ?? t("pollStatusQueuedAuto"),
       });
       setWatchingPollSearchId(searchId);
       router.refresh();
     } catch {
       updateSearchPollState(searchId, {
         phase: "failed",
-        message: "Failed to queue poll",
+        message: t("pollStatusFailedQueue"),
       });
     } finally {
       setPollingId(null);
@@ -405,7 +417,7 @@ export function SavedSearchList({ searches }: SavedSearchListProps) {
   }
 
   async function deleteSearch(searchId: string) {
-    if (!window.confirm("Delete this saved search?")) {
+    if (!window.confirm(t("searchDeleteConfirm"))) {
       return;
     }
 
@@ -417,7 +429,7 @@ export function SavedSearchList({ searches }: SavedSearchListProps) {
   if (searches.length === 0) {
     return (
       <div className="rounded-lg border border-dashed border-[var(--border)] p-8 text-center text-sm text-[var(--muted)]">
-        No saved searches yet. Create one below to start monitoring Facebook Marketplace.
+        {emptyMessage}
       </div>
     );
   }
@@ -425,138 +437,139 @@ export function SavedSearchList({ searches }: SavedSearchListProps) {
   return (
     <div className="space-y-4">
       <ul className="space-y-4">
-      {searches.map((search) => {
-        const isEditing = editingId === search.id;
-        const latestRun = search.recentPollRuns[0];
-        const livePollState =
-          searchPollStates[search.id] ??
-          (latestRun?.status === "RUNNING"
-            ? {
-                phase: "running" as const,
-                message: "Checking Facebook Marketplace — usually takes 1–2 minutes.",
-              }
-            : null);
+        {searches.map((search) => {
+          const isEditing = editingId === search.id;
+          const latestRun = search.recentPollRuns[0];
+          const livePollState =
+            searchPollStates[search.id] ??
+            (latestRun?.status === "RUNNING"
+              ? {
+                  phase: "running" as const,
+                  message: t("pollCheckingMarketplace"),
+                }
+              : null);
 
-        return (
-          <li
-            key={search.id}
-            className="rounded-lg border border-[var(--border)] bg-[var(--card)] p-5"
-          >
-            {isEditing ? (
-              <SavedSearchForm
-                initialSearch={search}
-                onSuccess={() => setEditingId(null)}
-                onCancel={() => setEditingId(null)}
-              />
-            ) : (
-              <div className="space-y-3">
-                <div className="flex flex-wrap items-start justify-between gap-3">
-                  <div>
-                    <h3 className="font-semibold">{search.name}</h3>
-                    <p className="text-sm text-[var(--muted)]">Keywords: {search.keywords}</p>
-                  </div>
-                  <div className="flex flex-wrap items-center gap-2">
-                    {search.alerts.length > 0 ? (
-                      <span className="rounded-full bg-blue-100 px-2.5 py-0.5 text-xs font-medium text-blue-800 dark:bg-blue-900/40 dark:text-blue-300">
-                        {search.alerts.length} listing{search.alerts.length === 1 ? "" : "s"}
-                      </span>
-                    ) : null}
-                    <span
-                    className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${
-                      search.isEnabled
-                        ? "bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300"
-                        : "bg-neutral-100 text-neutral-600 dark:bg-neutral-800 dark:text-neutral-400"
-                    }`}
-                  >
-                    {search.isEnabled ? "Enabled" : "Disabled"}
-                  </span>
-                  </div>
-                </div>
-
-                <dl className="grid gap-2 text-sm sm:grid-cols-2">
-                  <div>
-                    <dt className="text-[var(--muted)]">Price range</dt>
-                    <dd>
-                      {formatPrice(search.minPriceCents)} – {formatPrice(search.maxPriceCents)}
-                    </dd>
-                  </div>
-                  <div>
-                    <dt className="text-[var(--muted)]">Poll every</dt>
-                    <dd>{search.pollIntervalMin} min</dd>
-                  </div>
-                  <div>
-                    <dt className="text-[var(--muted)]">Max per poll</dt>
-                    <dd>{search.listingLimit} listings</dd>
-                  </div>
-                  <div>
-                    <dt className="text-[var(--muted)]">Last polled</dt>
-                    <dd>
-                      {search.lastPolledAt
-                        ? new Date(search.lastPolledAt).toLocaleString("pt-BR")
-                        : "Never"}
-                    </dd>
-                  </div>
-                </dl>
-
-                {livePollState ? <PollStatusBanner pollState={livePollState} /> : null}
-
-                <PollRunHistory pollRuns={search.recentPollRuns} />
-
-                <SearchAlertsSection
-                  savedSearchId={search.id}
-                  listingLimit={search.listingLimit}
-                  alerts={search.alerts}
-                  isFirstPollResults={search.isFirstPollResults}
-                  latestPollStartedAt={search.latestPollStartedAt}
+          return (
+            <li
+              key={search.id}
+              className="rounded-lg border border-[var(--border)] bg-[var(--card)] p-5"
+            >
+              {isEditing ? (
+                <SavedSearchForm
+                  initialSearch={search}
+                  onSuccess={() => setEditingId(null)}
+                  onCancel={() => setEditingId(null)}
                 />
+              ) : (
+                <div className="space-y-3">
+                  <div className="flex flex-wrap items-start justify-between gap-3">
+                    <div>
+                      <h3 className="font-semibold">{search.name}</h3>
+                      <p className="text-sm text-[var(--muted)]">
+                        {t("searchKeywords")}: {search.keywords}
+                      </p>
+                    </div>
+                    <div className="flex flex-wrap items-center gap-2">
+                      {search.alerts.length > 0 ? (
+                        <span className="rounded-full bg-blue-100 px-2.5 py-0.5 text-xs font-medium text-blue-800 dark:bg-blue-900/40 dark:text-blue-300">
+                          {t("searchListingsCount", { count: search.alerts.length })}
+                        </span>
+                      ) : null}
+                      <span
+                        className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${
+                          search.isEnabled
+                            ? "bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300"
+                            : "bg-neutral-100 text-neutral-600 dark:bg-neutral-800 dark:text-neutral-400"
+                        }`}
+                      >
+                        {search.isEnabled ? t("searchEnabled") : t("searchDisabled")}
+                      </span>
+                    </div>
+                  </div>
 
-                <div className="flex flex-wrap gap-2 pt-1">
-                  <button
-                    type="button"
-                    onClick={() => pollNow(search.id)}
-                    disabled={
-                      !search.isEnabled ||
-                      pollingId === search.id ||
-                      latestRun?.status === "RUNNING"
-                    }
-                    className="rounded-md bg-[var(--accent)] px-3 py-1.5 text-sm font-medium text-white hover:bg-[var(--accent-hover)] disabled:opacity-50"
-                  >
-                    {pollingId === search.id
-                      ? "Queuing..."
-                      : latestRun?.status === "RUNNING"
-                        ? "Polling..."
-                        : "Poll now"}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setEditingId(search.id)}
-                    className="rounded-md border border-[var(--border)] px-3 py-1.5 text-sm hover:bg-[var(--background)]"
-                  >
-                    Edit
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => toggleEnabled(search)}
-                    className="rounded-md border border-[var(--border)] px-3 py-1.5 text-sm hover:bg-[var(--background)]"
-                  >
-                    {search.isEnabled ? "Disable" : "Enable"}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => deleteSearch(search.id)}
-                    className="rounded-md border border-red-200 px-3 py-1.5 text-sm text-red-600 hover:bg-red-50 dark:border-red-900 dark:hover:bg-red-950/30"
-                  >
-                    Delete
-                  </button>
+                  <dl className="grid gap-2 text-sm sm:grid-cols-2">
+                    <div>
+                      <dt className="text-[var(--muted)]">{t("searchPriceRange")}</dt>
+                      <dd>
+                        {formatPriceRange(search.minPriceCents, locale)} –{" "}
+                        {formatPriceRange(search.maxPriceCents, locale)}
+                      </dd>
+                    </div>
+                    <div>
+                      <dt className="text-[var(--muted)]">{t("searchPollEvery")}</dt>
+                      <dd>{t("searchMinutes", { count: search.pollIntervalMin })}</dd>
+                    </div>
+                    <div>
+                      <dt className="text-[var(--muted)]">{t("searchMaxPerPoll")}</dt>
+                      <dd>{t("searchListingsPerPoll", { count: search.listingLimit })}</dd>
+                    </div>
+                    <div>
+                      <dt className="text-[var(--muted)]">{t("searchLastPolled")}</dt>
+                      <dd>
+                        {search.lastPolledAt
+                          ? formatDateTime(search.lastPolledAt, locale)
+                          : t("searchNever")}
+                      </dd>
+                    </div>
+                  </dl>
+
+                  {livePollState ? <PollStatusBanner pollState={livePollState} /> : null}
+
+                  <PollRunHistory pollRuns={search.recentPollRuns} />
+
+                  <SearchAlertsSection
+                    savedSearchId={search.id}
+                    listingLimit={search.listingLimit}
+                    alerts={search.alerts}
+                    isFirstPollResults={search.isFirstPollResults}
+                    latestPollStartedAt={search.latestPollStartedAt}
+                  />
+
+                  <div className="flex flex-wrap gap-2 pt-1">
+                    <button
+                      type="button"
+                      onClick={() => pollNow(search.id)}
+                      disabled={
+                        !search.isEnabled ||
+                        pollingId === search.id ||
+                        latestRun?.status === "RUNNING"
+                      }
+                      className="rounded-md bg-[var(--accent)] px-3 py-1.5 text-sm font-medium text-white hover:bg-[var(--accent-hover)] disabled:opacity-50"
+                    >
+                      {pollingId === search.id
+                        ? t("searchQueuing")
+                        : latestRun?.status === "RUNNING"
+                          ? t("searchPolling")
+                          : t("searchPollNow")}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setEditingId(search.id)}
+                      className="rounded-md border border-[var(--border)] px-3 py-1.5 text-sm hover:bg-[var(--background)]"
+                    >
+                      {t("searchEdit")}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => toggleEnabled(search)}
+                      className="rounded-md border border-[var(--border)] px-3 py-1.5 text-sm hover:bg-[var(--background)]"
+                    >
+                      {search.isEnabled ? t("searchDisable") : t("searchEnable")}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => deleteSearch(search.id)}
+                      className="rounded-md border border-red-200 px-3 py-1.5 text-sm text-red-600 hover:bg-red-50 dark:border-red-900 dark:hover:bg-red-950/30"
+                    >
+                      {t("searchDelete")}
+                    </button>
+                  </div>
                 </div>
-              </div>
-            )}
-          </li>
-        );
-      })}
+              )}
+            </li>
+          );
+        })}
       </ul>
     </div>
   );
 }
-
-export { formatPrice };

@@ -2,6 +2,8 @@
 
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
+import { useLocale, useTranslations } from "@/components/locale-provider";
+import { formatDateTime, formatPriceCents } from "@/lib/i18n";
 import type { AlertSortOption } from "@price-monitor/shared/sort-alerts";
 import { sortAlerts } from "@price-monitor/shared/sort-alerts";
 
@@ -25,25 +27,7 @@ export interface AlertRecord {
   };
 }
 
-function formatPrice(cents: number | null): string {
-  if (cents == null) {
-    return "Price unavailable";
-  }
-  return `R$ ${(cents / 100).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`;
-}
-
-function formatDateTime(value: string): string {
-  return new Date(value).toLocaleString("pt-BR");
-}
-
 const DEFAULT_VISIBLE_COUNT = 5;
-
-const sortLabels: Record<AlertSortOption, string> = {
-  "date-desc": "Newest first",
-  "date-asc": "Oldest first",
-  "price-asc": "Price: low to high",
-  "price-desc": "Price: high to low",
-};
 
 function isAlertNewSincePoll(
   alert: AlertRecord,
@@ -92,6 +76,8 @@ interface AlertCardProps {
 }
 
 function AlertCard({ alert, onDismiss, isDismissing = false }: AlertCardProps) {
+  const locale = useLocale();
+  const t = useTranslations();
   const hasPriceDrop = alert.priceDroppedAt != null && alert.previousPriceCents != null;
 
   return (
@@ -104,26 +90,32 @@ function AlertCard({ alert, onDismiss, isDismissing = false }: AlertCardProps) {
         />
       ) : (
         <div className="flex h-40 w-full items-center justify-center rounded-md bg-[var(--card)] text-xs text-[var(--muted)] sm:h-16 sm:w-16 sm:shrink-0">
-          No image
+          {t("alertsNoImage")}
         </div>
       )}
 
       <div className="min-w-0 flex-1 space-y-1">
         {hasPriceDrop ? (
           <span className="inline-block rounded-full bg-orange-100 px-2 py-0.5 text-xs font-medium text-orange-900 dark:bg-orange-900/40 dark:text-orange-200">
-            Price drop · was {formatPrice(alert.previousPriceCents)}
+            {t("alertsPriceDrop", {
+              price: formatPriceCents(alert.previousPriceCents, locale),
+            })}
           </span>
         ) : null}
         <h4 className="text-sm font-medium leading-snug">{alert.listing.title}</h4>
-        <p className="text-sm font-semibold">{formatPrice(alert.listing.priceCents)}</p>
+        <p className="text-sm font-semibold">{formatPriceCents(alert.listing.priceCents, locale)}</p>
         {alert.listing.location ? (
           <p className="text-xs text-[var(--muted)]">{alert.listing.location}</p>
         ) : null}
         <p className="text-xs text-[var(--muted)]">
-          First seen {formatDateTime(alert.listing.firstSeenAt)}
+          {t("alertsFirstSeen", {
+            date: formatDateTime(alert.listing.firstSeenAt, locale),
+          })}
         </p>
         <p className="text-xs text-[var(--muted)]">
-          Last seen {formatDateTime(alert.listing.lastSeenAt)}
+          {t("alertsLastSeen", {
+            date: formatDateTime(alert.listing.lastSeenAt, locale),
+          })}
         </p>
         <div className="flex flex-wrap items-center gap-3 pt-0.5">
           <a
@@ -132,7 +124,7 @@ function AlertCard({ alert, onDismiss, isDismissing = false }: AlertCardProps) {
             rel="noopener noreferrer"
             className="text-sm text-[var(--accent)] hover:underline"
           >
-            View on Facebook
+            {t("alertsViewFacebook")}
           </a>
           {onDismiss ? (
             <button
@@ -141,7 +133,7 @@ function AlertCard({ alert, onDismiss, isDismissing = false }: AlertCardProps) {
               disabled={isDismissing}
               className="text-sm text-[var(--muted)] hover:text-red-600 hover:underline disabled:opacity-50"
             >
-              {isDismissing ? "Removing..." : "Dismiss"}
+              {isDismissing ? t("alertsDismissing") : t("alertsDismiss")}
             </button>
           ) : null}
         </div>
@@ -165,6 +157,7 @@ function AlertListGroup({
   dismissingId,
   defaultExpanded = true,
 }: AlertListGroupProps) {
+  const t = useTranslations();
   const [isExpanded, setIsExpanded] = useState(defaultExpanded);
   const [showAll, setShowAll] = useState(false);
 
@@ -183,7 +176,9 @@ function AlertListGroup({
         className="flex w-full items-center justify-between gap-2 text-left"
       >
         <span className="text-xs font-medium text-[var(--muted)]">{title}</span>
-        <span className="text-xs text-[var(--accent)]">{isExpanded ? "Hide" : "Show"}</span>
+        <span className="text-xs text-[var(--accent)]">
+          {isExpanded ? t("alertsHide") : t("alertsShow")}
+        </span>
       </button>
 
       {isExpanded ? (
@@ -205,7 +200,7 @@ function AlertListGroup({
               onClick={() => setShowAll(true)}
               className="text-sm text-[var(--accent)] hover:underline"
             >
-              Show all {alerts.length}
+              {t("alertsShowAll", { count: alerts.length })}
             </button>
           ) : null}
 
@@ -215,7 +210,7 @@ function AlertListGroup({
               onClick={() => setShowAll(false)}
               className="text-sm text-[var(--muted)] hover:underline"
             >
-              Show less
+              {t("alertsShowLess")}
             </button>
           ) : null}
         </div>
@@ -240,10 +235,18 @@ export function SearchAlertsSection({
   latestPollStartedAt = null,
 }: SearchAlertsSectionProps) {
   const router = useRouter();
+  const t = useTranslations();
   const [isExpanded, setIsExpanded] = useState(alerts.length > 0);
   const [dismissingId, setDismissingId] = useState<string | null>(null);
   const [isClearing, setIsClearing] = useState(false);
   const [sortBy, setSortBy] = useState<AlertSortOption>("date-desc");
+
+  const sortLabels: Record<AlertSortOption, string> = {
+    "date-desc": t("alertsSortNewest"),
+    "date-asc": t("alertsSortOldest"),
+    "price-asc": t("alertsSortPriceAsc"),
+    "price-desc": t("alertsSortPriceDesc"),
+  };
 
   const sortedAlerts = useMemo(() => sortAlerts(alerts, sortBy), [alerts, sortBy]);
 
@@ -265,7 +268,7 @@ export function SearchAlertsSection({
   }
 
   async function clearAllAlerts() {
-    if (!window.confirm("Remove all listings for this search from your dashboard?")) {
+    if (!window.confirm(t("alertsClearConfirm"))) {
       return;
     }
 
@@ -283,7 +286,7 @@ export function SearchAlertsSection({
   if (alerts.length === 0) {
     return (
       <div className="rounded-md border border-dashed border-[var(--border)] bg-[var(--background)] px-4 py-3 text-sm text-[var(--muted)]">
-        No listings yet. Click <strong>Poll now</strong> to search Facebook Marketplace.
+        {t("alertsNoListings")}
       </div>
     );
   }
@@ -297,13 +300,15 @@ export function SearchAlertsSection({
           className="text-left"
         >
           <span className="text-xs font-medium uppercase tracking-wide text-[var(--muted)]">
-            Listings ({alerts.length})
+            {t("alertsListingsTitle", { count: alerts.length })}
           </span>
-          <span className="ml-2 text-xs text-[var(--accent)]">{isExpanded ? "Hide" : "Show"}</span>
+          <span className="ml-2 text-xs text-[var(--accent)]">
+            {isExpanded ? t("alertsHide") : t("alertsShow")}
+          </span>
         </button>
         <div className="flex flex-wrap items-center gap-3">
           <label className="flex items-center gap-2 text-xs text-[var(--muted)]">
-            Sort
+            {t("alertsSort")}
             <select
               value={sortBy}
               onChange={(event) => setSortBy(event.target.value as AlertSortOption)}
@@ -322,7 +327,7 @@ export function SearchAlertsSection({
             disabled={isClearing}
             className="text-xs text-[var(--muted)] hover:text-red-600 hover:underline disabled:opacity-50"
           >
-            {isClearing ? "Clearing..." : "Clear all"}
+            {isClearing ? t("alertsClearing") : t("alertsClearAll")}
           </button>
         </div>
       </div>
@@ -331,13 +336,13 @@ export function SearchAlertsSection({
         <div className="space-y-4">
           {isFirstPollResults ? (
             <p className="rounded-md bg-blue-50 px-3 py-2 text-xs text-blue-900 dark:bg-blue-950/40 dark:text-blue-200">
-              First poll — showing all matches from the latest scan (up to {listingLimit} per poll).
+              {t("alertsFirstPollBanner", { limit: listingLimit })}
             </p>
           ) : null}
 
           {!isFirstPollResults && newAlerts.length > 0 ? (
             <AlertListGroup
-              title={`New since last poll (${newAlerts.length})`}
+              title={t("alertsNewSincePoll", { count: newAlerts.length })}
               alerts={newAlerts}
               onDismiss={dismissAlert}
               dismissingId={dismissingId}
@@ -347,7 +352,7 @@ export function SearchAlertsSection({
 
           {!isFirstPollResults && previousAlerts.length > 0 ? (
             <AlertListGroup
-              title={`Previous listings (${previousAlerts.length})`}
+              title={t("alertsPreviousListings", { count: previousAlerts.length })}
               alerts={previousAlerts}
               onDismiss={dismissAlert}
               dismissingId={dismissingId}
@@ -357,7 +362,7 @@ export function SearchAlertsSection({
 
           {isFirstPollResults ? (
             <AlertListGroup
-              title={`All matches (${sortedAlerts.length})`}
+              title={t("alertsAllMatches", { count: sortedAlerts.length })}
               alerts={sortedAlerts}
               onDismiss={dismissAlert}
               dismissingId={dismissingId}
@@ -366,9 +371,7 @@ export function SearchAlertsSection({
           ) : null}
 
           {!isFirstPollResults && newAlerts.length === 0 && previousAlerts.length > 0 ? (
-            <p className="text-xs text-[var(--muted)]">
-              No new listings since the last poll. Showing previous matches below.
-            </p>
+            <p className="text-xs text-[var(--muted)]">{t("alertsNoNewSincePoll")}</p>
           ) : null}
         </div>
       ) : null}

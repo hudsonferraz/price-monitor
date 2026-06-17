@@ -1,5 +1,7 @@
 "use client";
 
+import { useTranslations } from "@/components/locale-provider";
+
 export type PollPhase = "queuing" | "queued" | "running" | "success" | "failed";
 
 export interface SearchPollState {
@@ -24,12 +26,14 @@ interface PollStatusBannerProps {
 }
 
 export function PollStatusBanner({ pollState }: PollStatusBannerProps) {
+  const t = useTranslations();
+
   const labelByPhase: Record<PollPhase, string> = {
-    queuing: "Queuing",
-    queued: "Queued",
-    running: "Running",
-    success: "Complete",
-    failed: "Failed",
+    queuing: t("pollStatusQueuing"),
+    queued: t("pollStatusQueued"),
+    running: t("pollStatusRunning"),
+    success: t("pollStatusSuccess"),
+    failed: t("pollStatusFailed"),
   };
 
   return (

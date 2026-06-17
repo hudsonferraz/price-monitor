@@ -1,5 +1,8 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
+import { LocaleProvider } from "@/components/locale-provider";
+import { getLocale } from "@/lib/i18n/get-locale";
+import { getMessages } from "@/lib/i18n";
 import "./globals.css";
 
 const inter = Inter({
@@ -7,19 +10,31 @@ const inter = Inter({
   variable: "--font-inter",
 });
 
-export const metadata: Metadata = {
-  title: "price-monitor",
-  description: "Facebook Marketplace deal alerts for Brazil",
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const locale = await getLocale();
+  const messages = await getMessages(locale);
 
-export default function RootLayout({
+  return {
+    title: messages.appName,
+    description: messages.appDescription,
+  };
+}
+
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const locale = await getLocale();
+  const messages = await getMessages(locale);
+
   return (
-    <html lang="en">
-      <body className={`${inter.variable} font-sans antialiased`}>{children}</body>
+    <html lang={locale}>
+      <body className={`${inter.variable} font-sans antialiased`}>
+        <LocaleProvider locale={locale} messages={messages}>
+          {children}
+        </LocaleProvider>
+      </body>
     </html>
   );
 }

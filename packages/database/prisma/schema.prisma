@@ -25,6 +25,7 @@ model User {
   emailVerified             DateTime?
   image                     String?
   emailNotificationsEnabled Boolean       @default(true)
+  preferredLocale             String        @default("pt-BR")
   accounts                  Account[]
   sessions                  Session[]
   savedSearches             SavedSearch[]

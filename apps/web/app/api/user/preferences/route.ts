@@ -10,7 +10,7 @@ export async function GET() {
 
   const user = await prisma.user.findUnique({
     where: { id: session.user.id },
-    select: { emailNotificationsEnabled: true },
+    select: { emailNotificationsEnabled: true, preferredLocale: true },
   });
 
   if (!user) {
@@ -19,6 +19,7 @@ export async function GET() {
 
   return NextResponse.json({
     emailNotificationsEnabled: user.emailNotificationsEnabled,
+    preferredLocale: user.preferredLocale,
   });
 }
 
@@ -29,18 +30,49 @@ export async function PATCH(request: Request) {
   }
 
   const body = await request.json().catch(() => null);
-  if (typeof body?.emailNotificationsEnabled !== "boolean") {
+
+  if (
+    body?.emailNotificationsEnabled == null &&
+    body?.preferredLocale == null
+  ) {
+    return NextResponse.json({ error: "No valid preference fields provided" }, { status: 400 });
+  }
+
+  if (
+    body?.emailNotificationsEnabled != null &&
+    typeof body.emailNotificationsEnabled !== "boolean"
+  ) {
     return NextResponse.json(
       { error: "emailNotificationsEnabled must be a boolean" },
       { status: 400 },
     );
   }
 
+  const { isAppLocale, LOCALE_COOKIE_NAME } = await import("@/lib/i18n/locales");
+  if (body?.preferredLocale != null && !isAppLocale(body.preferredLocale)) {
+    return NextResponse.json({ error: "preferredLocale must be en-US or pt-BR" }, { status: 400 });
+  }
+
   const user = await prisma.user.update({
     where: { id: session.user.id },
-    data: { emailNotificationsEnabled: body.emailNotificationsEnabled },
-    select: { emailNotificationsEnabled: true },
+    data: {
+      ...(body?.emailNotificationsEnabled != null
+        ? { emailNotificationsEnabled: body.emailNotificationsEnabled }
+        : {}),
+      ...(body?.preferredLocale != null ? { preferredLocale: body.preferredLocale } : {}),
+    },
+    select: { emailNotificationsEnabled: true, preferredLocale: true },
   });
 
-  return NextResponse.json(user);
+  const response = NextResponse.json(user);
+
+  if (body?.preferredLocale != null) {
+    response.cookies.set(LOCALE_COOKIE_NAME, body.preferredLocale, {
+      path: "/",
+      maxAge: 60 * 60 * 24 * 365,
+      sameSite: "lax",
+    });
+  }
+
+  return response;
 }

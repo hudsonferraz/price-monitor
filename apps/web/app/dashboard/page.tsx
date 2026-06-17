@@ -3,10 +3,14 @@ import { FacebookSessionWarning } from "@/components/facebook-session-warning";
 import { MarketplaceLocationHint } from "@/components/marketplace-location-hint";
 import { NotificationSettings } from "@/components/notification-settings";
 import type { PollRunRecord } from "@/components/poll-run-history";
+import { SearchStatsPanel } from "@/components/search-stats-panel";
 import { SiteHeader } from "@/components/site-header";
 import { SavedSearchForm, SavedSearchList, type SavedSearchRecord } from "@/components/saved-search-panel";
 import { SystemStatusPanel } from "@/components/system-status-panel";
 import { auth } from "@/auth";
+import { formatSearchSummary, getTranslator } from "@/lib/i18n";
+import { getLocale } from "@/lib/i18n/get-locale";
+import { fetchSearchStatsSummaries } from "@/lib/search-stats";
 import { fetchWorkerHealthStatus, summarizeRecentPollHealth } from "@/lib/system-health";
 import { prisma } from "@price-monitor/database";
 import { redirect } from "next/navigation";
@@ -18,7 +22,10 @@ export default async function DashboardPage() {
     redirect("/sign-in");
   }
 
-  const [searches, pollRuns, user, workerHealth] = await Promise.all([
+  const locale = await getLocale();
+  const t = await getTranslator(locale);
+
+  const [searches, pollRuns, user, workerHealth, searchStats] = await Promise.all([
     prisma.savedSearch.findMany({
       where: { userId: session.user.id },
       orderBy: { createdAt: "desc" },
@@ -41,6 +48,7 @@ export default async function DashboardPage() {
       select: { emailNotificationsEnabled: true },
     }),
     fetchWorkerHealthStatus(),
+    fetchSearchStatsSummaries(session.user.id),
   ]);
 
   const pollHealth = summarizeRecentPollHealth(pollRuns);
@@ -77,24 +85,24 @@ export default async function DashboardPage() {
     const latestSuccess = recentPollRuns.find((run) => run.status === "SUCCESS");
     const successPollCount = successPollCountBySearchId.get(search.id) ?? 0;
     const alerts: AlertRecord[] = search.alerts.map((alert) => ({
-        id: alert.id,
-        createdAt: alert.createdAt.toISOString(),
-        previousPriceCents: alert.previousPriceCents,
-        priceDroppedAt: alert.priceDroppedAt?.toISOString() ?? null,
-        savedSearch: { id: search.id, name: search.name },
-        listing: {
-          id: alert.listing.id,
-          source: alert.listing.source,
-          title: alert.listing.title,
-          priceCents: alert.listing.priceCents,
-          currency: alert.listing.currency,
-          url: alert.listing.url,
-          imageUrl: alert.listing.imageUrl,
-          location: alert.listing.location,
-          firstSeenAt: alert.listing.createdAt.toISOString(),
-          lastSeenAt: alert.listing.updatedAt.toISOString(),
-        },
-      }));
+      id: alert.id,
+      createdAt: alert.createdAt.toISOString(),
+      previousPriceCents: alert.previousPriceCents,
+      priceDroppedAt: alert.priceDroppedAt?.toISOString() ?? null,
+      savedSearch: { id: search.id, name: search.name },
+      listing: {
+        id: alert.listing.id,
+        source: alert.listing.source,
+        title: alert.listing.title,
+        priceCents: alert.listing.priceCents,
+        currency: alert.listing.currency,
+        url: alert.listing.url,
+        imageUrl: alert.listing.imageUrl,
+        location: alert.listing.location,
+        firstSeenAt: alert.listing.createdAt.toISOString(),
+        lastSeenAt: alert.listing.updatedAt.toISOString(),
+      },
+    }));
 
     return {
       id: search.id,
@@ -126,10 +134,8 @@ export default async function DashboardPage() {
       <SiteHeader />
       <main className="mx-auto max-w-3xl px-4 py-10">
         <div className="mb-8">
-          <h1 className="text-2xl font-bold">Dashboard</h1>
-          <p className="mt-1 text-sm text-[var(--muted)]">
-            Monitor Facebook Marketplace searches and review new listing alerts.
-          </p>
+          <h1 className="text-2xl font-bold">{t("dashboardTitle")}</h1>
+          <p className="mt-1 text-sm text-[var(--muted)]">{t("dashboardDescription")}</p>
         </div>
 
         <section className="mb-10">
@@ -148,6 +154,8 @@ export default async function DashboardPage() {
           averagePollDurationMs={pollHealth.averageDurationMs}
         />
 
+        <SearchStatsPanel summaries={searchStats} />
+
         <section className="mb-10">
           <MarketplaceLocationHint />
         </section>
@@ -155,20 +163,19 @@ export default async function DashboardPage() {
         <section className="mb-10">
           <div className="mb-4 flex flex-wrap items-end justify-between gap-2">
             <div>
-              <h2 className="text-lg font-semibold">Your searches</h2>
+              <h2 className="text-lg font-semibold">{t("dashboardYourSearches")}</h2>
               {serializedSearches.length > 0 ? (
                 <p className="mt-1 text-sm text-[var(--muted)]">
-                  {serializedSearches.length} search{serializedSearches.length === 1 ? "" : "es"} ·{" "}
-                  {totalListings} listing{totalListings === 1 ? "" : "s"} total
+                  {formatSearchSummary(locale, serializedSearches.length, totalListings)}
                 </p>
               ) : null}
             </div>
           </div>
-          <SavedSearchList searches={serializedSearches} />
+          <SavedSearchList searches={serializedSearches} emptyMessage={t("dashboardNoSearches")} />
         </section>
 
         <section className="rounded-lg border border-[var(--border)] bg-[var(--card)] p-5">
-          <h2 className="mb-4 text-lg font-semibold">New search</h2>
+          <h2 className="mb-4 text-lg font-semibold">{t("dashboardNewSearch")}</h2>
           <SavedSearchForm />
         </section>
       </main>
