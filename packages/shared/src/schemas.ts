@@ -1,11 +1,22 @@
 import { z } from "zod";
 
+import { LISTING_LIMIT_OPTIONS } from "./queue";
+
+const listingLimitSchema = z.coerce
+  .number()
+  .int()
+  .refine((value) => (LISTING_LIMIT_OPTIONS as readonly number[]).includes(value), {
+    message: "Listing limit must be 12, 24, or 48",
+  })
+  .default(24);
+
 const savedSearchFieldsSchema = z.object({
   name: z.string().trim().min(1, "Name is required").max(100),
   keywords: z.string().trim().min(1, "Keywords are required").max(200),
   minPriceReais: z.number().min(0).optional().nullable(),
   maxPriceReais: z.number().min(0).optional().nullable(),
   pollIntervalMin: z.coerce.number().int().min(5).max(1440).default(30),
+  listingLimit: listingLimitSchema,
   isEnabled: z.boolean().default(true),
 });
 

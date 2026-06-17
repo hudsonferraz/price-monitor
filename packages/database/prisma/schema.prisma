@@ -77,6 +77,7 @@ model SavedSearch {
   minPriceCents   Int?
   maxPriceCents   Int?
   pollIntervalMin Int           @default(30)
+  listingLimit    Int           @default(24)
   isEnabled       Boolean       @default(true)
   lastPolledAt    DateTime?
   user            User          @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -112,6 +113,8 @@ model Alert {
   savedSearchId String
   listingId     String
   emailSentAt   DateTime?
+  previousPriceCents Int?
+  priceDroppedAt     DateTime?
   user          User        @relation(fields: [userId], references: [id], onDelete: Cascade)
   savedSearch   SavedSearch @relation(fields: [savedSearchId], references: [id], onDelete: Cascade)
   listing       Listing     @relation(fields: [listingId], references: [id], onDelete: Cascade)

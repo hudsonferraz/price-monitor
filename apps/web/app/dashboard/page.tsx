@@ -1,4 +1,5 @@
 import { type AlertRecord } from "@/components/alerts-feed";
+import { MarketplaceLocationHint } from "@/components/marketplace-location-hint";
 import { NotificationSettings } from "@/components/notification-settings";
 import type { PollRunRecord } from "@/components/poll-run-history";
 import { SiteHeader } from "@/components/site-header";
@@ -70,6 +71,8 @@ export default async function DashboardPage() {
     const alerts: AlertRecord[] = search.alerts.map((alert) => ({
         id: alert.id,
         createdAt: alert.createdAt.toISOString(),
+        previousPriceCents: alert.previousPriceCents,
+        priceDroppedAt: alert.priceDroppedAt?.toISOString() ?? null,
         savedSearch: { id: search.id, name: search.name },
         listing: {
           id: alert.listing.id,
@@ -80,6 +83,8 @@ export default async function DashboardPage() {
           url: alert.listing.url,
           imageUrl: alert.listing.imageUrl,
           location: alert.listing.location,
+          firstSeenAt: alert.listing.createdAt.toISOString(),
+          lastSeenAt: alert.listing.updatedAt.toISOString(),
         },
       }));
 
@@ -90,6 +95,7 @@ export default async function DashboardPage() {
       minPriceCents: search.minPriceCents,
       maxPriceCents: search.maxPriceCents,
       pollIntervalMin: search.pollIntervalMin,
+      listingLimit: search.listingLimit,
       isEnabled: search.isEnabled,
       lastPolledAt: search.lastPolledAt?.toISOString() ?? null,
       createdAt: search.createdAt.toISOString(),
@@ -122,6 +128,10 @@ export default async function DashboardPage() {
           <NotificationSettings
             emailNotificationsEnabled={user?.emailNotificationsEnabled ?? true}
           />
+        </section>
+
+        <section className="mb-10">
+          <MarketplaceLocationHint />
         </section>
 
         <section className="mb-10">

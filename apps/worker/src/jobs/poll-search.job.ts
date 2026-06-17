@@ -1,5 +1,5 @@
 import { prisma, MarketplaceSource, PollRunStatus } from "@price-monitor/database";
-import { DEFAULT_LISTING_LIMIT } from "@price-monitor/shared/queue";
+import { normalizeListingLimit } from "@price-monitor/shared/sort-alerts";
 import type { NormalizedListing } from "@price-monitor/shared/types";
 import { sendNewAlertsEmail } from "../lib/email-notifications";
 import { searchMarketplace } from "../lib/marketplace-browser";
@@ -55,7 +55,7 @@ export async function executePollSearch(savedSearchId: string): Promise<PollSear
       keywords: savedSearch.keywords,
       minPriceCents: savedSearch.minPriceCents ?? undefined,
       maxPriceCents: savedSearch.maxPriceCents ?? undefined,
-      limit: DEFAULT_LISTING_LIMIT,
+      limit: normalizeListingLimit(savedSearch.listingLimit),
     });
 
     const { newAlerts, alertIds } = await persistListingsAndAlerts(
@@ -128,6 +128,17 @@ async function persistListingsAndAlerts(
   const alertIds: string[] = [];
 
   for (const listing of listings) {
+    const existingListing = await prisma.listing.findUnique({
+      where: {
+        source_externalId: {
+          source: MarketplaceSource.FACEBOOK,
+          externalId: listing.externalId,
+        },
+      },
+    });
+
+    const previousPriceCents = existingListing?.priceCents ?? null;
+
     const storedListing = await prisma.listing.upsert({
       where: {
         source_externalId: {
@@ -164,19 +175,37 @@ async function persistListingsAndAlerts(
       },
     });
 
-    if (existingAlert) {
+    const priceDropped =
+      existingListing != null &&
+      previousPriceCents != null &&
+      listing.priceCents != null &&
+      listing.priceCents < previousPriceCents;
+
+    if (!existingAlert) {
+      const alert = await prisma.alert.create({
+        data: {
+          userId,
+          savedSearchId,
+          listingId: storedListing.id,
+        },
+      });
+
+      alertIds.push(alert.id);
       continue;
     }
 
-    const alert = await prisma.alert.create({
-      data: {
-        userId,
-        savedSearchId,
-        listingId: storedListing.id,
-      },
-    });
+    if (priceDropped) {
+      await prisma.alert.update({
+        where: { id: existingAlert.id },
+        data: {
+          previousPriceCents,
+          priceDroppedAt: new Date(),
+          emailSentAt: null,
+        },
+      });
 
-    alertIds.push(alert.id);
+      alertIds.push(existingAlert.id);
+    }
   }
 
   return {

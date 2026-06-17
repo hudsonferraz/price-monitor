@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { SearchAlertsSection, type AlertRecord } from "@/components/alerts-feed";
 import { PollStatusBanner, type SearchPollState } from "@/components/poll-status-banner";
 import { PollRunHistory, type PollRunRecord } from "@/components/poll-run-history";
+import { LISTING_LIMIT_OPTIONS } from "@price-monitor/shared/queue";
 
 export interface SavedSearchRecord {
   id: string;
@@ -13,6 +14,7 @@ export interface SavedSearchRecord {
   minPriceCents: number | null;
   maxPriceCents: number | null;
   pollIntervalMin: number;
+  listingLimit: number;
   isEnabled: boolean;
   lastPolledAt: string | null;
   createdAt: string;
@@ -56,6 +58,7 @@ export function SavedSearchForm({ initialSearch, onSuccess, onCancel }: SavedSea
   const [pollIntervalMin, setPollIntervalMin] = useState(
     String(initialSearch?.pollIntervalMin ?? 30),
   );
+  const [listingLimit, setListingLimit] = useState(String(initialSearch?.listingLimit ?? 24));
   const [isEnabled, setIsEnabled] = useState(initialSearch?.isEnabled ?? true);
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -74,6 +77,7 @@ export function SavedSearchForm({ initialSearch, onSuccess, onCancel }: SavedSea
       minPriceReais: minPriceReais ? Number(minPriceReais) : null,
       maxPriceReais: maxPriceReais ? Number(maxPriceReais) : null,
       pollIntervalMin: Number(pollIntervalMin),
+      listingLimit: Number(listingLimit),
       isEnabled,
     };
 
@@ -177,6 +181,27 @@ export function SavedSearchForm({ initialSearch, onSuccess, onCancel }: SavedSea
           onChange={(event) => setPollIntervalMin(event.target.value)}
           className="w-full rounded-md border border-[var(--border)] bg-[var(--background)] px-3 py-2 text-sm"
         />
+      </div>
+
+      <div>
+        <label htmlFor="listingLimit" className="mb-1 block text-sm font-medium">
+          Max listings per poll
+        </label>
+        <select
+          id="listingLimit"
+          value={listingLimit}
+          onChange={(event) => setListingLimit(event.target.value)}
+          className="w-full rounded-md border border-[var(--border)] bg-[var(--background)] px-3 py-2 text-sm"
+        >
+          {LISTING_LIMIT_OPTIONS.map((limit) => (
+            <option key={limit} value={limit}>
+              {limit} listings
+            </option>
+          ))}
+        </select>
+        <p className="mt-1 text-xs text-[var(--muted)]">
+          Higher limits take longer to scrape and may be less reliable on the free worker tier.
+        </p>
       </div>
 
       <label className="flex items-center gap-2 text-sm">
@@ -436,6 +461,10 @@ export function SavedSearchList({ searches }: SavedSearchListProps) {
                     <dd>{search.pollIntervalMin} min</dd>
                   </div>
                   <div>
+                    <dt className="text-[var(--muted)]">Max per poll</dt>
+                    <dd>{search.listingLimit} listings</dd>
+                  </div>
+                  <div>
                     <dt className="text-[var(--muted)]">Last polled</dt>
                     <dd>
                       {search.lastPolledAt
@@ -451,6 +480,7 @@ export function SavedSearchList({ searches }: SavedSearchListProps) {
 
                 <SearchAlertsSection
                   savedSearchId={search.id}
+                  listingLimit={search.listingLimit}
                   alerts={search.alerts}
                   isFirstPollResults={search.isFirstPollResults}
                   latestPollStartedAt={search.latestPollStartedAt}

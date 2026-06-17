@@ -1,11 +1,15 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useMemo, useState } from "react";
+import type { AlertSortOption } from "@price-monitor/shared/sort-alerts";
+import { sortAlerts } from "@price-monitor/shared/sort-alerts";
 
 export interface AlertRecord {
   id: string;
   createdAt: string;
+  previousPriceCents: number | null;
+  priceDroppedAt: string | null;
   savedSearch: { id: string; name: string };
   listing: {
     id: string;
@@ -16,6 +20,8 @@ export interface AlertRecord {
     url: string;
     imageUrl: string | null;
     location: string | null;
+    firstSeenAt: string;
+    lastSeenAt: string;
   };
 }
 
@@ -26,7 +32,35 @@ function formatPrice(cents: number | null): string {
   return `R$ ${(cents / 100).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`;
 }
 
+function formatDateTime(value: string): string {
+  return new Date(value).toLocaleString("pt-BR");
+}
+
 const DEFAULT_VISIBLE_COUNT = 5;
+
+const sortLabels: Record<AlertSortOption, string> = {
+  "date-desc": "Newest first",
+  "date-asc": "Oldest first",
+  "price-asc": "Price: low to high",
+  "price-desc": "Price: high to low",
+};
+
+function isAlertNewSincePoll(
+  alert: AlertRecord,
+  latestPollStartedAt: string | null,
+  isFirstPollResults: boolean,
+): boolean {
+  if (isFirstPollResults || !latestPollStartedAt) {
+    return true;
+  }
+
+  const cutoff = new Date(latestPollStartedAt).getTime();
+  if (alert.priceDroppedAt && new Date(alert.priceDroppedAt).getTime() >= cutoff) {
+    return true;
+  }
+
+  return new Date(alert.createdAt).getTime() >= cutoff;
+}
 
 function splitAlertsByPoll(
   alerts: AlertRecord[],
@@ -37,12 +71,11 @@ function splitAlertsByPoll(
     return { newAlerts: alerts, previousAlerts: [] };
   }
 
-  const cutoff = new Date(latestPollStartedAt).getTime();
   const newAlerts: AlertRecord[] = [];
   const previousAlerts: AlertRecord[] = [];
 
   for (const alert of alerts) {
-    if (new Date(alert.createdAt).getTime() >= cutoff) {
+    if (isAlertNewSincePoll(alert, latestPollStartedAt, isFirstPollResults)) {
       newAlerts.push(alert);
     } else {
       previousAlerts.push(alert);
@@ -59,28 +92,38 @@ interface AlertCardProps {
 }
 
 function AlertCard({ alert, onDismiss, isDismissing = false }: AlertCardProps) {
+  const hasPriceDrop = alert.priceDroppedAt != null && alert.previousPriceCents != null;
+
   return (
-    <li className="flex gap-3 rounded-md border border-[var(--border)] bg-[var(--background)] p-3">
+    <li className="flex flex-col gap-3 rounded-md border border-[var(--border)] bg-[var(--background)] p-3 sm:flex-row">
       {alert.listing.imageUrl ? (
         <img
           src={alert.listing.imageUrl}
           alt=""
-          className="h-16 w-16 shrink-0 rounded-md object-cover"
+          className="h-40 w-full rounded-md object-cover sm:h-16 sm:w-16 sm:shrink-0"
         />
       ) : (
-        <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-md bg-[var(--card)] text-xs text-[var(--muted)]">
+        <div className="flex h-40 w-full items-center justify-center rounded-md bg-[var(--card)] text-xs text-[var(--muted)] sm:h-16 sm:w-16 sm:shrink-0">
           No image
         </div>
       )}
 
       <div className="min-w-0 flex-1 space-y-1">
+        {hasPriceDrop ? (
+          <span className="inline-block rounded-full bg-orange-100 px-2 py-0.5 text-xs font-medium text-orange-900 dark:bg-orange-900/40 dark:text-orange-200">
+            Price drop · was {formatPrice(alert.previousPriceCents)}
+          </span>
+        ) : null}
         <h4 className="text-sm font-medium leading-snug">{alert.listing.title}</h4>
         <p className="text-sm font-semibold">{formatPrice(alert.listing.priceCents)}</p>
         {alert.listing.location ? (
           <p className="text-xs text-[var(--muted)]">{alert.listing.location}</p>
         ) : null}
         <p className="text-xs text-[var(--muted)]">
-          Found {new Date(alert.createdAt).toLocaleString("pt-BR")}
+          First seen {formatDateTime(alert.listing.firstSeenAt)}
+        </p>
+        <p className="text-xs text-[var(--muted)]">
+          Last seen {formatDateTime(alert.listing.lastSeenAt)}
         </p>
         <div className="flex flex-wrap items-center gap-3 pt-0.5">
           <a
@@ -183,6 +226,7 @@ function AlertListGroup({
 
 interface SearchAlertsSectionProps {
   savedSearchId: string;
+  listingLimit: number;
   alerts: AlertRecord[];
   isFirstPollResults?: boolean;
   latestPollStartedAt?: string | null;
@@ -190,6 +234,7 @@ interface SearchAlertsSectionProps {
 
 export function SearchAlertsSection({
   savedSearchId,
+  listingLimit,
   alerts,
   isFirstPollResults = false,
   latestPollStartedAt = null,
@@ -198,11 +243,13 @@ export function SearchAlertsSection({
   const [isExpanded, setIsExpanded] = useState(alerts.length > 0);
   const [dismissingId, setDismissingId] = useState<string | null>(null);
   const [isClearing, setIsClearing] = useState(false);
+  const [sortBy, setSortBy] = useState<AlertSortOption>("date-desc");
 
-  const { newAlerts, previousAlerts } = splitAlertsByPoll(
-    alerts,
-    latestPollStartedAt,
-    isFirstPollResults,
+  const sortedAlerts = useMemo(() => sortAlerts(alerts, sortBy), [alerts, sortBy]);
+
+  const { newAlerts, previousAlerts } = useMemo(
+    () => splitAlertsByPoll(sortedAlerts, latestPollStartedAt, isFirstPollResults),
+    [sortedAlerts, latestPollStartedAt, isFirstPollResults],
   );
 
   async function dismissAlert(alertId: string) {
@@ -254,21 +301,37 @@ export function SearchAlertsSection({
           </span>
           <span className="ml-2 text-xs text-[var(--accent)]">{isExpanded ? "Hide" : "Show"}</span>
         </button>
-        <button
-          type="button"
-          onClick={clearAllAlerts}
-          disabled={isClearing}
-          className="text-xs text-[var(--muted)] hover:text-red-600 hover:underline disabled:opacity-50"
-        >
-          {isClearing ? "Clearing..." : "Clear all"}
-        </button>
+        <div className="flex flex-wrap items-center gap-3">
+          <label className="flex items-center gap-2 text-xs text-[var(--muted)]">
+            Sort
+            <select
+              value={sortBy}
+              onChange={(event) => setSortBy(event.target.value as AlertSortOption)}
+              className="rounded-md border border-[var(--border)] bg-[var(--background)] px-2 py-1 text-xs text-[var(--foreground)]"
+            >
+              {(Object.keys(sortLabels) as AlertSortOption[]).map((option) => (
+                <option key={option} value={option}>
+                  {sortLabels[option]}
+                </option>
+              ))}
+            </select>
+          </label>
+          <button
+            type="button"
+            onClick={clearAllAlerts}
+            disabled={isClearing}
+            className="text-xs text-[var(--muted)] hover:text-red-600 hover:underline disabled:opacity-50"
+          >
+            {isClearing ? "Clearing..." : "Clear all"}
+          </button>
+        </div>
       </div>
 
       {isExpanded ? (
         <div className="space-y-4">
           {isFirstPollResults ? (
             <p className="rounded-md bg-blue-50 px-3 py-2 text-xs text-blue-900 dark:bg-blue-950/40 dark:text-blue-200">
-              First poll — showing all matches from the latest scan (up to 24 per poll).
+              First poll — showing all matches from the latest scan (up to {listingLimit} per poll).
             </p>
           ) : null}
 
@@ -294,8 +357,8 @@ export function SearchAlertsSection({
 
           {isFirstPollResults ? (
             <AlertListGroup
-              title={`All matches (${alerts.length})`}
-              alerts={alerts}
+              title={`All matches (${sortedAlerts.length})`}
+              alerts={sortedAlerts}
               onDismiss={dismissAlert}
               dismissingId={dismissingId}
               defaultExpanded
@@ -320,10 +383,6 @@ interface AlertsFeedProps {
 /** @deprecated Use SearchAlertsSection inside each saved search card. */
 export function AlertsFeed({ alerts }: AlertsFeedProps) {
   return (
-    <SearchAlertsSection
-      savedSearchId=""
-      alerts={alerts}
-      isFirstPollResults
-    />
+    <SearchAlertsSection savedSearchId="" listingLimit={24} alerts={alerts} isFirstPollResults />
   );
 }

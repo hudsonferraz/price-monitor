@@ -63,8 +63,12 @@ export async function sendNewAlertsEmail(
   }
 
   const alertCount = alerts.length;
-  const subject =
-    alertCount === 1
+  const hasPriceDrop = alerts.some((alert) => alert.priceDroppedAt != null);
+  const subject = hasPriceDrop
+    ? alertCount === 1
+      ? `Price drop for ${savedSearch.name}`
+      : `Price drops and new matches for ${savedSearch.name}`
+    : alertCount === 1
       ? `New match for ${savedSearch.name}`
       : `${alertCount} new matches for ${savedSearch.name}`;
 
@@ -72,7 +76,11 @@ export async function sendNewAlertsEmail(
     .map((alert) => {
       const price = formatPriceCents(alert.listing.priceCents);
       const location = alert.listing.location ? ` · ${alert.listing.location}` : "";
-      return `• ${alert.listing.title} — ${price}${location}\n  ${alert.listing.url}`;
+      const priceDropNote =
+        alert.priceDroppedAt && alert.previousPriceCents != null
+          ? ` (was ${formatPriceCents(alert.previousPriceCents)})`
+          : "";
+      return `• ${alert.listing.title} — ${price}${priceDropNote}${location}\n  ${alert.listing.url}`;
     })
     .join("\n\n");
 
@@ -92,7 +100,11 @@ export async function sendNewAlertsEmail(
         .map((alert) => {
           const price = formatPriceCents(alert.listing.priceCents);
           const location = alert.listing.location ? ` · ${alert.listing.location}` : "";
-          return `<li><a href="${alert.listing.url}">${alert.listing.title}</a> — ${price}${location}</li>`;
+          const priceDropNote =
+            alert.priceDroppedAt && alert.previousPriceCents != null
+              ? ` <em>(was ${formatPriceCents(alert.previousPriceCents)})</em>`
+              : "";
+          return `<li><a href="${alert.listing.url}">${alert.listing.title}</a> — ${price}${priceDropNote}${location}</li>`;
         })
         .join("")}
     </ul>
