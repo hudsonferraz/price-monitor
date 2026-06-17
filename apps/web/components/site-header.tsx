@@ -15,7 +15,7 @@ export async function SiteHeader() {
         <Link href="/" className="text-lg font-semibold tracking-tight">
           {t("appName")}
         </Link>
-        <nav className="flex items-center gap-4 text-sm">
+        <nav className="flex flex-wrap items-center justify-end gap-3 text-sm">
           <LanguageSwitch />
           {session?.user ? (
             <>
