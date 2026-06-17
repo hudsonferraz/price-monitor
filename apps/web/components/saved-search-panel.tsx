@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { SearchAlertsSection, type AlertRecord } from "@/components/alerts-feed";
 import { PollRunHistory, type PollRunRecord } from "@/components/poll-run-history";
 
 export interface SavedSearchRecord {
@@ -16,6 +17,8 @@ export interface SavedSearchRecord {
   createdAt: string;
   updatedAt: string;
   recentPollRuns: PollRunRecord[];
+  alerts: AlertRecord[];
+  isFirstPollResults: boolean;
 }
 
 function centsToReaisInput(cents: number | null): string {
@@ -373,7 +376,13 @@ export function SavedSearchList({ searches }: SavedSearchListProps) {
                     <h3 className="font-semibold">{search.name}</h3>
                     <p className="text-sm text-[var(--muted)]">Keywords: {search.keywords}</p>
                   </div>
-                  <span
+                  <div className="flex flex-wrap items-center gap-2">
+                    {search.alerts.length > 0 ? (
+                      <span className="rounded-full bg-blue-100 px-2.5 py-0.5 text-xs font-medium text-blue-800 dark:bg-blue-900/40 dark:text-blue-300">
+                        {search.alerts.length} listing{search.alerts.length === 1 ? "" : "s"}
+                      </span>
+                    ) : null}
+                    <span
                     className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${
                       search.isEnabled
                         ? "bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300"
@@ -382,6 +391,7 @@ export function SavedSearchList({ searches }: SavedSearchListProps) {
                   >
                     {search.isEnabled ? "Enabled" : "Disabled"}
                   </span>
+                  </div>
                 </div>
 
                 <dl className="grid gap-2 text-sm sm:grid-cols-2">
@@ -406,6 +416,11 @@ export function SavedSearchList({ searches }: SavedSearchListProps) {
                 </dl>
 
                 <PollRunHistory pollRuns={search.recentPollRuns} />
+
+                <SearchAlertsSection
+                  alerts={search.alerts}
+                  isFirstPollResults={search.isFirstPollResults}
+                />
 
                 <div className="flex flex-wrap gap-2 pt-1">
                   <button

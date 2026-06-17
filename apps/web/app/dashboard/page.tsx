@@ -1,4 +1,4 @@
-import { AlertsFeed, type AlertRecord } from "@/components/alerts-feed";
+import { type AlertRecord } from "@/components/alerts-feed";
 import { NotificationSettings } from "@/components/notification-settings";
 import type { PollRunRecord } from "@/components/poll-run-history";
 import { SiteHeader } from "@/components/site-header";
@@ -14,19 +14,17 @@ export default async function DashboardPage() {
     redirect("/sign-in");
   }
 
-  const [searches, alerts, pollRuns, user] = await Promise.all([
+  const [searches, pollRuns, user] = await Promise.all([
     prisma.savedSearch.findMany({
       where: { userId: session.user.id },
       orderBy: { createdAt: "desc" },
-    }),
-    prisma.alert.findMany({
-      where: { userId: session.user.id },
       include: {
-        listing: true,
-        savedSearch: { select: { id: true, name: true } },
+        alerts: {
+          include: { listing: true },
+          orderBy: { createdAt: "desc" },
+          take: 50,
+        },
       },
-      orderBy: { createdAt: "desc" },
-      take: 50,
     }),
     prisma.pollRun.findMany({
       where: { savedSearch: { userId: session.user.id } },
@@ -40,8 +38,16 @@ export default async function DashboardPage() {
   ]);
 
   const pollRunsBySearchId = new Map<string, PollRunRecord[]>();
+  const successPollCountBySearchId = new Map<string, number>();
 
   for (const run of pollRuns) {
+    if (run.status === "SUCCESS") {
+      successPollCountBySearchId.set(
+        run.savedSearchId,
+        (successPollCountBySearchId.get(run.savedSearchId) ?? 0) + 1,
+      );
+    }
+
     const existing = pollRunsBySearchId.get(run.savedSearchId) ?? [];
     if (existing.length < 3) {
       existing.push({
@@ -57,35 +63,48 @@ export default async function DashboardPage() {
     }
   }
 
-  const serializedSearches: SavedSearchRecord[] = searches.map((search) => ({
-    id: search.id,
-    name: search.name,
-    keywords: search.keywords,
-    minPriceCents: search.minPriceCents,
-    maxPriceCents: search.maxPriceCents,
-    pollIntervalMin: search.pollIntervalMin,
-    isEnabled: search.isEnabled,
-    lastPolledAt: search.lastPolledAt?.toISOString() ?? null,
-    createdAt: search.createdAt.toISOString(),
-    updatedAt: search.updatedAt.toISOString(),
-    recentPollRuns: pollRunsBySearchId.get(search.id) ?? [],
-  }));
+  const serializedSearches: SavedSearchRecord[] = searches.map((search) => {
+    const recentPollRuns = pollRunsBySearchId.get(search.id) ?? [];
+    const latestSuccess = recentPollRuns.find((run) => run.status === "SUCCESS");
+    const successPollCount = successPollCountBySearchId.get(search.id) ?? 0;
+    const alerts: AlertRecord[] = search.alerts.map((alert) => ({
+        id: alert.id,
+        createdAt: alert.createdAt.toISOString(),
+        savedSearch: { id: search.id, name: search.name },
+        listing: {
+          id: alert.listing.id,
+          source: alert.listing.source,
+          title: alert.listing.title,
+          priceCents: alert.listing.priceCents,
+          currency: alert.listing.currency,
+          url: alert.listing.url,
+          imageUrl: alert.listing.imageUrl,
+          location: alert.listing.location,
+        },
+      }));
 
-  const serializedAlerts: AlertRecord[] = alerts.map((alert) => ({
-    id: alert.id,
-    createdAt: alert.createdAt.toISOString(),
-    savedSearch: alert.savedSearch,
-    listing: {
-      id: alert.listing.id,
-      source: alert.listing.source,
-      title: alert.listing.title,
-      priceCents: alert.listing.priceCents,
-      currency: alert.listing.currency,
-      url: alert.listing.url,
-      imageUrl: alert.listing.imageUrl,
-      location: alert.listing.location,
-    },
-  }));
+    return {
+      id: search.id,
+      name: search.name,
+      keywords: search.keywords,
+      minPriceCents: search.minPriceCents,
+      maxPriceCents: search.maxPriceCents,
+      pollIntervalMin: search.pollIntervalMin,
+      isEnabled: search.isEnabled,
+      lastPolledAt: search.lastPolledAt?.toISOString() ?? null,
+      createdAt: search.createdAt.toISOString(),
+      updatedAt: search.updatedAt.toISOString(),
+      recentPollRuns,
+      alerts,
+      isFirstPollResults:
+        successPollCount === 1 &&
+        latestSuccess != null &&
+        latestSuccess.newAlerts === alerts.length &&
+        alerts.length > 0,
+    };
+  });
+
+  const totalListings = serializedSearches.reduce((sum, search) => sum + search.alerts.length, 0);
 
   return (
     <div className="min-h-screen">
@@ -105,12 +124,17 @@ export default async function DashboardPage() {
         </section>
 
         <section className="mb-10">
-          <h2 className="mb-4 text-lg font-semibold">Alerts</h2>
-          <AlertsFeed alerts={serializedAlerts} />
-        </section>
-
-        <section className="mb-10">
-          <h2 className="mb-4 text-lg font-semibold">Your searches</h2>
+          <div className="mb-4 flex flex-wrap items-end justify-between gap-2">
+            <div>
+              <h2 className="text-lg font-semibold">Your searches</h2>
+              {serializedSearches.length > 0 ? (
+                <p className="mt-1 text-sm text-[var(--muted)]">
+                  {serializedSearches.length} search{serializedSearches.length === 1 ? "" : "es"} ·{" "}
+                  {totalListings} listing{totalListings === 1 ? "" : "s"} total
+                </p>
+              ) : null}
+            </div>
+          </div>
           <SavedSearchList searches={serializedSearches} />
         </section>
 
