@@ -1,10 +1,13 @@
 import { type AlertRecord } from "@/components/alerts-feed";
+import { FacebookSessionWarning } from "@/components/facebook-session-warning";
 import { MarketplaceLocationHint } from "@/components/marketplace-location-hint";
 import { NotificationSettings } from "@/components/notification-settings";
 import type { PollRunRecord } from "@/components/poll-run-history";
 import { SiteHeader } from "@/components/site-header";
 import { SavedSearchForm, SavedSearchList, type SavedSearchRecord } from "@/components/saved-search-panel";
+import { SystemStatusPanel } from "@/components/system-status-panel";
 import { auth } from "@/auth";
+import { fetchWorkerHealthStatus, summarizeRecentPollHealth } from "@/lib/system-health";
 import { prisma } from "@price-monitor/database";
 import { redirect } from "next/navigation";
 
@@ -15,7 +18,7 @@ export default async function DashboardPage() {
     redirect("/sign-in");
   }
 
-  const [searches, pollRuns, user] = await Promise.all([
+  const [searches, pollRuns, user, workerHealth] = await Promise.all([
     prisma.savedSearch.findMany({
       where: { userId: session.user.id },
       orderBy: { createdAt: "desc" },
@@ -36,7 +39,10 @@ export default async function DashboardPage() {
       where: { id: session.user.id },
       select: { emailNotificationsEnabled: true },
     }),
+    fetchWorkerHealthStatus(),
   ]);
+
+  const pollHealth = summarizeRecentPollHealth(pollRuns);
 
   const pollRunsBySearchId = new Map<string, PollRunRecord[]>();
   const successPollCountBySearchId = new Map<string, number>();
@@ -57,6 +63,7 @@ export default async function DashboardPage() {
         listingsFound: run.listingsFound,
         newAlerts: run.newAlerts,
         errorMessage: run.errorMessage,
+        durationMs: run.durationMs,
         startedAt: run.startedAt.toISOString(),
         finishedAt: run.finishedAt?.toISOString() ?? null,
       });
@@ -129,6 +136,16 @@ export default async function DashboardPage() {
             emailNotificationsEnabled={user?.emailNotificationsEnabled ?? true}
           />
         </section>
+
+        <FacebookSessionWarning show={pollHealth.hasFacebookSessionIssue} />
+
+        <SystemStatusPanel
+          workerConfigured={workerHealth.configured}
+          workerOnline={workerHealth.online}
+          workerLatencyMs={workerHealth.latencyMs}
+          failedPollCount24h={pollHealth.failedPollCount24h}
+          averagePollDurationMs={pollHealth.averageDurationMs}
+        />
 
         <section className="mb-10">
           <MarketplaceLocationHint />

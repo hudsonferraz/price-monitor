@@ -1,9 +1,12 @@
+import { formatDurationMs, formatPollErrorForDisplay } from "@price-monitor/shared/poll-errors";
+
 export interface PollRunRecord {
   id: string;
   status: "PENDING" | "RUNNING" | "SUCCESS" | "FAILED";
   listingsFound: number;
   newAlerts: number;
   errorMessage: string | null;
+  durationMs: number | null;
   startedAt: string;
   finishedAt: string | null;
 }
@@ -43,6 +46,7 @@ export function PollRunHistory({ pollRuns }: PollRunHistoryProps) {
             {run.status === "SUCCESS" ? (
               <p className="mt-1 text-[var(--muted)]">
                 {run.listingsFound} listings · {run.newAlerts} new alert(s)
+                {run.durationMs != null ? ` · ${formatDurationMs(run.durationMs)}` : ""}
               </p>
             ) : null}
             {run.status === "RUNNING" ? (
@@ -51,7 +55,7 @@ export function PollRunHistory({ pollRuns }: PollRunHistoryProps) {
               </p>
             ) : null}
             {run.status === "FAILED" && run.errorMessage ? (
-              <p className="mt-1 text-red-600">{run.errorMessage}</p>
+              <p className="mt-1 text-red-600">{formatPollErrorForDisplay(run.errorMessage)}</p>
             ) : null}
           </li>
         ))}

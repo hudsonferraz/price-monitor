@@ -50,6 +50,8 @@ export async function executePollSearch(savedSearchId: string): Promise<PollSear
     },
   });
 
+  const pollStartedAt = Date.now();
+
   try {
     const listings = await searchMarketplace({
       keywords: savedSearch.keywords,
@@ -64,15 +66,23 @@ export async function executePollSearch(savedSearchId: string): Promise<PollSear
       listings,
     );
 
+    const finishedAt = new Date();
+    const durationMs = finishedAt.getTime() - pollStartedAt;
+
     await prisma.pollRun.update({
       where: { id: pollRun.id },
       data: {
         status: PollRunStatus.SUCCESS,
         listingsFound: listings.length,
         newAlerts,
-        finishedAt: new Date(),
+        finishedAt,
+        durationMs,
       },
     });
+
+    console.log(
+      `[poll] savedSearchId=${savedSearchId} status=SUCCESS durationMs=${durationMs} listings=${listings.length} newAlerts=${newAlerts}`,
+    );
 
     await prisma.savedSearch.update({
       where: { id: savedSearchId },
@@ -96,15 +106,22 @@ export async function executePollSearch(savedSearchId: string): Promise<PollSear
     };
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : "Unknown poll error";
+    const finishedAt = new Date();
+    const durationMs = finishedAt.getTime() - pollStartedAt;
 
     await prisma.pollRun.update({
       where: { id: pollRun.id },
       data: {
         status: PollRunStatus.FAILED,
         errorMessage,
-        finishedAt: new Date(),
+        finishedAt,
+        durationMs,
       },
     });
+
+    console.error(
+      `[poll] savedSearchId=${savedSearchId} status=FAILED durationMs=${durationMs} error=${errorMessage}`,
+    );
 
     await prisma.savedSearch.update({
       where: { id: savedSearchId },
@@ -215,6 +232,14 @@ async function persistListingsAndAlerts(
 }
 
 export async function scheduleDuePolls(): Promise<number> {
+  const { cleanupPollJobs } = await import("../lib/poll-job-cleanup.js");
+  const cleanup = await cleanupPollJobs();
+  if (cleanup.staleReleased > 0 || cleanup.orphansRemoved > 0) {
+    console.log(
+      `[scheduler] cleaned poll queue: ${cleanup.staleReleased} stale, ${cleanup.orphansRemoved} orphan job(s)`,
+    );
+  }
+
   const enabledSearches = await prisma.savedSearch.findMany({
     where: { isEnabled: true },
     select: {

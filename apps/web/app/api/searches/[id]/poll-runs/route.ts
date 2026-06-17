@@ -37,6 +37,7 @@ export async function GET(request: Request, context: RouteContext) {
       listingsFound: run.listingsFound,
       newAlerts: run.newAlerts,
       errorMessage: run.errorMessage,
+      durationMs: run.durationMs,
       startedAt: run.startedAt.toISOString(),
       finishedAt: run.finishedAt?.toISOString() ?? null,
     })),

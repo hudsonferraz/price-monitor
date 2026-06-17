@@ -131,6 +131,7 @@ model PollRun {
   listingsFound Int           @default(0)
   newAlerts     Int           @default(0)
   errorMessage  String?
+  durationMs    Int?
   startedAt     DateTime      @default(now())
   finishedAt    DateTime?
   savedSearch   SavedSearch   @relation(fields: [savedSearchId], references: [id], onDelete: Cascade)

@@ -56,7 +56,10 @@ async function main(): Promise<void> {
   }
 
   pollWorker.on("failed", (job, error) => {
-    console.error(`Poll job ${job?.id} failed:`, error.message);
+    const data = job?.data as PollSearchJobData | undefined;
+    console.error(
+      `[poll-job] jobId=${job?.id ?? "unknown"} savedSearchId=${data?.savedSearchId ?? "unknown"} failed: ${error.message}`,
+    );
   });
 
   const scheduleWorker = new Worker(

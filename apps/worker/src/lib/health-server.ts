@@ -2,11 +2,18 @@ import { createServer, type Server } from "node:http";
 
 export function startHealthServer(): Server {
   const port = Number(process.env.PORT ?? 10000);
+  const startedAt = Date.now();
 
   const server = createServer((request, response) => {
     if (request.url === "/health") {
       response.writeHead(200, { "Content-Type": "application/json" });
-      response.end(JSON.stringify({ status: "ok", service: "price-monitor-worker" }));
+      response.end(
+        JSON.stringify({
+          status: "ok",
+          service: "price-monitor-worker",
+          uptimeSeconds: Math.floor((Date.now() - startedAt) / 1000),
+        }),
+      );
       return;
     }
 
