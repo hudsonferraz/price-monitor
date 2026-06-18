@@ -49,17 +49,6 @@ export const messages = {
   marketplaceLocationHint:
     "Os resultados seguem a região da sua conta Facebook — os anúncios aparecem perto de onde sua sessão está logada, não de uma cidade escolhida no app.",
 
-  systemStatusTitle: "Status do sistema",
-  systemStatusWorker: "Worker",
-  systemStatusWorkerOnline: "Online",
-  systemStatusWorkerOffline: "Offline ou acordando",
-  systemStatusWorkerNotConfigured: "Não configurado",
-  systemStatusWorkerResponse: "{duration} de resposta",
-  systemStatusFailedPolls: "Polls com falha (24h)",
-  systemStatusAvgPoll: "Média de poll bem-sucedido",
-  systemStatusFreeTierHint:
-    "No plano gratuito do Render o worker dorme após inatividade. O primeiro poll após acordar pode levar 1–2 minutos.",
-
   facebookSessionTitle: "Sessão do Facebook precisa ser renovada",
   facebookSessionDescription:
     "Polls recentes falharam porque o worker perdeu o login do Facebook. Isso costuma acontecer a cada poucas semanas no Render.",
@@ -70,16 +59,6 @@ export const messages = {
     "Substitua /etc/secrets/facebook-storage-state.json pelo conteúdo do novo arquivo.",
   facebookSessionStep4: "Faça redeploy do worker e clique em Poll now novamente.",
   facebookSessionDocs: "Guia completo em render-deploy.md",
-
-  statsTitle: "Estatísticas das buscas",
-  statsDescription: "Preço médio e quantidade de anúncios dos polls bem-sucedidos recentes.",
-  statsEmpty: "Execute pelo menos um poll bem-sucedido para ver estatísticas.",
-  statsLatestAverage: "Preço médio recente",
-  statsPriceRange: "Faixa de preço recente",
-  statsSuccessfulPolls: "Polls bem-sucedidos",
-  statsListingsOverTime: "Anúncios encontrados ao longo do tempo",
-  statsNoPriceData: "Nenhum anúncio com preço no último poll.",
-  statsPollCount: "{count} polls",
 
   searchKeywords: "Palavras-chave",
   searchPriceRange: "Faixa de preço",

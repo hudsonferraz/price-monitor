@@ -46,17 +46,6 @@ export const messages = {
   marketplaceLocationHint:
     "Results follow your Facebook account's region — listings are shown near where your Facebook session is logged in, not a city you pick in the app.",
 
-  systemStatusTitle: "System status",
-  systemStatusWorker: "Worker",
-  systemStatusWorkerOnline: "Online",
-  systemStatusWorkerOffline: "Offline or waking up",
-  systemStatusWorkerNotConfigured: "Not configured",
-  systemStatusWorkerResponse: "{duration} response",
-  systemStatusFailedPolls: "Failed polls (24h)",
-  systemStatusAvgPoll: "Avg successful poll",
-  systemStatusFreeTierHint:
-    "On Render free tier the worker sleeps after inactivity. The first poll after wake-up can take 1–2 minutes.",
-
   facebookSessionTitle: "Facebook session needs refresh",
   facebookSessionDescription:
     "Recent polls failed because the worker lost its Facebook login. This usually happens every few weeks on Render.",
@@ -67,16 +56,6 @@ export const messages = {
     "Replace /etc/secrets/facebook-storage-state.json with the new file contents.",
   facebookSessionStep4: "Redeploy the worker, then click Poll now again.",
   facebookSessionDocs: "Full walkthrough in render-deploy.md",
-
-  statsTitle: "Search stats",
-  statsDescription: "Average price and listing counts from recent successful polls.",
-  statsEmpty: "Run at least one successful poll to see stats.",
-  statsLatestAverage: "Latest avg price",
-  statsPriceRange: "Latest price range",
-  statsSuccessfulPolls: "Successful polls tracked",
-  statsListingsOverTime: "Listings found over time",
-  statsNoPriceData: "No priced listings in the latest poll.",
-  statsPollCount: "{count} polls",
 
   searchKeywords: "Keywords",
   searchPriceRange: "Price range",

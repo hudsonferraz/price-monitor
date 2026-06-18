@@ -80,7 +80,6 @@ model SavedSearch {
   pollIntervalMin Int           @default(30)
   listingLimit    Int           @default(24)
   isEnabled       Boolean       @default(true)
-  lastPolledAt    DateTime?
   lastAttemptedAt DateTime?
   lastSuccessfulPollAt DateTime?
   user            User          @relation(fields: [userId], references: [id], onDelete: Cascade)

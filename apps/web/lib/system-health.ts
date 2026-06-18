@@ -1,47 +1,4 @@
-import { formatDurationMs, isFacebookSessionError } from "@price-monitor/shared/poll-errors";
-
-export interface WorkerHealthStatus {
-  configured: boolean;
-  online: boolean | null;
-  latencyMs: number | null;
-  checkedAt: string | null;
-}
-
-export async function fetchWorkerHealthStatus(): Promise<WorkerHealthStatus> {
-  const healthUrl = process.env.WORKER_HEALTH_URL;
-  if (!healthUrl) {
-    return {
-      configured: false,
-      online: null,
-      latencyMs: null,
-      checkedAt: null,
-    };
-  }
-
-  const startedAt = Date.now();
-
-  try {
-    const response = await fetch(healthUrl, {
-      method: "GET",
-      cache: "no-store",
-      signal: AbortSignal.timeout(20_000),
-    });
-
-    return {
-      configured: true,
-      online: response.ok,
-      latencyMs: Date.now() - startedAt,
-      checkedAt: new Date().toISOString(),
-    };
-  } catch {
-    return {
-      configured: true,
-      online: false,
-      latencyMs: null,
-      checkedAt: new Date().toISOString(),
-    };
-  }
-}
+import { isFacebookSessionError } from "@price-monitor/shared/poll-errors";
 
 export interface PollHealthSummary {
   failedPollCount24h: number;
@@ -77,8 +34,4 @@ export function summarizeRecentPollHealth(
     hasFacebookSessionIssue: failedRuns.some((run) => isFacebookSessionError(run.errorMessage)),
     averageDurationMs,
   };
-}
-
-export function formatAveragePollDuration(averageDurationMs: number | null): string {
-  return averageDurationMs == null ? "—" : formatDurationMs(averageDurationMs);
 }

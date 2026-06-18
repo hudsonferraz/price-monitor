@@ -1,15 +1,17 @@
 export const MIN_MANUAL_POLL_INTERVAL_MS = 15 * 60 * 1000;
 
 export function getPollCooldownRemainingMs(
-  lastPolledAt: Date | string | null,
+  lastAttemptedAt: Date | string | null,
   minIntervalMs: number = MIN_MANUAL_POLL_INTERVAL_MS,
 ): number {
-  if (!lastPolledAt) {
+  if (!lastAttemptedAt) {
     return 0;
   }
 
   const lastPolledTimestamp =
-    lastPolledAt instanceof Date ? lastPolledAt.getTime() : new Date(lastPolledAt).getTime();
+    lastAttemptedAt instanceof Date
+      ? lastAttemptedAt.getTime()
+      : new Date(lastAttemptedAt).getTime();
 
   const elapsed = Date.now() - lastPolledTimestamp;
   return Math.max(0, minIntervalMs - elapsed);
