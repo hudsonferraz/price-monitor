@@ -10,6 +10,17 @@ The web app stays on **Vercel**. The **worker** (Playwright + BullMQ) runs on **
 - **Resend** `RESEND_API_KEY` (optional, for email alerts)
 - **`facebook-storage-state.json`** on your machine (from `npm run save:facebook-session`)
 
+## Step 0 — Apply schema changes to Neon
+
+Vercel and Render regenerate Prisma Client on build (`postinstall` → `db:generate`) but **never** update the database. If a deploy includes Prisma schema changes, push them to Neon **first**, from your machine:
+
+```bash
+# price-monitor/.env → production DATABASE_URL (Neon)
+npm run db:push
+```
+
+Recent examples: `SavedSearch.consecutiveFailures` and the `SavedSearchListingPrice` table. Deploying without this step breaks polls and dashboard queries against missing columns/tables.
+
 ## Step 1 — Commit and push
 
 Make sure `render.yaml` and `apps/worker/Dockerfile` are on `main`:
@@ -110,6 +121,7 @@ The web app also pings the worker when you click **Poll now** (`WORKER_HEALTH_UR
 
 | Symptom | Likely cause |
 |---------|----------------|
+| Prisma error about unknown column/table (`consecutiveFailures`, `SavedSearchListingPrice`, etc.) | Schema not pushed to Neon — run `npm run db:push` locally against production `DATABASE_URL`, then redeploy |
 | Poll stays queued forever | Worker asleep (free tier) or invalid `DATABASE_URL` on Render |
 | `DATABASE_URL must start with postgresql://` | Paste the Neon URL on Render **without quotes** — same value as Vercel |
 | `REDIS_URL is not set` | Missing env var on Render |

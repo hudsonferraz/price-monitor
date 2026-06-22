@@ -88,6 +88,19 @@ npm test
 
 ## Deploy
 
+### Database schema (before deploy)
+
+Vercel and Render run `postinstall` → `db:generate`, which updates the **Prisma Client** only. They do **not** apply schema changes to your Neon database.
+
+After pulling changes that touch `packages/database/prisma/schema.prisma` (for example `SavedSearch.consecutiveFailures` or path `SavedSearchListingPrice`), apply them to production **before** deploying web or worker:
+
+```bash
+# .env must point at your production DATABASE_URL (Neon)
+npm run db:push
+```
+
+Then deploy Vercel and Render as usual. Skipping this step causes runtime errors when the app expects columns or tables that do not exist yet.
+
 **Web (Vercel):**
 
 1. Root Directory: `apps/web`
