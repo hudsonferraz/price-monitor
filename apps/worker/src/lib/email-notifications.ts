@@ -1,5 +1,6 @@
 import { Resend } from "resend";
 import { prisma } from "@price-monitor/database";
+import { encodeEmailHref, escapeHtml, renderEmailLink } from "@price-monitor/shared/email-html";
 import { formatPriceCents } from "@price-monitor/shared/poll-rate-limit";
 
 function getResendClient(): Resend | null {
@@ -84,31 +85,34 @@ export async function sendNewAlertsEmail(
     })
     .join("\n\n");
 
-  const dashboardUrl = `${getDashboardUrl()}/dashboard`;
+  const dashboardUrl = encodeEmailHref(`${getDashboardUrl()}/dashboard`);
+  const safeSearchName = escapeHtml(savedSearch.name);
   const text = [
     `You have ${alertCount} new Facebook Marketplace match(es) for "${savedSearch.name}".`,
     "",
     listingLines,
     "",
-    `View all alerts: ${dashboardUrl}`,
+    `View all alerts: ${dashboardUrl ?? getDashboardUrl() + "/dashboard"}`,
   ].join("\n");
 
   const html = `
-    <p>You have <strong>${alertCount}</strong> new Facebook Marketplace match(es) for <strong>${savedSearch.name}</strong>.</p>
+    <p>You have <strong>${alertCount}</strong> new Facebook Marketplace match(es) for <strong>${safeSearchName}</strong>.</p>
     <ul>
       ${alerts
         .map((alert) => {
-          const price = formatPriceCents(alert.listing.priceCents);
-          const location = alert.listing.location ? ` · ${alert.listing.location}` : "";
+          const price = escapeHtml(formatPriceCents(alert.listing.priceCents));
+          const location = alert.listing.location
+            ? ` · ${escapeHtml(alert.listing.location)}`
+            : "";
           const priceDropNote =
             alert.priceDroppedAt && alert.previousPriceCents != null
-              ? ` <em>(was ${formatPriceCents(alert.previousPriceCents)})</em>`
+              ? ` <em>(was ${escapeHtml(formatPriceCents(alert.previousPriceCents))})</em>`
               : "";
-          return `<li><a href="${alert.listing.url}">${alert.listing.title}</a> — ${price}${priceDropNote}${location}</li>`;
+          return `<li>${renderEmailLink(alert.listing.url, alert.listing.title)} — ${price}${priceDropNote}${location}</li>`;
         })
         .join("")}
     </ul>
-    <p><a href="${dashboardUrl}">Open your dashboard</a></p>
+    <p>${dashboardUrl ? `<a href="${escapeHtml(dashboardUrl)}">Open your dashboard</a>` : "Open your dashboard"}</p>
   `;
 
   const response = await resend.emails.send({
