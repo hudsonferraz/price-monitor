@@ -3,7 +3,7 @@ import {
   countConsecutivePollFailures,
   isSearchDueForScheduledPoll,
 } from "@price-monitor/shared/poll-schedule";
-import { hasPriceDropped } from "@price-monitor/shared/price-drop";
+import { hasPriceDropped, shouldClearPriceDropEvent } from "@price-monitor/shared/price-drop";
 import { normalizeListingLimit } from "@price-monitor/shared/sort-alerts";
 import type { NormalizedListing } from "@price-monitor/shared/types";
 import { sendNewAlertsEmail } from "../lib/email-notifications";
@@ -371,7 +371,17 @@ async function persistListingsAndAlerts(
 
     await prisma.alert.update({
       where: { id: existingAlert.id },
-      data: { seenAt: new Date() },
+      data: {
+        seenAt: new Date(),
+        ...(existingAlert.priceDroppedAt != null &&
+        shouldClearPriceDropEvent({
+          recordedPreviousPriceCents: existingAlert.previousPriceCents,
+          previousSnapshotPriceCents: previousPriceCents,
+          nextPriceCents: listing.priceCents,
+        })
+          ? { previousPriceCents: null, priceDroppedAt: null }
+          : {}),
+      },
     });
   }
 

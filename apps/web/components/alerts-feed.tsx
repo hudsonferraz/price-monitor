@@ -5,6 +5,7 @@ import { useMemo, useState } from "react";
 import { useLocale, useTranslations } from "@/components/locale-provider";
 import { formatDateTime, formatPriceCents } from "@/lib/i18n";
 import type { AlertSortOption } from "@price-monitor/shared/sort-alerts";
+import { isActivePriceDropAlert } from "@price-monitor/shared/price-drop";
 import { sortAlerts } from "@price-monitor/shared/sort-alerts";
 
 export interface AlertRecord {
@@ -39,7 +40,15 @@ function isAlertNewSincePoll(
   }
 
   const cutoff = new Date(latestPollStartedAt).getTime();
-  if (alert.priceDroppedAt && new Date(alert.priceDroppedAt).getTime() >= cutoff) {
+  if (
+    isActivePriceDropAlert({
+      priceDroppedAt: alert.priceDroppedAt,
+      previousPriceCents: alert.previousPriceCents,
+      currentPriceCents: alert.listing.priceCents,
+    }) &&
+    alert.priceDroppedAt &&
+    new Date(alert.priceDroppedAt).getTime() >= cutoff
+  ) {
     return true;
   }
 
@@ -92,7 +101,11 @@ function AlertCard({
 }: AlertCardProps) {
   const locale = useLocale();
   const t = useTranslations();
-  const hasPriceDrop = alert.priceDroppedAt != null && alert.previousPriceCents != null;
+  const hasPriceDrop = isActivePriceDropAlert({
+    priceDroppedAt: alert.priceDroppedAt,
+    previousPriceCents: alert.previousPriceCents,
+    currentPriceCents: alert.listing.priceCents,
+  });
   const matchedKeyword = getMatchedKeyword(alert.listing.title, searchKeywords);
   const isWithinPriceRange = isListingWithinPriceRange(
     alert.listing.priceCents,
