@@ -53,17 +53,12 @@ export class FacebookMarketplaceAdapter {
     page.on("response", responseListener);
 
     try {
-      await navigateToSearchResults(page, input);
-      await scrollSearchResults(page, limit);
+      await navigateToSearchResults(page, input, apiListings);
+      await scrollSearchResults(page, limit, apiListings);
       await page.waitForTimeout(1_000);
 
       const html = await page.content();
-      const embeddedListings = parseListingsFromEmbeddedJson(html, limit);
-      const domListings = embeddedListings.length > 0 ? [] : parseListingsFromHtml(html, limit);
-      const merged = dedupeRawListings([...apiListings, ...embeddedListings, ...domListings]).slice(
-        0,
-        limit,
-      );
+      const merged = collectAvailableListings(html, limit, apiListings).slice(0, limit);
 
       return applyPriceFilters(normalizeListings(merged), input);
     } finally {
@@ -72,7 +67,11 @@ export class FacebookMarketplaceAdapter {
   }
 }
 
-export async function navigateToSearchResults(page: Page, input: SearchInput): Promise<void> {
+export async function navigateToSearchResults(
+  page: Page,
+  input: SearchInput,
+  capturedApiListings: RawFacebookListing[] = [],
+): Promise<void> {
   const searchUrl = buildFacebookMarketplaceSearchUrl({
     keywords: input.keywords,
     minPriceCents: input.minPriceCents,
@@ -81,16 +80,20 @@ export async function navigateToSearchResults(page: Page, input: SearchInput): P
 
   await page.goto(searchUrl, { waitUntil: "domcontentloaded", timeout: 60_000 });
   await dismissCookieBanner(page);
-  await waitForSearchResults(page, input.limit ?? DEFAULT_MIN_RESULTS);
+  await waitForSearchResults(page, input.limit ?? DEFAULT_MIN_RESULTS, capturedApiListings);
 }
 
-export async function scrollSearchResults(page: Page, targetCount: number): Promise<void> {
+export async function scrollSearchResults(
+  page: Page,
+  targetCount: number,
+  capturedApiListings: RawFacebookListing[] = [],
+): Promise<void> {
   let previousCount = 0;
   const scrollAttempts = getScrollAttemptsForLimit(targetCount);
 
   for (let attempt = 0; attempt < scrollAttempts; attempt += 1) {
     const html = await page.content();
-    const currentCount = parseListingsFromEmbeddedJson(html, targetCount).length;
+    const currentCount = collectAvailableListings(html, targetCount, capturedApiListings).length;
 
     if (currentCount >= targetCount) {
       return;
@@ -116,7 +119,11 @@ export async function dismissCookieBanner(page: Page): Promise<void> {
   }
 }
 
-export async function waitForSearchResults(page: Page, minimumResults: number): Promise<void> {
+export async function waitForSearchResults(
+  page: Page,
+  minimumResults: number,
+  capturedApiListings: RawFacebookListing[] = [],
+): Promise<void> {
   await page.waitForLoadState("domcontentloaded", { timeout: 25_000 }).catch(() => undefined);
 
   const currentUrl = page.url();
@@ -130,7 +137,7 @@ export async function waitForSearchResults(page: Page, minimumResults: number): 
 
   while (Date.now() < deadline) {
     const html = await page.content();
-    const listings = parseListingsFromEmbeddedJson(html, minimumResults);
+    const listings = collectAvailableListings(html, minimumResults, capturedApiListings);
 
     if (listings.length >= 1) {
       return;
@@ -142,6 +149,16 @@ export async function waitForSearchResults(page: Page, minimumResults: number): 
   throw new Error(
     `No Facebook Marketplace listings found. Current URL: ${page.url()}. Try logging in and saving a storage state.`,
   );
+}
+
+export function collectAvailableListings(
+  html: string,
+  limit: number,
+  capturedApiListings: RawFacebookListing[] = [],
+): RawFacebookListing[] {
+  const embeddedListings = parseListingsFromEmbeddedJson(html, limit);
+  const domListings = embeddedListings.length > 0 ? [] : parseListingsFromHtml(html, limit);
+  return dedupeRawListings([...capturedApiListings, ...embeddedListings, ...domListings]);
 }
 
 function normalizeListings(listings: RawFacebookListing[]): NormalizedListing[] {
