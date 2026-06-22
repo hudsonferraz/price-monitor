@@ -1,6 +1,5 @@
 import { prisma, MarketplaceSource, PollRunStatus } from "@price-monitor/database";
 import {
-  countConsecutivePollFailures,
   isSearchDueForScheduledPoll,
 } from "@price-monitor/shared/poll-schedule";
 import { hasPriceDropped, shouldClearPriceDropEvent } from "@price-monitor/shared/price-drop";
@@ -173,6 +172,7 @@ export async function executePollSearch(savedSearchId: string): Promise<PollSear
       data: {
         lastAttemptedAt: finishedAt,
         lastSuccessfulPollAt: finishedAt,
+        consecutiveFailures: 0,
       },
     });
 
@@ -212,7 +212,10 @@ export async function executePollSearch(savedSearchId: string): Promise<PollSear
 
     await prisma.savedSearch.update({
       where: { id: savedSearchId },
-      data: { lastAttemptedAt: finishedAt },
+      data: {
+        lastAttemptedAt: finishedAt,
+        consecutiveFailures: { increment: 1 },
+      },
     });
 
     throw error;
@@ -224,40 +227,52 @@ interface PersistResult {
   alertIds: string[];
 }
 
-async function getLatestSnapshotPricesByListingId(
+async function getLatestListingPricesForSearch(
   savedSearchId: string,
   listingIds: string[],
-  excludePollRunId: string,
 ): Promise<Map<string, number | null>> {
   if (listingIds.length === 0) {
     return new Map();
   }
 
-  const snapshots = await prisma.pollSnapshotListing.findMany({
+  const listingPrices = await prisma.savedSearchListingPrice.findMany({
     where: {
+      savedSearchId,
       listingId: { in: listingIds },
-      pollRun: {
-        savedSearchId,
-        id: { not: excludePollRunId },
-      },
     },
     select: {
       listingId: true,
       priceCents: true,
-      pollRun: { select: { startedAt: true } },
     },
-    orderBy: { pollRun: { startedAt: "desc" } },
   });
 
-  const latestByListingId = new Map<string, number | null>();
+  return new Map(listingPrices.map((entry) => [entry.listingId, entry.priceCents]));
+}
 
-  for (const snapshot of snapshots) {
-    if (!latestByListingId.has(snapshot.listingId)) {
-      latestByListingId.set(snapshot.listingId, snapshot.priceCents);
-    }
-  }
-
-  return latestByListingId;
+async function persistLatestListingPrices(
+  savedSearchId: string,
+  snapshotEntries: Array<{ listingId: string; priceCents: number | null }>,
+): Promise<void> {
+  await Promise.all(
+    snapshotEntries.map((entry) =>
+      prisma.savedSearchListingPrice.upsert({
+        where: {
+          savedSearchId_listingId: {
+            savedSearchId,
+            listingId: entry.listingId,
+          },
+        },
+        create: {
+          savedSearchId,
+          listingId: entry.listingId,
+          priceCents: entry.priceCents,
+        },
+        update: {
+          priceCents: entry.priceCents,
+        },
+      }),
+    ),
+  );
 }
 
 async function persistListingsAndAlerts(
@@ -281,10 +296,9 @@ async function persistListingsAndAlerts(
     },
     select: { id: true },
   });
-  const latestSnapshotPrices = await getLatestSnapshotPricesByListingId(
+  const latestSnapshotPrices = await getLatestListingPricesForSearch(
     savedSearchId,
     existingListings.map((listing) => listing.id),
-    pollRunId,
   );
 
   for (const listing of listings) {
@@ -390,6 +404,13 @@ async function persistListingsAndAlerts(
       data: snapshotEntries,
       skipDuplicates: true,
     });
+    await persistLatestListingPrices(
+      savedSearchId,
+      snapshotEntries.map((entry) => ({
+        listingId: entry.listingId,
+        priceCents: entry.priceCents,
+      })),
+    );
   }
 
   return {
@@ -414,6 +435,7 @@ export async function scheduleDuePolls(): Promise<number> {
       pollIntervalMin: true,
       lastAttemptedAt: true,
       lastSuccessfulPollAt: true,
+      consecutiveFailures: true,
     },
   });
 
@@ -421,31 +443,15 @@ export async function scheduleDuePolls(): Promise<number> {
     return 0;
   }
 
-  const searchIds = enabledSearches.map((search) => search.id);
-  const recentPollRuns = await prisma.pollRun.findMany({
-    where: { savedSearchId: { in: searchIds } },
-    orderBy: { startedAt: "desc" },
-    select: { savedSearchId: true, status: true, startedAt: true },
-  });
-
-  const pollRunsBySearchId = new Map<string, Array<{ status: string; startedAt: Date }>>();
-  for (const pollRun of recentPollRuns) {
-    const runs = pollRunsBySearchId.get(pollRun.savedSearchId) ?? [];
-    runs.push({ status: pollRun.status, startedAt: pollRun.startedAt });
-    pollRunsBySearchId.set(pollRun.savedSearchId, runs);
-  }
-
   const now = Date.now();
   let enqueued = 0;
 
   for (const search of enabledSearches) {
-    const runs = pollRunsBySearchId.get(search.id) ?? [];
-    const consecutiveFailures = countConsecutivePollFailures(runs);
     const isDue = isSearchDueForScheduledPoll({
       pollIntervalMin: search.pollIntervalMin,
       lastAttemptedAt: search.lastAttemptedAt,
       lastSuccessfulPollAt: search.lastSuccessfulPollAt,
-      consecutiveFailures,
+      consecutiveFailures: search.consecutiveFailures,
       now,
     });
 

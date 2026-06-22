@@ -82,9 +82,11 @@ model SavedSearch {
   isEnabled       Boolean       @default(true)
   lastAttemptedAt DateTime?
   lastSuccessfulPollAt DateTime?
+  consecutiveFailures Int @default(0)
   user            User          @relation(fields: [userId], references: [id], onDelete: Cascade)
   alerts          Alert[]
   pollRuns        PollRun[]
+  listingPrices   SavedSearchListingPrice[]
   createdAt       DateTime      @default(now())
   updatedAt       DateTime      @updatedAt
 
@@ -104,6 +106,7 @@ model Listing {
   location   String?
   alerts     Alert[]
   snapshots  PollSnapshotListing[]
+  searchPrices SavedSearchListingPrice[]
   createdAt  DateTime          @default(now())
   updatedAt  DateTime          @updatedAt
 
@@ -141,6 +144,18 @@ model PollSnapshotListing {
 
   @@unique([pollRunId, listingId])
   @@index([pollRunId])
+}
+
+model SavedSearchListingPrice {
+  savedSearchId String
+  listingId     String
+  priceCents    Int?
+  savedSearch   SavedSearch @relation(fields: [savedSearchId], references: [id], onDelete: Cascade)
+  listing       Listing     @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  updatedAt     DateTime    @updatedAt
+
+  @@id([savedSearchId, listingId])
+  @@index([savedSearchId])
 }
 
 model PollRun {
