@@ -1,5 +1,6 @@
 import { auth } from "@/auth";
 import { prisma } from "@price-monitor/database";
+import { parsePaginationLimit } from "@price-monitor/shared/pagination";
 import { NextResponse } from "next/server";
 
 interface RouteContext {
@@ -14,7 +15,10 @@ export async function GET(request: Request, context: RouteContext) {
 
   const { id } = await context.params;
   const { searchParams } = new URL(request.url);
-  const limit = Math.min(Number(searchParams.get("limit") ?? 10), 50);
+  const limit = parsePaginationLimit(searchParams.get("limit"), {
+    defaultLimit: 10,
+    maxLimit: 50,
+  });
 
   const savedSearch = await prisma.savedSearch.findFirst({
     where: { id, userId: session.user.id },

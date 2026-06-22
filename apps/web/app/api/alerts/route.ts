@@ -1,5 +1,6 @@
 import { auth } from "@/auth";
 import { prisma } from "@price-monitor/database";
+import { parsePaginationLimit } from "@price-monitor/shared/pagination";
 import { NextResponse } from "next/server";
 
 export async function GET(request: Request) {
@@ -9,7 +10,10 @@ export async function GET(request: Request) {
   }
 
   const { searchParams } = new URL(request.url);
-  const limit = Math.min(Number(searchParams.get("limit") ?? 50), 100);
+  const limit = parsePaginationLimit(searchParams.get("limit"), {
+    defaultLimit: 50,
+    maxLimit: 100,
+  });
   const savedSearchId = searchParams.get("savedSearchId");
 
   const alerts = await prisma.alert.findMany({
