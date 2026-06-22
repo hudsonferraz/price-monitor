@@ -54,9 +54,9 @@ async function main(): Promise<void> {
   );
 
   const cleanup = await cleanupPollJobs();
-  if (cleanup.staleReleased > 0 || cleanup.orphansRemoved > 0) {
+  if (cleanup.orphansRemoved > 0 || cleanup.activeJobsLeftRunning > 0) {
     console.log(
-      `Cleaned poll queue: ${cleanup.staleReleased} stale, ${cleanup.orphansRemoved} orphan job(s).`,
+      `Cleaned poll queue: ${cleanup.orphansRemoved} orphan job(s), ${cleanup.activeJobsLeftRunning} active job(s) left for BullMQ/worker cleanup.`,
     );
   }
 

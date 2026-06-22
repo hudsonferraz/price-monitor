@@ -1,4 +1,4 @@
-import { Queue, type ConnectionOptions } from "bullmq";
+import { Queue, type Job, type ConnectionOptions } from "bullmq";
 import {
   POLL_SEARCH_JOB,
   POLL_SEARCH_QUEUE,
@@ -53,26 +53,18 @@ export interface PollQueueContext {
   waitingPosition?: number;
 }
 
-const DEFAULT_STALE_ACTIVE_POLL_MS = 5 * 60 * 1000;
-
-export async function releaseStaleActivePollJobs(
-  maxActiveMs: number = DEFAULT_STALE_ACTIVE_POLL_MS,
-): Promise<number> {
-  const queue = getPollSearchQueue();
-  const activeJobs = await queue.getJobs(["active"], 0, 50);
-  let released = 0;
-
-  for (const job of activeJobs) {
-    const processedOn = job.processedOn;
-    if (!processedOn || Date.now() - processedOn < maxActiveMs) {
-      continue;
+async function removeUnlockedPollJob(job: Job): Promise<boolean> {
+  try {
+    const state = (await job.getState()) as PollJobState;
+    if (state === "active") {
+      return false;
     }
 
     await job.remove();
-    released += 1;
+    return true;
+  } catch {
+    return false;
   }
-
-  return released;
 }
 
 export type CancelPollSearchJobResult =
@@ -94,8 +86,8 @@ export async function cancelPollSearchJob(
       return { removed: false, reason: "active" };
     }
 
-    await job.remove();
-    return { removed: true, reason: "removed" };
+    const removed = await removeUnlockedPollJob(job);
+    return removed ? { removed: true, reason: "removed" } : { removed: false, reason: "failed" };
   } catch {
     return { removed: false, reason: "failed" };
   }
@@ -108,8 +100,6 @@ export async function enqueuePollSearch(
   const queue = getPollSearchQueue();
   const jobId = `poll-${savedSearchId}`;
 
-  await releaseStaleActivePollJobs();
-
   const existingJob = await queue.getJob(jobId);
   if (existingJob) {
     const state = (await existingJob.getState()) as PollJobState;
@@ -117,7 +107,7 @@ export async function enqueuePollSearch(
       return { queued: false, jobId, state };
     }
 
-    await existingJob.remove();
+    await removeUnlockedPollJob(existingJob);
   }
 
   await queue.add(

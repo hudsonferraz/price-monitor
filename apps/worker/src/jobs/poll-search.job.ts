@@ -401,9 +401,9 @@ async function persistListingsAndAlerts(
 export async function scheduleDuePolls(): Promise<number> {
   const { cleanupPollJobs } = await import("../lib/poll-job-cleanup.js");
   const cleanup = await cleanupPollJobs();
-  if (cleanup.staleReleased > 0 || cleanup.orphansRemoved > 0) {
+  if (cleanup.orphansRemoved > 0 || cleanup.activeJobsLeftRunning > 0) {
     console.log(
-      `[scheduler] cleaned poll queue: ${cleanup.staleReleased} stale, ${cleanup.orphansRemoved} orphan job(s)`,
+      `[scheduler] cleaned poll queue: ${cleanup.orphansRemoved} orphan job(s), ${cleanup.activeJobsLeftRunning} active job(s) left for BullMQ/worker cleanup.`,
     );
   }
 
