@@ -23,8 +23,30 @@ export async function DELETE(_request: Request, context: RouteContext) {
     return NextResponse.json({ error: "Search not found" }, { status: 404 });
   }
 
+  await prisma.savedSearch.update({
+    where: { id },
+    data: { isEnabled: false },
+  });
+
+  const cancelResult = await cancelPollSearchJob(id);
+
+  if (!cancelResult.removed && cancelResult.reason === "active") {
+    return NextResponse.json(
+      {
+        error: "A poll is currently running for this search. Try deleting again in a minute.",
+      },
+      { status: 409 },
+    );
+  }
+
+  if (!cancelResult.removed && cancelResult.reason === "failed") {
+    return NextResponse.json(
+      { error: "Could not cancel the pending poll job. Try again shortly." },
+      { status: 503 },
+    );
+  }
+
   await prisma.savedSearch.delete({ where: { id } });
-  await cancelPollSearchJob(id);
 
   return new NextResponse(null, { status: 204 });
 }

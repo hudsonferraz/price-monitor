@@ -75,14 +75,30 @@ export async function releaseStaleActivePollJobs(
   return released;
 }
 
-export async function cancelPollSearchJob(savedSearchId: string): Promise<void> {
-  const queue = getPollSearchQueue();
-  const job = await queue.getJob(`poll-${savedSearchId}`);
-  if (!job) {
-    return;
-  }
+export type CancelPollSearchJobResult =
+  | { removed: true; reason: "not_found" | "removed" }
+  | { removed: false; reason: "active" | "failed" };
 
-  await job.remove();
+export async function cancelPollSearchJob(
+  savedSearchId: string,
+): Promise<CancelPollSearchJobResult> {
+  try {
+    const queue = getPollSearchQueue();
+    const job = await queue.getJob(`poll-${savedSearchId}`);
+    if (!job) {
+      return { removed: true, reason: "not_found" };
+    }
+
+    const state = (await job.getState()) as PollJobState;
+    if (state === "active") {
+      return { removed: false, reason: "active" };
+    }
+
+    await job.remove();
+    return { removed: true, reason: "removed" };
+  } catch {
+    return { removed: false, reason: "failed" };
+  }
 }
 
 export async function enqueuePollSearch(

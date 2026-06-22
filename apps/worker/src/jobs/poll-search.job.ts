@@ -73,6 +73,31 @@ export async function executePollSearch(savedSearchId: string): Promise<PollSear
       limit: normalizeListingLimit(savedSearch.listingLimit),
     });
 
+    const searchStillExists = await prisma.savedSearch.findUnique({
+      where: { id: savedSearchId },
+      select: { id: true },
+    });
+
+    if (!searchStillExists) {
+      console.warn(`Search ${savedSearchId} was deleted while poll ${pollRun.id} was running`);
+      await prisma.pollRun.update({
+        where: { id: pollRun.id },
+        data: {
+          status: PollRunStatus.FAILED,
+          errorMessage: "Search was deleted before the poll finished.",
+          finishedAt: new Date(),
+          durationMs: Date.now() - pollStartedAt,
+        },
+      }).catch(() => undefined);
+
+      return {
+        pollRunId: pollRun.id,
+        listingsFound: 0,
+        newAlerts: 0,
+        emailSent: false,
+      };
+    }
+
     const { newAlerts, alertIds } = await persistListingsAndAlerts(
       savedSearch.id,
       savedSearch.userId,
