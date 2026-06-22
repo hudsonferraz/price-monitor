@@ -1,5 +1,6 @@
 import { prisma, MarketplaceSource, PollRunStatus } from "@price-monitor/database";
 import { normalizeListingLimit } from "@price-monitor/shared/sort-alerts";
+import { hasPriceDropped } from "@price-monitor/shared/price-drop";
 import type { NormalizedListing } from "@price-monitor/shared/types";
 import { sendNewAlertsEmail } from "../lib/email-notifications";
 import { searchMarketplace } from "../lib/marketplace-browser";
@@ -150,6 +151,42 @@ interface PersistResult {
   alertIds: string[];
 }
 
+async function getLatestSnapshotPricesByListingId(
+  savedSearchId: string,
+  listingIds: string[],
+  excludePollRunId: string,
+): Promise<Map<string, number | null>> {
+  if (listingIds.length === 0) {
+    return new Map();
+  }
+
+  const snapshots = await prisma.pollSnapshotListing.findMany({
+    where: {
+      listingId: { in: listingIds },
+      pollRun: {
+        savedSearchId,
+        id: { not: excludePollRunId },
+      },
+    },
+    select: {
+      listingId: true,
+      priceCents: true,
+      pollRun: { select: { startedAt: true } },
+    },
+    orderBy: { pollRun: { startedAt: "desc" } },
+  });
+
+  const latestByListingId = new Map<string, number | null>();
+
+  for (const snapshot of snapshots) {
+    if (!latestByListingId.has(snapshot.listingId)) {
+      latestByListingId.set(snapshot.listingId, snapshot.priceCents);
+    }
+  }
+
+  return latestByListingId;
+}
+
 async function persistListingsAndAlerts(
   savedSearchId: string,
   userId: string,
@@ -164,18 +201,20 @@ async function persistListingsAndAlerts(
     priceCents: number | null;
   }> = [];
 
+  const existingListings = await prisma.listing.findMany({
+    where: {
+      source: MarketplaceSource.FACEBOOK,
+      externalId: { in: listings.map((listing) => listing.externalId) },
+    },
+    select: { id: true },
+  });
+  const latestSnapshotPrices = await getLatestSnapshotPricesByListingId(
+    savedSearchId,
+    existingListings.map((listing) => listing.id),
+    pollRunId,
+  );
+
   for (const listing of listings) {
-    const existingListing = await prisma.listing.findUnique({
-      where: {
-        source_externalId: {
-          source: MarketplaceSource.FACEBOOK,
-          externalId: listing.externalId,
-        },
-      },
-    });
-
-    const previousPriceCents = existingListing?.priceCents ?? null;
-
     const storedListing = await prisma.listing.upsert({
       where: {
         source_externalId: {
@@ -203,6 +242,8 @@ async function persistListingsAndAlerts(
       },
     });
 
+    const previousPriceCents = latestSnapshotPrices.get(storedListing.id) ?? null;
+
     snapshotEntries.push({
       pollRunId,
       listingId: storedListing.id,
@@ -222,11 +263,7 @@ async function persistListingsAndAlerts(
       continue;
     }
 
-    const priceDropped =
-      existingListing != null &&
-      previousPriceCents != null &&
-      listing.priceCents != null &&
-      listing.priceCents < previousPriceCents;
+    const priceDropped = hasPriceDropped(previousPriceCents, listing.priceCents);
 
     if (!existingAlert) {
       const alert = await prisma.alert.create({
