@@ -16,6 +16,66 @@ export interface PollSearchResult {
   emailSent: boolean;
 }
 
+async function abortRunningPollIfSearchInactive(
+  savedSearchId: string,
+  pollRunId: string,
+  pollStartedAt: number,
+): Promise<PollSearchResult | null> {
+  const savedSearch = await prisma.savedSearch.findUnique({
+    where: { id: savedSearchId },
+    select: { id: true, isEnabled: true },
+  });
+
+  if (!savedSearch) {
+    console.warn(`Search ${savedSearchId} was deleted while poll ${pollRunId} was running`);
+    await markRunningPollAborted(
+      pollRunId,
+      pollStartedAt,
+      "Search was deleted before the poll finished.",
+    );
+    return emptyPollSearchResult(pollRunId);
+  }
+
+  if (!savedSearch.isEnabled) {
+    console.warn(`Search ${savedSearchId} was disabled while poll ${pollRunId} was running`);
+    await markRunningPollAborted(
+      pollRunId,
+      pollStartedAt,
+      "Search was disabled before the poll finished.",
+    );
+    return emptyPollSearchResult(pollRunId);
+  }
+
+  return null;
+}
+
+async function markRunningPollAborted(
+  pollRunId: string,
+  pollStartedAt: number,
+  errorMessage: string,
+): Promise<void> {
+  await prisma.pollRun
+    .update({
+      where: { id: pollRunId },
+      data: {
+        status: PollRunStatus.FAILED,
+        errorMessage,
+        finishedAt: new Date(),
+        durationMs: Date.now() - pollStartedAt,
+      },
+    })
+    .catch(() => undefined);
+}
+
+function emptyPollSearchResult(pollRunId: string): PollSearchResult {
+  return {
+    pollRunId,
+    listingsFound: 0,
+    newAlerts: 0,
+    emailSent: false,
+  };
+}
+
 export async function executePollSearch(savedSearchId: string): Promise<PollSearchResult> {
   const savedSearch = await prisma.savedSearch.findUnique({
     where: { id: savedSearchId },
@@ -73,29 +133,13 @@ export async function executePollSearch(savedSearchId: string): Promise<PollSear
       limit: normalizeListingLimit(savedSearch.listingLimit),
     });
 
-    const searchStillExists = await prisma.savedSearch.findUnique({
-      where: { id: savedSearchId },
-      select: { id: true },
-    });
-
-    if (!searchStillExists) {
-      console.warn(`Search ${savedSearchId} was deleted while poll ${pollRun.id} was running`);
-      await prisma.pollRun.update({
-        where: { id: pollRun.id },
-        data: {
-          status: PollRunStatus.FAILED,
-          errorMessage: "Search was deleted before the poll finished.",
-          finishedAt: new Date(),
-          durationMs: Date.now() - pollStartedAt,
-        },
-      }).catch(() => undefined);
-
-      return {
-        pollRunId: pollRun.id,
-        listingsFound: 0,
-        newAlerts: 0,
-        emailSent: false,
-      };
+    const abortedResult = await abortRunningPollIfSearchInactive(
+      savedSearchId,
+      pollRun.id,
+      pollStartedAt,
+    );
+    if (abortedResult) {
+      return abortedResult;
     }
 
     const { newAlerts, alertIds } = await persistListingsAndAlerts(
