@@ -1,9 +1,10 @@
 import { auth } from "@/auth";
 import { prisma } from "@price-monitor/database";
 import {
+  centsToReais,
   createSavedSearchSchema,
+  createUpdateSavedSearchSchema,
   reaisToCents,
-  updateSavedSearchSchema,
 } from "@price-monitor/shared/schemas";
 import { NextResponse } from "next/server";
 
@@ -90,15 +91,6 @@ export async function PATCH(request: Request) {
   }
 
   const body = await request.json().catch(() => null);
-  const parsed = updateSavedSearchSchema.safeParse(body);
-
-  if (!parsed.success) {
-    return NextResponse.json(
-      { error: "Validation failed", details: parsed.error.flatten() },
-      { status: 400 },
-    );
-  }
-
   const searchId = typeof body?.id === "string" ? body.id : null;
   if (!searchId) {
     return NextResponse.json({ error: "Search id is required" }, { status: 400 });
@@ -110,6 +102,18 @@ export async function PATCH(request: Request) {
 
   if (!existing) {
     return NextResponse.json({ error: "Search not found" }, { status: 404 });
+  }
+
+  const parsed = createUpdateSavedSearchSchema({
+    minPriceReais: centsToReais(existing.minPriceCents),
+    maxPriceReais: centsToReais(existing.maxPriceCents),
+  }).safeParse(body);
+
+  if (!parsed.success) {
+    return NextResponse.json(
+      { error: "Validation failed", details: parsed.error.flatten() },
+      { status: 400 },
+    );
   }
 
   const search = await prisma.savedSearch.update({
