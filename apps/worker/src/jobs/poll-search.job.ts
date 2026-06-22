@@ -1,6 +1,10 @@
 import { prisma, MarketplaceSource, PollRunStatus } from "@price-monitor/database";
-import { normalizeListingLimit } from "@price-monitor/shared/sort-alerts";
+import {
+  countConsecutivePollFailures,
+  isSearchDueForScheduledPoll,
+} from "@price-monitor/shared/poll-schedule";
 import { hasPriceDropped } from "@price-monitor/shared/price-drop";
+import { normalizeListingLimit } from "@price-monitor/shared/sort-alerts";
 import type { NormalizedListing } from "@price-monitor/shared/types";
 import { sendNewAlertsEmail } from "../lib/email-notifications";
 import { searchMarketplace } from "../lib/marketplace-browser";
@@ -329,18 +333,42 @@ export async function scheduleDuePolls(): Promise<number> {
     select: {
       id: true,
       pollIntervalMin: true,
+      lastAttemptedAt: true,
       lastSuccessfulPollAt: true,
     },
   });
+
+  if (enabledSearches.length === 0) {
+    return 0;
+  }
+
+  const searchIds = enabledSearches.map((search) => search.id);
+  const recentPollRuns = await prisma.pollRun.findMany({
+    where: { savedSearchId: { in: searchIds } },
+    orderBy: { startedAt: "desc" },
+    select: { savedSearchId: true, status: true, startedAt: true },
+  });
+
+  const pollRunsBySearchId = new Map<string, Array<{ status: string; startedAt: Date }>>();
+  for (const pollRun of recentPollRuns) {
+    const runs = pollRunsBySearchId.get(pollRun.savedSearchId) ?? [];
+    runs.push({ status: pollRun.status, startedAt: pollRun.startedAt });
+    pollRunsBySearchId.set(pollRun.savedSearchId, runs);
+  }
 
   const now = Date.now();
   let enqueued = 0;
 
   for (const search of enabledSearches) {
-    const intervalMs = search.pollIntervalMin * 60_000;
-    const lastSuccessfulPollAt = search.lastSuccessfulPollAt?.getTime() ?? 0;
-    const isDue =
-      search.lastSuccessfulPollAt == null || now - lastSuccessfulPollAt >= intervalMs;
+    const runs = pollRunsBySearchId.get(search.id) ?? [];
+    const consecutiveFailures = countConsecutivePollFailures(runs);
+    const isDue = isSearchDueForScheduledPoll({
+      pollIntervalMin: search.pollIntervalMin,
+      lastAttemptedAt: search.lastAttemptedAt,
+      lastSuccessfulPollAt: search.lastSuccessfulPollAt,
+      consecutiveFailures,
+      now,
+    });
 
     if (!isDue) {
       continue;

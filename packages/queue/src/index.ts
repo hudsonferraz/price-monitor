@@ -36,8 +36,7 @@ export function getPollSearchQueue(): Queue {
       defaultJobOptions: {
         removeOnComplete: 100,
         removeOnFail: 50,
-        attempts: 2,
-        backoff: { type: "exponential", delay: 30_000 },
+        attempts: 1,
       },
     });
   }
