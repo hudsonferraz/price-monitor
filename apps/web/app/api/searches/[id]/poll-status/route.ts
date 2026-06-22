@@ -1,4 +1,5 @@
 import { auth } from "@/auth";
+import { getOwnedBlockingSearchName } from "@/lib/poll-queue-context";
 import { getPollQueueContext, isRedisConfigured } from "@/lib/queue";
 import { prisma } from "@price-monitor/database";
 import { formatPollQueueMessage } from "@price-monitor/shared/poll-queue-messages";
@@ -30,23 +31,24 @@ export async function GET(_request: Request, context: RouteContext) {
   }
 
   const queueContext = await getPollQueueContext(id);
-  const blockingSearch = queueContext.blockingSavedSearchId
-    ? await prisma.savedSearch.findUnique({
-        where: { id: queueContext.blockingSavedSearchId },
-        select: { name: true },
-      })
-    : null;
+  const { blockingSearchName, waitingForAnotherPoll } = await getOwnedBlockingSearchName(
+    queueContext.blockingSavedSearchId,
+    session.user.id,
+  );
 
   const message = formatPollQueueMessage({
     queued: queueContext.isQueued,
     jobState: queueContext.jobState,
-    blockingSearchName: blockingSearch?.name ?? null,
+    blockingSearchName,
+    waitingForAnotherPoll,
     waitingPosition: queueContext.waitingPosition,
   });
 
   return NextResponse.json({
-    ...queueContext,
-    blockingSearchName: blockingSearch?.name ?? null,
+    jobState: queueContext.jobState,
+    isQueued: queueContext.isQueued,
+    waitingPosition: queueContext.waitingPosition,
+    blockingSearchName,
     message,
   });
 }

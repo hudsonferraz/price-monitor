@@ -2,17 +2,37 @@ export interface PollQueueMessageInput {
   queued: boolean;
   jobState?: string;
   blockingSearchName?: string | null;
+  waitingForAnotherPoll?: boolean;
   waitingPosition?: number;
+}
+
+function formatBlockingPollMessage(
+  blockingSearchName: string | null | undefined,
+  waitingForAnotherPoll: boolean | undefined,
+  suffix: string,
+): string | null {
+  if (!waitingForAnotherPoll && !blockingSearchName) {
+    return null;
+  }
+
+  const targetLabel = blockingSearchName ? `"${blockingSearchName}"` : "another search";
+  return `${suffix} ${targetLabel} to finish first (one poll at a time).`;
 }
 
 export function formatPollQueueMessage(input: PollQueueMessageInput): string {
   if (input.queued) {
-    if (input.blockingSearchName) {
+    const blockingMessage = formatBlockingPollMessage(
+      input.blockingSearchName,
+      input.waitingForAnotherPoll,
+      "Poll queued — waiting for",
+    );
+
+    if (blockingMessage) {
       const positionNote =
         input.waitingPosition != null && input.waitingPosition > 1
           ? ` You are #${input.waitingPosition} in line.`
           : "";
-      return `Poll queued — waiting for "${input.blockingSearchName}" to finish first (one poll at a time).${positionNote} Updating automatically.`;
+      return `${blockingMessage}${positionNote} Updating automatically.`;
     }
 
     return "Poll queued. The worker may take up to a minute to start, then results will appear shortly. Updating automatically.";
@@ -23,8 +43,14 @@ export function formatPollQueueMessage(input: PollQueueMessageInput): string {
   }
 
   if (input.jobState === "waiting" || input.jobState === "delayed") {
-    if (input.blockingSearchName) {
-      return `Poll already queued — waiting for "${input.blockingSearchName}" to finish first (one poll at a time).`;
+    const blockingMessage = formatBlockingPollMessage(
+      input.blockingSearchName,
+      input.waitingForAnotherPoll,
+      "Poll already queued — waiting for",
+    );
+
+    if (blockingMessage) {
+      return blockingMessage;
     }
 
     return "A poll is already queued. The worker may take up to a minute to start on the free tier.";

@@ -1,4 +1,5 @@
 import { auth } from "@/auth";
+import { getOwnedBlockingSearchName } from "@/lib/poll-queue-context";
 import { queuePollSearch } from "@/lib/queue";
 import { wakeWorker } from "@/lib/wake-worker";
 import { prisma } from "@price-monitor/database";
@@ -49,17 +50,16 @@ export async function POST(_request: Request, context: RouteContext) {
   try {
     wakeWorker();
     const result = await queuePollSearch(id, "manual");
-    const blockingSearch = result.queueContext?.blockingSavedSearchId
-      ? await prisma.savedSearch.findUnique({
-          where: { id: result.queueContext.blockingSavedSearchId },
-          select: { name: true },
-        })
-      : null;
+    const { blockingSearchName, waitingForAnotherPoll } = await getOwnedBlockingSearchName(
+      result.queueContext?.blockingSavedSearchId,
+      session.user.id,
+    );
 
     const message = formatPollQueueMessage({
       queued: result.queued,
       jobState: result.state ?? result.queueContext?.jobState,
-      blockingSearchName: blockingSearch?.name ?? null,
+      blockingSearchName,
+      waitingForAnotherPoll,
       waitingPosition: result.queueContext?.waitingPosition,
     });
 
@@ -67,7 +67,7 @@ export async function POST(_request: Request, context: RouteContext) {
       queued: result.queued,
       jobId: result.jobId,
       state: result.state ?? result.queueContext?.jobState,
-      blockingSearchName: blockingSearch?.name ?? null,
+      blockingSearchName,
       waitingPosition: result.queueContext?.waitingPosition ?? null,
       message,
     });

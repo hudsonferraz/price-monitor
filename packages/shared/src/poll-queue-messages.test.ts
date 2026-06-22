@@ -6,6 +6,7 @@ describe("formatPollQueueMessage", () => {
     const message = formatPollQueueMessage({
       queued: true,
       blockingSearchName: "PlayStation 4",
+      waitingForAnotherPoll: true,
       waitingPosition: 1,
     });
 
@@ -17,9 +18,22 @@ describe("formatPollQueueMessage", () => {
     const message = formatPollQueueMessage({
       queued: true,
       blockingSearchName: "TV",
+      waitingForAnotherPoll: true,
       waitingPosition: 2,
     });
 
+    expect(message).toContain("#2 in line");
+  });
+
+  it("uses a generic label when blocked by another poll without a name", () => {
+    const message = formatPollQueueMessage({
+      queued: true,
+      waitingForAnotherPoll: true,
+      waitingPosition: 2,
+    });
+
+    expect(message).toContain("another search");
+    expect(message).not.toContain('"');
     expect(message).toContain("#2 in line");
   });
 
