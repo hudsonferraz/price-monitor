@@ -2,6 +2,8 @@
 
 The web app stays on **Vercel**. The **worker** (Playwright + BullMQ) runs on **Render** so polling works without your PC.
 
+For system architecture and design rationale, see [architecture.md](architecture.md) and [design-decisions.md](design-decisions.md).
+
 ## Prerequisites
 
 - Code pushed to GitHub (`hudsonferraz/price-monitor` or your fork)

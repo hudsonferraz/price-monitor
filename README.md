@@ -1,70 +1,94 @@
 # price-monitor
 
-Full-stack marketplace alert app for **Brazil**. Monitor **Facebook Marketplace** for used-item deals and get notified when new listings match your saved searches.
+![Next.js 15](https://img.shields.io/badge/Next.js-15-black)
+![TypeScript](https://img.shields.io/badge/TypeScript-5.8-blue)
+![License](https://img.shields.io/badge/license-MIT-green)
+[![Live Demo](https://img.shields.io/badge/Live%20Demo-Vercel-black)](https://fb-price-monitor.vercel.app)
 
-## Legal notice
+**Full-stack Facebook Marketplace deal tracker** for Brazil. Save keyword + price searches, poll Marketplace on a schedule, and get dashboard alerts (and optional email) when new listings match or prices drop.
 
-Facebook prohibits unauthorized automated data collection without permission. This project is intended for **personal, educational, and portfolio use**. You are responsible for complying with Meta's terms and applicable laws.
+This is a **personal, educational, and portfolio project** — useful for exploring scraping resilience, job queues, and split serverless/long-running deploys. It is **not** authorized Facebook/Meta tooling. See [Legal notice](#legal-notice).
 
-## Setup
+**What it does:** save searches → background worker scrapes Marketplace → diff against per-search history → alerts + email.  
+**How it's built:** Next.js, BullMQ, Playwright, Prisma/Neon, Redis/Upstash, Resend — web on Vercel, worker on Render.  
+**Scope and limits:** single-user OAuth, concurrency-1 polling, manual `db:push` before deploy — see [Operational assumptions](#operational-assumptions) and [design decisions](docs/design-decisions.md).
+
+## Live links
+
+| Service | URL |
+|---------|-----|
+| Web (Vercel) | [https://fb-price-monitor.vercel.app](https://fb-price-monitor.vercel.app) |
+| Worker health (Render) | [https://price-monitor-worker.onrender.com/health](https://price-monitor-worker.onrender.com/health) |
+
+## Highlights
+
+- **57 automated tests** — Brazilian price parsing, Facebook URL/DOM/JSON parsers, poll schedule backoff, rate limits, price-drop logic, email HTML safety, Zod schemas, adapter merge priority
+- **Resilient Facebook scraping** — GraphQL interception + embedded JSON + DOM fallback with unified merge; scroll depth scales with listing limit
+- **Per-search price memory** — `SavedSearchListingPrice` tracks last seen price per search so drops are detected correctly across overlapping searches
+- **Reliable polling** — BullMQ job dedup, concurrency 1, exponential failure backoff, stale RUNNING recovery, abort if search deleted mid-poll
+- **Split deploy** — Vercel for UI/API; Render Docker worker for Playwright; Upstash Redis queue; Neon Postgres
+- **Brazil-first UX** — `pt-BR` default, BRL cents, Marketplace location hints; English supported
+- **Mock mode** — fake listings without Facebook session for local alert/email testing
+
+## Screenshots
+
+Public pages only (no auth required):
+
+| Landing | Sign in |
+|---------|---------|
+| ![Landing](docs/images/landing.png) | ![Sign in](docs/images/sign-in.png) |
+
+| Architecture |
+|--------------|
+| ![Architecture](docs/images/architecture.png) |
+
+## Capabilities
+
+| Area | What you get |
+|------|----------------|
+| **Saved searches** | Keywords, optional min/max price (BRL), poll interval (5–1440 min), listing limit (12/24/48), enable/disable |
+| **Polling** | Manual **Poll now** (15 min cooldown) + scheduler every 60s; live status banner and poll run history |
+| **Alerts** | New matches and price-drop badges; sort by date/price; dismiss per alert or clear all |
+| **Email** | Resend HTML + plain text from worker; respects user notification toggle; no email on baseline poll |
+| **Auth** | GitHub + Google OAuth via NextAuth v5 |
+| **i18n** | Portuguese (default) and English |
+
+## Quickstart (local)
+
+Requires Node.js 18+.
 
 ```bash
+cd price-monitor
 npm install
 npx playwright install chromium
-```
-
-Copy `.env.example` to:
-
-- `price-monitor/.env` — `DATABASE_URL`, `REDIS_URL`, worker + email vars
-- `apps/web/.env.local` — all web vars including `DATABASE_URL`, `REDIS_URL`, auth keys
-
-Required values:
-
-- `DATABASE_URL` — PostgreSQL (Neon or Supabase)
-- `REDIS_URL` — Redis (Upstash free tier works)
-- `AUTH_SECRET` — random secret (`openssl rand -base64 32`)
-- `AUTH_GITHUB_ID` / `AUTH_GITHUB_SECRET` — GitHub OAuth (dev app for localhost)
-- `AUTH_GOOGLE_ID` / `AUTH_GOOGLE_SECRET` — Google OAuth
-
-Optional for email alerts (worker):
-
-- `RESEND_API_KEY` — from [resend.com](https://resend.com)
-- `EMAIL_FROM` — verified sender address
-- `APP_URL` — public web URL for links in emails
-
-Push the schema to your database:
-
-```bash
+cp .env.example .env
+cp .env.example apps/web/.env.local   # fill AUTH_* and shared URLs
 npm run db:push
 ```
 
-## Development
-
-**Terminal 1 — web app:**
+**Terminal 1 — web:**
 
 ```bash
 npm run dev --workspace=@price-monitor/web
 ```
 
-**Terminal 2 — background worker:**
+**Terminal 2 — worker:**
 
 ```bash
 npm run worker:dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000), sign in, create a search, then click **Poll now** on the dashboard.
-
-Manual polls are rate-limited to once every **15 minutes** per search.
+Open [http://localhost:3000](http://localhost:3000), sign in, create a search, click **Poll now**.
 
 ### Mock mode (no Facebook session)
 
-Set in root `.env`:
+In root `.env`:
 
 ```
 MOCK_MARKETPLACE=true
 ```
 
-Restart the worker. Polls return fake listings — useful for testing alerts and email without Playwright.
+Restart the worker. Polls return fake listings — useful for alerts and email without Playwright.
 
 ### Live Facebook polling
 
@@ -72,7 +96,7 @@ Restart the worker. Polls return fake listings — useful for testing alerts and
 npm run save:facebook-session
 ```
 
-Then set in root `.env`:
+Then in root `.env`:
 
 ```
 FACEBOOK_STORAGE_STATE_PATH=facebook-storage-state.json
@@ -80,7 +104,7 @@ PLAYWRIGHT_HEADLESS=false
 MOCK_MARKETPLACE=false
 ```
 
-## Run tests
+## Tests
 
 ```bash
 npm test
@@ -90,42 +114,97 @@ npm test
 
 ### Database schema (before deploy)
 
-Vercel and Render run `postinstall` → `db:generate`, which updates the **Prisma Client** only. They do **not** apply schema changes to your Neon database.
+Vercel and Render run `postinstall` → `db:generate` (Prisma Client only). They do **not** update Neon automatically.
 
-After pulling changes that touch `packages/database/prisma/schema.prisma` (for example `SavedSearch.consecutiveFailures` or path `SavedSearchListingPrice`), apply them to production **before** deploying web or worker:
+After schema changes (`packages/database/prisma/schema.prisma`):
 
 ```bash
-# .env must point at your production DATABASE_URL (Neon)
+# .env → production DATABASE_URL
 npm run db:push
 ```
 
-Then deploy Vercel and Render as usual. Skipping this step causes runtime errors when the app expects columns or tables that do not exist yet.
+Then deploy web (Vercel) and worker (Render).
 
-**Web (Vercel):**
+**Web (Vercel):** Root Directory `apps/web`. Env: `DATABASE_URL`, `REDIS_URL`, `AUTH_*`, OAuth keys, `APP_URL`, `WORKER_HEALTH_URL`.
 
-1. Root Directory: `apps/web`
-2. Env vars: `DATABASE_URL`, `REDIS_URL`, `AUTH_*`, OAuth keys, `APP_URL`, `WORKER_HEALTH_URL`
-3. `apps/web/vercel.json` handles monorepo install/build. **Root Directory must be `apps/web`.**
-
-**Worker (Render):**
-
-The worker runs Playwright + BullMQ and cannot run on Vercel. Use `render.yaml` (web service on free tier):
-
-1. Connect the repo on [Render](https://render.com) → **Blueprint**
-2. Set env vars: `DATABASE_URL`, `REDIS_URL`, `RESEND_API_KEY`, `EMAIL_FROM`, `APP_URL`
-3. Upload `facebook-storage-state.json` as a secret file at `/etc/secrets/facebook-storage-state.json`
-4. On free tier, ping worker `/health` every 5 min with [UptimeRobot](https://uptimerobot.com) (Vercel Hobby cannot use sub-daily crons — they block deploys)
+**Worker (Render):** Blueprint from `render.yaml`. Env: `DATABASE_URL`, `REDIS_URL`, `RESEND_API_KEY`, `EMAIL_FROM`, `APP_URL`. Upload `facebook-storage-state.json` as a secret file.
 
 See [docs/render-deploy.md](docs/render-deploy.md) for the full walkthrough.
 
+## API
+
+| Endpoint | Description |
+|----------|-------------|
+| `GET/POST/PATCH /api/searches` | List, create, update saved searches |
+| `DELETE /api/searches/[id]` | Delete search (cancel job; 409 if poll active) |
+| `POST /api/searches/[id]/poll` | Enqueue manual poll (rate limited) |
+| `GET /api/searches/[id]/poll-status` | BullMQ job state + queue message |
+| `GET /api/searches/[id]/poll-runs` | Poll history (`?limit=`) |
+| `GET /api/alerts` | Alert feed (`?savedSearchId=`, `?limit=`) |
+| `DELETE /api/alerts/[id]` | Dismiss alert |
+| `GET/PATCH /api/user/preferences` | Email notifications + locale |
+| `GET /health` (worker) | Render health check + UptimeRobot wake target |
+
 ## Architecture
 
-```
-Dashboard → Poll now → Redis (BullMQ) → Worker → Facebook Marketplace
-                                              ↓
-                                    Listings + Alerts → PostgreSQL
-                                              ↓
-                                    Resend email (optional)
+See [docs/architecture.md](docs/architecture.md) for the full diagram, poll lifecycle, and storage model.
+
+## Operational assumptions
+
+This project is a **personal deal-alert tool**, not production scraping infrastructure. Key simplifications:
+
+### Scraping
+
+- **Logged-in session required** — Playwright uses exported `facebook-storage-state.json`; sessions expire and must be refreshed manually.
+- **No official API** — HTML/GraphQL/DOM parsing can break when Facebook changes the UI.
+- **Concurrency 1** — one poll at a time to protect memory and rate limits.
+- **Resource blocking** — images/fonts/media blocked in Playwright; trades fidelity for Render free-tier stability.
+
+### Polling
+
+- **Baseline poll** — first successful poll records matches without email.
+- **Failure backoff** — consecutive failures increase delay up to 24h before the scheduler retries.
+- **Manual cooldown** — Poll now limited to once per 15 minutes per search.
+
+### Deploy
+
+- **Worker spin-down** — Render free tier sleeps without traffic; UptimeRobot or Poll now wakes it.
+- **Schema is manual** — run `npm run db:push` before deploy when Prisma schema changes.
+
+For rationale behind each choice, see [docs/design-decisions.md](docs/design-decisions.md).
+
+## Configuration
+
+See `.env.example`. Key variables:
+
+| Variable | Description |
+|----------|-------------|
+| `DATABASE_URL` | PostgreSQL (Neon) |
+| `REDIS_URL` | Upstash Redis for BullMQ |
+| `AUTH_SECRET` | NextAuth secret |
+| `WORKER_HEALTH_URL` | Render `/health` URL (wake on Poll now) |
+| `RESEND_API_KEY` | Email (worker only) |
+| `MOCK_MARKETPLACE` | Skip Playwright; return fake listings |
+| `FACEBOOK_STORAGE_STATE_PATH` | Path to saved Facebook session |
+
+## Portfolio assets
+
+Regenerate landing, sign-in, and architecture diagram:
+
+```bash
+python scripts/build-portfolio-assets.py
 ```
 
-The scheduler enqueues due searches every 60 seconds based on each search's `pollIntervalMin`.
+Capture `price-monitor-landing-en.png` and `price-monitor-sign-in-en.png` from the live site (or local dev) into Cursor screenshots before running the script.
+
+## Design decisions
+
+Extended write-up: [docs/design-decisions.md](docs/design-decisions.md).
+
+## Legal notice
+
+Facebook prohibits unauthorized automated data collection without permission. This project is intended for **personal, educational, and portfolio use**. You are responsible for complying with Meta's terms and applicable laws.
+
+## License
+
+See [LICENSE](LICENSE).

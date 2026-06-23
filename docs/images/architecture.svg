@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="620">
+  <rect width="100%" height="100%" fill="#0a0a0a"/>
+  <text x="32" y="48" fill="#f3f4f6" font-family="Segoe UI, Arial, sans-serif" font-size="24" font-weight="700">price-monitor architecture</text>
+  <text x="32" y="96" fill="#9ca3af" font-family="Consolas, monospace" font-size="16">Next.js web (Vercel)</text>
+  <text x="32" y="124" fill="#9ca3af" font-family="Consolas, monospace" font-size="16">  |-- NextAuth (GitHub + Google)</text>
+  <text x="32" y="152" fill="#9ca3af" font-family="Consolas, monospace" font-size="16">  |-- API routes (searches, alerts, poll enqueue)</text>
+  <text x="32" y="180" fill="#9ca3af" font-family="Consolas, monospace" font-size="16">  '-- wake worker health ping (Render free tier)</text>
+  <text x="32" y="208" fill="#9ca3af" font-family="Consolas, monospace" font-size="16"></text>
+  <text x="32" y="236" fill="#9ca3af" font-family="Consolas, monospace" font-size="16">Upstash Redis (BullMQ)</text>
+  <text x="32" y="264" fill="#9ca3af" font-family="Consolas, monospace" font-size="16">  |-- poll-search queue (one job per search, concurrency 1)</text>
+  <text x="32" y="292" fill="#9ca3af" font-family="Consolas, monospace" font-size="16">  '-- schedule-polls (repeatable every 60s)</text>
+  <text x="32" y="320" fill="#9ca3af" font-family="Consolas, monospace" font-size="16"></text>
+  <text x="32" y="348" fill="#9ca3af" font-family="Consolas, monospace" font-size="16">Worker (Render + Playwright)</text>
+  <text x="32" y="376" fill="#9ca3af" font-family="Consolas, monospace" font-size="16">  |-- Facebook adapter (GraphQL + JSON + DOM)</text>
+  <text x="32" y="404" fill="#9ca3af" font-family="Consolas, monospace" font-size="16">  |-- per-search price tracking + alert diff</text>
+  <text x="32" y="432" fill="#9ca3af" font-family="Consolas, monospace" font-size="16">  '-- Resend email (optional)</text>
+  <text x="32" y="460" fill="#9ca3af" font-family="Consolas, monospace" font-size="16"></text>
+  <text x="32" y="488" fill="#9ca3af" font-family="Consolas, monospace" font-size="16">Neon PostgreSQL (Prisma)</text>
+  <text x="32" y="516" fill="#9ca3af" font-family="Consolas, monospace" font-size="16">  SavedSearch, Listing, Alert, PollRun, SavedSearchListingPrice</text>
+  <text x="32" y="544" fill="#6b7280" font-family="Consolas, monospace" font-size="14">Schema changes: npm run db:push locally before deploy (not automatic on Vercel/Render)</text>
+</svg>
