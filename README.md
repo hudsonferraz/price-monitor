@@ -15,9 +15,9 @@ This is a **personal, educational, and portfolio project** — useful for explor
 
 ## Live links
 
-| Service | URL |
-|---------|-----|
-| Web (Vercel) | [https://fb-price-monitor.vercel.app](https://fb-price-monitor.vercel.app) |
+| Service                | URL                                                                                                  |
+| ---------------------- | ---------------------------------------------------------------------------------------------------- |
+| Web (Vercel)           | [https://fb-price-monitor.vercel.app](https://fb-price-monitor.vercel.app)                           |
 | Worker health (Render) | [https://price-monitor-worker.onrender.com/health](https://price-monitor-worker.onrender.com/health) |
 
 ## Highlights
@@ -34,24 +34,24 @@ This is a **personal, educational, and portfolio project** — useful for explor
 
 Public pages only (no auth required):
 
-| Landing | Sign in |
-|---------|---------|
+| Landing                             | Sign in                             |
+| ----------------------------------- | ----------------------------------- |
 | ![Landing](docs/images/landing.png) | ![Sign in](docs/images/sign-in.png) |
 
-| Architecture |
-|--------------|
+| Architecture                                  |
+| --------------------------------------------- |
 | ![Architecture](docs/images/architecture.png) |
 
 ## Capabilities
 
-| Area | What you get |
-|------|----------------|
+| Area               | What you get                                                                                                 |
+| ------------------ | ------------------------------------------------------------------------------------------------------------ |
 | **Saved searches** | Keywords, optional min/max price (BRL), poll interval (5–1440 min), listing limit (12/24/48), enable/disable |
-| **Polling** | Manual **Poll now** (15 min cooldown) + scheduler every 60s; live status banner and poll run history |
-| **Alerts** | New matches and price-drop badges; sort by date/price; dismiss per alert or clear all |
-| **Email** | Resend HTML + plain text from worker; respects user notification toggle; no email on baseline poll |
-| **Auth** | GitHub + Google OAuth via NextAuth v5 |
-| **i18n** | Portuguese (default) and English |
+| **Polling**        | Manual **Poll now** (15 min cooldown) + scheduler every 60s; live status banner and poll run history         |
+| **Alerts**         | New matches and price-drop badges; sort by date/price; dismiss per alert or clear all                        |
+| **Email**          | Resend HTML + plain text from worker; respects user notification toggle; no email on baseline poll           |
+| **Auth**           | GitHub + Google OAuth via NextAuth v5                                                                        |
+| **i18n**           | Portuguese (default) and English                                                                             |
 
 ## Quickstart (local)
 
@@ -133,17 +133,17 @@ See [docs/render-deploy.md](docs/render-deploy.md) for the full walkthrough.
 
 ## API
 
-| Endpoint | Description |
-|----------|-------------|
-| `GET/POST/PATCH /api/searches` | List, create, update saved searches |
-| `DELETE /api/searches/[id]` | Delete search (cancel job; 409 if poll active) |
-| `POST /api/searches/[id]/poll` | Enqueue manual poll (rate limited) |
-| `GET /api/searches/[id]/poll-status` | BullMQ job state + queue message |
-| `GET /api/searches/[id]/poll-runs` | Poll history (`?limit=`) |
-| `GET /api/alerts` | Alert feed (`?savedSearchId=`, `?limit=`) |
-| `DELETE /api/alerts/[id]` | Dismiss alert |
-| `GET/PATCH /api/user/preferences` | Email notifications + locale |
-| `GET /health` (worker) | Render health check + UptimeRobot wake target |
+| Endpoint                             | Description                                    |
+| ------------------------------------ | ---------------------------------------------- |
+| `GET/POST/PATCH /api/searches`       | List, create, update saved searches            |
+| `DELETE /api/searches/[id]`          | Delete search (cancel job; 409 if poll active) |
+| `POST /api/searches/[id]/poll`       | Enqueue manual poll (rate limited)             |
+| `GET /api/searches/[id]/poll-status` | BullMQ job state + queue message               |
+| `GET /api/searches/[id]/poll-runs`   | Poll history (`?limit=`)                       |
+| `GET /api/alerts`                    | Alert feed (`?savedSearchId=`, `?limit=`)      |
+| `DELETE /api/alerts/[id]`            | Dismiss alert                                  |
+| `GET/PATCH /api/user/preferences`    | Email notifications + locale                   |
+| `GET /health` (worker)               | Render health check + UptimeRobot wake target  |
 
 ## Architecture
 
@@ -177,25 +177,15 @@ For rationale behind each choice, see [docs/design-decisions.md](docs/design-dec
 
 See `.env.example`. Key variables:
 
-| Variable | Description |
-|----------|-------------|
-| `DATABASE_URL` | PostgreSQL (Neon) |
-| `REDIS_URL` | Upstash Redis for BullMQ |
-| `AUTH_SECRET` | NextAuth secret |
-| `WORKER_HEALTH_URL` | Render `/health` URL (wake on Poll now) |
-| `RESEND_API_KEY` | Email (worker only) |
-| `MOCK_MARKETPLACE` | Skip Playwright; return fake listings |
-| `FACEBOOK_STORAGE_STATE_PATH` | Path to saved Facebook session |
-
-## Portfolio assets
-
-Regenerate landing, sign-in, and architecture diagram:
-
-```bash
-python scripts/build-portfolio-assets.py
-```
-
-Capture `price-monitor-landing-en.png` and `price-monitor-sign-in-en.png` from the live site (or local dev) into Cursor screenshots before running the script.
+| Variable                      | Description                             |
+| ----------------------------- | --------------------------------------- |
+| `DATABASE_URL`                | PostgreSQL (Neon)                       |
+| `REDIS_URL`                   | Upstash Redis for BullMQ                |
+| `AUTH_SECRET`                 | NextAuth secret                         |
+| `WORKER_HEALTH_URL`           | Render `/health` URL (wake on Poll now) |
+| `RESEND_API_KEY`              | Email (worker only)                     |
+| `MOCK_MARKETPLACE`            | Skip Playwright; return fake listings   |
+| `FACEBOOK_STORAGE_STATE_PATH` | Path to saved Facebook session          |
 
 ## Design decisions
 
