@@ -48,7 +48,7 @@ export async function POST(_request: Request, context: RouteContext) {
   }
 
   try {
-    wakeWorker();
+    const workerWake = await wakeWorker();
     const result = await queuePollSearch(id, "manual");
     const { blockingSearchName, waitingForAnotherPoll } = await getOwnedBlockingSearchName(
       result.queueContext?.blockingSavedSearchId,
@@ -70,6 +70,7 @@ export async function POST(_request: Request, context: RouteContext) {
       blockingSearchName,
       waitingPosition: result.queueContext?.waitingPosition ?? null,
       message,
+      workerWake,
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Failed to queue poll";

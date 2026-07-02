@@ -2,20 +2,39 @@ import { describe, expect, it } from "vitest";
 import {
   formatDurationMs,
   formatPollErrorForDisplay,
+  getPollIssueCode,
   isFacebookSessionError,
+  isNoListingsPollError,
 } from "./poll-errors";
 
-describe("isFacebookSessionError", () => {
-  it("detects login redirect messages", () => {
+describe("getPollIssueCode", () => {
+  it("classifies login redirect and missing storage state errors", () => {
     expect(
-      isFacebookSessionError(
+      getPollIssueCode(
         "Facebook redirected to login. Export a Playwright storage state after signing in.",
       ),
-    ).toBe(true);
+    ).toBe("FACEBOOK_SESSION");
+    expect(getPollIssueCode("ENOENT: no such file facebook-storage-state.json")).toBe(
+      "FACEBOOK_SESSION",
+    );
   });
 
-  it("detects missing storage state file errors", () => {
-    expect(isFacebookSessionError("ENOENT: no such file facebook-storage-state.json")).toBe(true);
+  it("classifies checkpoint errors separately", () => {
+    expect(getPollIssueCode("Facebook redirected to checkpoint")).toBe("FACEBOOK_CHECKPOINT");
+  });
+
+  it("classifies no-listings and timeout errors", () => {
+    expect(getPollIssueCode("No Facebook Marketplace listings found. Current URL: ...")).toBe(
+      "NO_LISTINGS",
+    );
+    expect(getPollIssueCode("Poll timed out before completing.")).toBe("POLL_TIMEOUT");
+  });
+});
+
+describe("isFacebookSessionError", () => {
+  it("detects Facebook session and checkpoint issues", () => {
+    expect(isFacebookSessionError("Facebook session expired or login wall detected")).toBe(true);
+    expect(isFacebookSessionError("Facebook redirected to checkpoint")).toBe(true);
   });
 
   it("returns false for unrelated errors", () => {
@@ -23,9 +42,27 @@ describe("isFacebookSessionError", () => {
   });
 });
 
+describe("isNoListingsPollError", () => {
+  it("detects no-listings extraction failures", () => {
+    expect(isNoListingsPollError("No Facebook Marketplace listings found. Current URL: ...")).toBe(
+      true,
+    );
+  });
+});
+
 describe("formatPollErrorForDisplay", () => {
   it("returns a friendly session message", () => {
     expect(formatPollErrorForDisplay("Facebook redirected to login")).toContain("session expired");
+  });
+
+  it("returns checkpoint guidance", () => {
+    expect(formatPollErrorForDisplay("Facebook redirected to checkpoint")).toContain("checkpoint");
+  });
+
+  it("returns no-listings guidance", () => {
+    expect(formatPollErrorForDisplay("No Facebook Marketplace listings found")).toContain(
+      "could not extract",
+    );
   });
 
   it("returns timeout guidance", () => {

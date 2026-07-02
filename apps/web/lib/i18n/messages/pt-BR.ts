@@ -108,7 +108,10 @@ export const messages = {
   pollListingsSummary: "{listings} anúncios · {alerts} alerta(s) novo(s)",
   pollErrorSession:
     "Sessão do Facebook expirou ou está ausente no worker. Atualize facebook-storage-state.json no Render.",
-  pollErrorTimeout:
+  pollErrorCheckpoint:
+    "Facebook enviou o worker para um checkpoint. Abra o Facebook localmente, resolva o checkpoint e atualize facebook-storage-state.json no Render.",
+  pollErrorNoListings:
+    "Facebook carregou, mas o worker nao conseguiu extrair anuncios do Marketplace. Tente uma busca mais ampla ou atualize a sessao se isso se repetir.",  pollErrorTimeout:
     "Poll expirou. O worker pode ter estado dormindo ou o Facebook demorou demais. Tente Poll now novamente.",
   pollErrorUnknown: "Poll falhou por motivo desconhecido.",
 
@@ -119,11 +122,31 @@ export const messages = {
   pollStatusFailed: "Falhou",
   pollStatusSending: "Enviando solicitação de poll...",
   pollStatusQueuedAuto: "Poll na fila. Atualizando automaticamente.",
+  pollStatusWorkerWakeFailed: "Poll na fila, mas a verificação para acordar o worker falhou ({detail}). Confira WORKER_HEALTH_URL e os logs do worker no Render.",
   pollStatusSuccessSummary: "Encontrados {listings} anúncio(s), {alerts} novo(s).",
   pollStatusFailedGeneric: "Poll falhou. Tente novamente em alguns minutos.",
   pollStatusFailedQueue: "Falha ao enfileirar poll",
   pollStatusTimeout: "Poll está demorando mais que o esperado. Atualize a página em um minuto.",
 
+  diagnosticsDocs: "Guia de troubleshooting",
+  diagnosticsWorkerTitle: "Worker inacessivel",
+  diagnosticsWorkerDescription:
+    "O app web esta online, mas o health check do worker no Render falhou ({detail}). Os polls podem entrar na fila, mas os anuncios nao aparecem ate o worker iniciar. Polls com falha nas ultimas 24h: {failedPolls}.",
+  diagnosticsSessionTitle: "Sessao do Facebook expirou",
+  diagnosticsSessionDescription:
+    "Polls recentes chegaram ao worker, mas o Facebook pediu login novamente. Atualize a sessao salva do Facebook no Render. Polls com falha nas ultimas 24h: {failedPolls}.",
+  diagnosticsCheckpointTitle: "Checkpoint do Facebook detectado",
+  diagnosticsCheckpointDescription:
+    "O Facebook enviou a sessao do worker para um checkpoint. Resolva localmente no Facebook, salve uma nova sessao e faca redeploy do worker. Polls com falha nas ultimas 24h: {failedPolls}.",
+  diagnosticsNoListingsTitle: "Nenhum anuncio extraido",
+  diagnosticsNoListingsDescription:
+    "O Facebook carregou, mas o scraper nao encontrou dados de anuncios do Marketplace. Isso pode acontecer com buscas muito restritas, mudancas no layout ou sessao antiga. Polls com falha nas ultimas 24h: {failedPolls}.",
+  diagnosticsTimeoutTitle: "Poll expirou",
+  diagnosticsTimeoutDescription:
+    "O worker iniciou o poll, mas nao terminou a tempo. O free tier do Render pode estar acordando, ou o Facebook pode estar lento. Polls com falha nas ultimas 24h: {failedPolls}.",
+  diagnosticsUnknownTitle: "Problema de polling detectado",
+  diagnosticsUnknownDescription:
+    "Um poll recente falhou com erro nao classificado. Confira o historico de polls e os logs do worker no Render. Polls com falha nas ultimas 24h: {failedPolls}.",
   alertsNoListings:
     "Nenhum anúncio ainda. Clique em Poll now para buscar no Facebook Marketplace.",
   alertsListingsTitle: "Anúncios ({count})",

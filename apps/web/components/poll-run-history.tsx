@@ -2,8 +2,7 @@
 
 import { useLocale, useTranslations } from "@/components/locale-provider";
 import { formatDateTime } from "@/lib/i18n";
-import { formatDurationMs } from "@price-monitor/shared/poll-errors";
-import { isFacebookSessionError } from "@price-monitor/shared/poll-errors";
+import { formatDurationMs, getPollIssueCode } from "@price-monitor/shared/poll-errors";
 
 export interface PollRunRecord {
   id: string;
@@ -32,19 +31,25 @@ export function PollRunHistory({ pollRuns }: PollRunHistoryProps) {
   };
 
   function formatPollError(errorMessage: string | null | undefined): string {
-    if (!errorMessage) {
-      return t("pollErrorUnknown");
+    const issueCode = getPollIssueCode(errorMessage);
+
+    if (issueCode === "FACEBOOK_CHECKPOINT") {
+      return t("pollErrorCheckpoint");
     }
 
-    if (isFacebookSessionError(errorMessage)) {
+    if (issueCode === "FACEBOOK_SESSION") {
       return t("pollErrorSession");
     }
 
-    if (errorMessage.includes("Poll timed out")) {
+    if (issueCode === "NO_LISTINGS") {
+      return t("pollErrorNoListings");
+    }
+
+    if (issueCode === "POLL_TIMEOUT") {
       return t("pollErrorTimeout");
     }
 
-    return errorMessage;
+    return errorMessage ?? t("pollErrorUnknown");
   }
 
   if (pollRuns.length === 0) {
@@ -71,7 +76,7 @@ export function PollRunHistory({ pollRuns }: PollRunHistoryProps) {
                   listings: run.listingsFound,
                   alerts: run.newAlerts,
                 })}
-                {run.durationMs != null ? ` · ${formatDurationMs(run.durationMs)}` : ""}
+                {run.durationMs != null ? ` - ${formatDurationMs(run.durationMs)}` : ""}
               </p>
             ) : null}
             {run.status === "RUNNING" ? (

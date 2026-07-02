@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
-import { collectAvailableListings } from "./facebook-marketplace.adapter";
+import { collectAvailableListings, hasFacebookLoginWall } from "./facebook-marketplace.adapter";
 
 const fixturesDir = resolve(dirname(fileURLToPath(import.meta.url)), "../../../../fixtures");
 const domFixture = readFileSync(resolve(fixturesDir, "facebook-search-dom.mock.html"), "utf8");
@@ -37,5 +37,16 @@ describe("collectAvailableListings", () => {
 
     expect(listings.length).toBeGreaterThan(0);
     expect(listings.every((listing) => listing.externalId.length > 0)).toBe(true);
+  });
+});
+describe("hasFacebookLoginWall", () => {
+  it("detects English and Portuguese Facebook login walls", () => {
+    expect(hasFacebookLoginWall("<html><title>Log in to Facebook</title></html>")).toBe(true);
+    expect(hasFacebookLoginWall("<form id=\"login_form\"></form>")).toBe(true);
+    expect(hasFacebookLoginWall("<main>Entrar no Facebook</main>")).toBe(true);
+  });
+
+  it("does not flag normal marketplace HTML", () => {
+    expect(hasFacebookLoginWall(domFixture)).toBe(false);
   });
 });

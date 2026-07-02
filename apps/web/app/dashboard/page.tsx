@@ -1,5 +1,5 @@
 import { type AlertRecord } from "@/components/alerts-feed";
-import { FacebookSessionWarning } from "@/components/facebook-session-warning";
+import { PollDiagnosticsPanel } from "@/components/poll-diagnostics-panel";
 import { MarketplaceLocationHint } from "@/components/marketplace-location-hint";
 import { NotificationSettings } from "@/components/notification-settings";
 import type { PollRunRecord } from "@/components/poll-run-history";
@@ -8,6 +8,7 @@ import { auth } from "@/auth";
 import { formatSearchSummary, getTranslator } from "@/lib/i18n";
 import { getLocale } from "@/lib/i18n/get-locale";
 import { summarizeRecentPollHealth } from "@/lib/system-health";
+import { wakeWorker } from "@/lib/wake-worker";
 import { isFacebookSessionError } from "@price-monitor/shared/poll-errors";
 import { prisma } from "@price-monitor/database";
 import { redirect } from "next/navigation";
@@ -22,7 +23,7 @@ export default async function DashboardPage() {
   const locale = await getLocale();
   const t = await getTranslator(locale);
 
-  const [searches, pollRuns, user] = await Promise.all([
+  const [searches, pollRuns, user, workerWake] = await Promise.all([
     prisma.savedSearch.findMany({
       where: { userId: session.user.id },
       orderBy: { createdAt: "desc" },
@@ -44,6 +45,7 @@ export default async function DashboardPage() {
       where: { id: session.user.id },
       select: { emailNotificationsEnabled: true },
     }),
+    wakeWorker(3_000),
   ]);
 
   const pollHealth = summarizeRecentPollHealth(pollRuns);
@@ -150,7 +152,11 @@ export default async function DashboardPage() {
           />
         </section>
 
-        <FacebookSessionWarning show={pollHealth.hasFacebookSessionIssue} />
+        <PollDiagnosticsPanel
+          workerWake={workerWake}
+          latestIssueCode={pollHealth.latestIssueCode}
+          failedPollCount24h={pollHealth.failedPollCount24h}
+        />
 
         <section className="mb-10">
           <MarketplaceLocationHint />

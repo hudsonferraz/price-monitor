@@ -12,6 +12,20 @@ import { parseListingsFromHtml, type RawFacebookListing } from "./facebook-dom-p
 
 const DEFAULT_MIN_RESULTS = 5;
 
+const FACEBOOK_LOGIN_WALL_PATTERNS = [
+  /log in to facebook/i,
+  /entrar no facebook/i,
+  /login_form/i,
+  /checkpoint/i,
+  /you must log in/i,
+  /voce precisa entrar/i,
+  /voc\u00ea precisa entrar/i,
+];
+
+export function hasFacebookLoginWall(html: string): boolean {
+  return FACEBOOK_LOGIN_WALL_PATTERNS.some((pattern) => pattern.test(html));
+}
+
 export interface FacebookMarketplaceAdapterOptions {
   storageStatePath?: string;
 }
@@ -137,6 +151,12 @@ export async function waitForSearchResults(
 
   while (Date.now() < deadline) {
     const html = await page.content();
+    if (hasFacebookLoginWall(html)) {
+      throw new Error(
+        "Facebook session expired or login wall detected. Refresh facebook-storage-state.json on Render.",
+      );
+    }
+
     const listings = collectAvailableListings(html, minimumResults, capturedApiListings);
 
     if (listings.length >= 1) {

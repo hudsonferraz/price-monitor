@@ -104,6 +104,10 @@ export const messages = {
   pollListingsSummary: "{listings} listings · {alerts} new alert(s)",
   pollErrorSession:
     "Facebook session expired or missing on the worker. Refresh facebook-storage-state.json on Render.",
+  pollErrorCheckpoint:
+    "Facebook sent the worker to a checkpoint. Open Facebook locally, clear the checkpoint, then refresh facebook-storage-state.json on Render.",
+  pollErrorNoListings:
+    "Facebook loaded, but the worker could not extract Marketplace listings. Try a broader search or refresh the Facebook session if this repeats.",
   pollErrorTimeout:
     "Poll timed out. The worker may have been asleep or Facebook took too long to respond. Try Poll now again.",
   pollErrorUnknown: "Poll failed for an unknown reason.",
@@ -115,10 +119,31 @@ export const messages = {
   pollStatusFailed: "Failed",
   pollStatusSending: "Sending poll request...",
   pollStatusQueuedAuto: "Poll queued. Updating automatically.",
+  pollStatusWorkerWakeFailed: "Poll queued, but the worker wake check failed ({detail}). Check WORKER_HEALTH_URL and the Render worker logs.",
   pollStatusSuccessSummary: "Found {listings} listing(s), {alerts} new.",
   pollStatusFailedGeneric: "Poll failed. Try again in a few minutes.",
   pollStatusFailedQueue: "Failed to queue poll",
   pollStatusTimeout: "Poll is taking longer than expected. Refresh the page in a minute.",
+
+  diagnosticsDocs: "Troubleshooting guide",
+  diagnosticsWorkerTitle: "Worker unreachable",
+  diagnosticsWorkerDescription:
+    "The web app is online, but the Render worker health check failed ({detail}). Polls can be queued, but listings will not appear until the worker starts. Failed polls in the last 24h: {failedPolls}.",
+  diagnosticsSessionTitle: "Facebook session expired",
+  diagnosticsSessionDescription:
+    "Recent polls reached the worker, but Facebook asked it to log in again. Refresh the saved Facebook session on Render. Failed polls in the last 24h: {failedPolls}.",
+  diagnosticsCheckpointTitle: "Facebook checkpoint detected",
+  diagnosticsCheckpointDescription:
+    "Facebook sent the worker session to a checkpoint. Clear it locally in Facebook, save a new session, and redeploy the worker. Failed polls in the last 24h: {failedPolls}.",
+  diagnosticsNoListingsTitle: "No listings extracted",
+  diagnosticsNoListingsDescription:
+    "Facebook loaded, but the scraper could not find Marketplace listing data. This can happen with narrow searches, Marketplace layout changes, or a stale Facebook session. Failed polls in the last 24h: {failedPolls}.",
+  diagnosticsTimeoutTitle: "Poll timed out",
+  diagnosticsTimeoutDescription:
+    "The worker started a poll but did not finish in time. The Render free tier may be cold-starting, or Facebook may be slow. Failed polls in the last 24h: {failedPolls}.",
+  diagnosticsUnknownTitle: "Polling issue detected",
+  diagnosticsUnknownDescription:
+    "A recent poll failed with an unclassified error. Check the poll history and Render worker logs. Failed polls in the last 24h: {failedPolls}.",
 
   alertsNoListings: "No listings yet. Click Poll now to search Facebook Marketplace.",
   alertsListingsTitle: "Listings ({count})",
