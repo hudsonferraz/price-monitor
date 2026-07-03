@@ -53,6 +53,12 @@ export const messages = {
   workerStatusLastSeen: "Last seen: {date}",
   workerStatusRuntime: "Runtime",
   workerStatusFacebookSession: "Facebook session",
+  workerStatusLastSuccess: "Last successful scrape",
+  workerStatusLastFailure: "Last failure",
+  workerStatusNoSuccess: "No successful scrape yet.",
+  workerStatusNoFailure: "No failed polls recorded.",
+  workerStatusSuccessSummary: "{date} - {listings} listing(s), {alerts} alert(s){duration}",
+  workerStatusFailureSummary: "{date} - {issue}. Failed polls in 24h: {failedPolls}",
   marketplaceLocationHint:
     "Results follow your Facebook account's region — listings are shown near where your Facebook session is logged in, not a city you pick in the app.",
 
@@ -61,7 +67,7 @@ export const messages = {
     "Recent polls failed because the local worker lost its Facebook login.",
   facebookSessionStep1:
     "Run npm run facebook:login and sign in to Facebook in the visible browser.",
-  facebookSessionStep2: "Open Render → worker service → Environment → Secret Files.",
+  facebookSessionStep2: "Complete any 2FA, checkpoint, or confirmation prompts.",
   facebookSessionStep3:
     "Open Marketplace in that browser and confirm listings are visible.",
   facebookSessionStep4: "Return to the terminal, press Enter, then restart npm run worker:dev if needed.",

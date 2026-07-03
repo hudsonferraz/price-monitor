@@ -1,6 +1,11 @@
 import { type AlertRecord } from "@/components/alerts-feed";
 import { PollDiagnosticsPanel } from "@/components/poll-diagnostics-panel";
-import { WorkerStatusCard, type WorkerHeartbeatRecord } from "@/components/worker-status-card";
+import {
+  getWorkerState,
+  WorkerStatusCard,
+  type WorkerActivitySummary,
+  type WorkerHeartbeatRecord,
+} from "@/components/worker-status-card";
 import { MarketplaceLocationHint } from "@/components/marketplace-location-hint";
 import { NotificationSettings } from "@/components/notification-settings";
 import type { PollRunRecord } from "@/components/poll-run-history";
@@ -10,7 +15,7 @@ import { formatSearchSummary, getTranslator } from "@/lib/i18n";
 import { getLocale } from "@/lib/i18n/get-locale";
 import { summarizeRecentPollHealth } from "@/lib/system-health";
 import { wakeWorker } from "@/lib/wake-worker";
-import { isFacebookSessionError } from "@price-monitor/shared/poll-errors";
+import { getPollIssueCode, isFacebookSessionError } from "@price-monitor/shared/poll-errors";
 import { prisma } from "@price-monitor/database";
 import { redirect } from "next/navigation";
 
@@ -141,6 +146,27 @@ export default async function DashboardPage() {
   });
 
   const totalListings = serializedSearches.reduce((sum, search) => sum + search.alerts.length, 0);
+  const latestSuccessfulPoll = pollRuns.find((run) => run.status === "SUCCESS") ?? null;
+  const latestFailedPoll = pollRuns.find((run) => run.status === "FAILED") ?? null;
+  const workerActivity: WorkerActivitySummary = {
+    latestSuccess: latestSuccessfulPoll
+      ? {
+          startedAt: latestSuccessfulPoll.startedAt.toISOString(),
+          listingsFound: latestSuccessfulPoll.listingsFound,
+          newAlerts: latestSuccessfulPoll.newAlerts,
+          durationMs: latestSuccessfulPoll.durationMs,
+        }
+      : null,
+    latestFailure: latestFailedPoll
+      ? {
+          startedAt: latestFailedPoll.startedAt.toISOString(),
+          issueCode: getPollIssueCode(latestFailedPoll.errorMessage),
+          errorMessage: latestFailedPoll.errorMessage,
+        }
+      : null,
+    failedPollCount24h: pollHealth.failedPollCount24h,
+    averageDurationMs: pollHealth.averageDurationMs,
+  };
   const workerHeartbeat: WorkerHeartbeatRecord | null = latestWorkerHeartbeat
     ? {
         workerId: latestWorkerHeartbeat.workerId,
@@ -169,12 +195,13 @@ export default async function DashboardPage() {
           />
         </section>
 
-        <WorkerStatusCard heartbeat={workerHeartbeat} />
+        <WorkerStatusCard heartbeat={workerHeartbeat} activity={workerActivity} />
 
         <PollDiagnosticsPanel
           workerWake={workerWake}
           latestIssueCode={pollHealth.latestIssueCode}
           failedPollCount24h={pollHealth.failedPollCount24h}
+          localWorkerOnline={getWorkerState(workerHeartbeat) === "online"}
         />
 
         <section className="mb-10">

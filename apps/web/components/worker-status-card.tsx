@@ -2,6 +2,8 @@
 
 import { useLocale, useTranslations } from "@/components/locale-provider";
 import { formatDateTime } from "@/lib/i18n";
+import type { AppLocale } from "@/lib/i18n/locales";
+import { formatDurationMs, type PollIssueCode } from "@price-monitor/shared/poll-errors";
 
 export interface WorkerHeartbeatRecord {
   workerId: string;
@@ -15,11 +17,28 @@ export interface WorkerHeartbeatRecord {
   facebookSessionMessage: string | null;
 }
 
-interface WorkerStatusCardProps {
-  heartbeat: WorkerHeartbeatRecord | null;
+export interface WorkerActivitySummary {
+  latestSuccess: {
+    startedAt: string;
+    listingsFound: number;
+    newAlerts: number;
+    durationMs: number | null;
+  } | null;
+  latestFailure: {
+    startedAt: string;
+    issueCode: PollIssueCode | null;
+    errorMessage: string | null;
+  } | null;
+  failedPollCount24h: number;
+  averageDurationMs: number | null;
 }
 
-const HEARTBEAT_STALE_MS = 90_000;
+interface WorkerStatusCardProps {
+  heartbeat: WorkerHeartbeatRecord | null;
+  activity: WorkerActivitySummary;
+}
+
+export const HEARTBEAT_STALE_MS = 90_000;
 
 const statusStyles: Record<"online" | "stale" | "offline" | "missing", string> = {
   online:
@@ -39,7 +58,7 @@ const dotStyles: Record<"online" | "stale" | "offline" | "missing", string> = {
   missing: "bg-blue-500",
 };
 
-export function WorkerStatusCard({ heartbeat }: WorkerStatusCardProps) {
+export function WorkerStatusCard({ heartbeat, activity }: WorkerStatusCardProps) {
   const locale = useLocale();
   const t = useTranslations();
   const state = getWorkerState(heartbeat);
@@ -66,27 +85,35 @@ export function WorkerStatusCard({ heartbeat }: WorkerStatusCardProps) {
         ) : null}
       </div>
 
-      {heartbeat ? (
-        <dl className="mt-3 grid gap-2 text-sm sm:grid-cols-2">
-          <div>
-            <dt className="font-medium">{t("workerStatusRuntime")}</dt>
-            <dd className="opacity-80">
-              {formatRuntime(heartbeat.hostname, heartbeat.pid)}
-            </dd>
-          </div>
-          <div>
-            <dt className="font-medium">{t("workerStatusFacebookSession")}</dt>
-            <dd className="opacity-80">
-              {formatFacebookSession(heartbeat.facebookSessionStatus, heartbeat.facebookSessionMode)}
-            </dd>
-          </div>
-        </dl>
-      ) : null}
+      <dl className="mt-3 grid gap-3 text-sm sm:grid-cols-2">
+        {heartbeat ? (
+          <>
+            <div>
+              <dt className="font-medium">{t("workerStatusRuntime")}</dt>
+              <dd className="opacity-80">{formatRuntime(heartbeat.hostname, heartbeat.pid)}</dd>
+            </div>
+            <div>
+              <dt className="font-medium">{t("workerStatusFacebookSession")}</dt>
+              <dd className="opacity-80">
+                {formatFacebookSession(heartbeat.facebookSessionStatus, heartbeat.facebookSessionMode)}
+              </dd>
+            </div>
+          </>
+        ) : null}
+        <div>
+          <dt className="font-medium">{t("workerStatusLastSuccess")}</dt>
+          <dd className="opacity-80">{formatLatestSuccess(activity.latestSuccess, locale, t)}</dd>
+        </div>
+        <div>
+          <dt className="font-medium">{t("workerStatusLastFailure")}</dt>
+          <dd className="opacity-80">{formatLatestFailure(activity, locale, t)}</dd>
+        </div>
+      </dl>
     </section>
   );
 }
 
-function getWorkerState(heartbeat: WorkerHeartbeatRecord | null): "online" | "stale" | "offline" | "missing" {
+export function getWorkerState(heartbeat: WorkerHeartbeatRecord | null): "online" | "stale" | "offline" | "missing" {
   if (!heartbeat) {
     return "missing";
   }
@@ -130,4 +157,54 @@ function formatFacebookSession(status: string | null, mode: string | null): stri
   }
 
   return [status, mode].filter(Boolean).join(" / ");
+}
+
+function formatLatestSuccess(
+  latestSuccess: WorkerActivitySummary["latestSuccess"],
+  locale: AppLocale,
+  t: ReturnType<typeof useTranslations>,
+): string {
+  if (!latestSuccess) {
+    return t("workerStatusNoSuccess");
+  }
+
+  const duration = latestSuccess.durationMs != null ? ` - ${formatDurationMs(latestSuccess.durationMs)}` : "";
+  return t("workerStatusSuccessSummary", {
+    date: formatDateTime(latestSuccess.startedAt, locale),
+    listings: latestSuccess.listingsFound,
+    alerts: latestSuccess.newAlerts,
+    duration,
+  });
+}
+
+function formatLatestFailure(
+  activity: WorkerActivitySummary,
+  locale: AppLocale,
+  t: ReturnType<typeof useTranslations>,
+): string {
+  if (!activity.latestFailure) {
+    return t("workerStatusNoFailure");
+  }
+
+  return t("workerStatusFailureSummary", {
+    date: formatDateTime(activity.latestFailure.startedAt, locale),
+    issue: formatIssueCode(activity.latestFailure.issueCode, t),
+    failedPolls: activity.failedPollCount24h,
+  });
+}
+
+function formatIssueCode(issueCode: PollIssueCode | null, t: ReturnType<typeof useTranslations>): string {
+  switch (issueCode) {
+    case "FACEBOOK_CHECKPOINT":
+      return t("diagnosticsCheckpointTitle");
+    case "FACEBOOK_SESSION":
+      return t("diagnosticsSessionTitle");
+    case "NO_LISTINGS":
+      return t("diagnosticsNoListingsTitle");
+    case "POLL_TIMEOUT":
+      return t("diagnosticsTimeoutTitle");
+    case "UNKNOWN":
+    default:
+      return t("diagnosticsUnknownTitle");
+  }
 }

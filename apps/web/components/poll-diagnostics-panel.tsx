@@ -10,6 +10,7 @@ interface PollDiagnosticsPanelProps {
   workerWake: WakeWorkerResult;
   latestIssueCode: PollIssueCode | null;
   failedPollCount24h: number;
+  localWorkerOnline?: boolean;
 }
 
 const alertStyles: Record<"warning" | "danger" | "info", string> = {
@@ -25,9 +26,10 @@ export function PollDiagnosticsPanel({
   workerWake,
   latestIssueCode,
   failedPollCount24h,
+  localWorkerOnline = false,
 }: PollDiagnosticsPanelProps) {
   const t = useTranslations();
-  const kind = getDiagnosticsKind(workerWake, latestIssueCode);
+  const kind = getDiagnosticsKind(workerWake, latestIssueCode, localWorkerOnline);
 
   if (!kind) {
     return null;
@@ -70,8 +72,9 @@ export function PollDiagnosticsPanel({
 function getDiagnosticsKind(
   workerWake: WakeWorkerResult,
   latestIssueCode: PollIssueCode | null,
+  localWorkerOnline: boolean,
 ): DiagnosticsKind | null {
-  if (!workerWake.skipped && !workerWake.ok) {
+  if (!localWorkerOnline && !workerWake.skipped && !workerWake.ok) {
     return "worker";
   }
 

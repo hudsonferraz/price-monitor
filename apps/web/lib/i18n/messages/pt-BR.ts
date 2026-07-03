@@ -56,6 +56,12 @@ export const messages = {
   workerStatusLastSeen: "Ultimo sinal: {date}",
   workerStatusRuntime: "Runtime",
   workerStatusFacebookSession: "Sessao do Facebook",
+  workerStatusLastSuccess: "Ultimo scrape bem-sucedido",
+  workerStatusLastFailure: "Ultima falha",
+  workerStatusNoSuccess: "Nenhum scrape bem-sucedido ainda.",
+  workerStatusNoFailure: "Nenhum poll com falha registrado.",
+  workerStatusSuccessSummary: "{date} - {listings} anuncio(s), {alerts} alerta(s){duration}",
+  workerStatusFailureSummary: "{date} - {issue}. Polls com falha em 24h: {failedPolls}",
   marketplaceLocationHint:
     "Os resultados seguem a região da sua conta Facebook — os anúncios aparecem perto de onde sua sessão está logada, não de uma cidade escolhida no app.",
 
@@ -64,10 +70,10 @@ export const messages = {
     "Polls recentes falharam porque o worker local perdeu o login do Facebook.",
   facebookSessionStep1:
     "Rode npm run facebook:login e entre no Facebook no navegador visivel.",
-  facebookSessionStep2: "Abra Render → serviço worker → Environment → Secret Files.",
+  facebookSessionStep2: "Complete 2FA, checkpoint ou qualquer prompt de confirmacao.",
   facebookSessionStep3:
-    "Substitua /etc/secrets/facebook-storage-state.json pelo conteúdo do novo arquivo.",
-  facebookSessionStep4: "Faça redeploy do worker e clique em Poll now novamente.",
+    "Abra o Marketplace nesse navegador e confirme que os anuncios aparecem.",
+  facebookSessionStep4: "Volte ao terminal, pressione Enter e reinicie npm run worker:dev se precisar.",
   facebookSessionDocs: "Guia completo em local-first-setup.md",
 
   searchKeywords: "Palavras-chave",
