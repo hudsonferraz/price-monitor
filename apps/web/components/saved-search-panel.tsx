@@ -477,19 +477,9 @@ export function SavedSearchList({ searches, emptyMessage }: SavedSearchListProps
         return;
       }
 
-      const workerWake = data?.workerWake as
-        | { skipped?: boolean; ok?: boolean; status?: number; error?: string }
-        | undefined;
-      const wakeFailed = workerWake && !workerWake.skipped && !workerWake.ok;
-      const wakeDetail = workerWake?.status
-        ? `HTTP ${workerWake.status}`
-        : workerWake?.error ?? "unknown";
-
       updateSearchPollState(searchId, {
         phase: "queued",
-        message: wakeFailed
-          ? t("pollStatusWorkerWakeFailed", { detail: wakeDetail })
-          : data?.message ?? t("pollStatusQueuedAuto"),
+        message: data?.message ?? t("pollStatusQueuedAuto"),
       });
       setWatchingPollSearchId(searchId);
       router.refresh();

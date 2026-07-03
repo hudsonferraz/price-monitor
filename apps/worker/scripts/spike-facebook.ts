@@ -1,7 +1,7 @@
 import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { chromium, type Browser, type BrowserContext, type BrowserContextOptions } from "playwright";
+import { chromium, type BrowserContext, type BrowserContextOptions } from "playwright";
 import { FacebookMarketplaceAdapter } from "../src/adapters/facebook-marketplace.adapter";
 import { parseListingsFromHtml } from "../src/adapters/facebook-dom-parser";
 
@@ -18,19 +18,12 @@ const LISTING_LIMIT = 5;
 
 async function main(): Promise<void> {
   const headless = process.env.PLAYWRIGHT_HEADLESS !== "false";
-  const storageStatePath = resolveProjectPath(process.env.FACEBOOK_STORAGE_STATE_PATH);
   const profileDir = resolveProjectPath(process.env.FACEBOOK_BROWSER_PROFILE_DIR) ?? defaultProfileDir;
-  const adapter = new FacebookMarketplaceAdapter({ storageStatePath });
+  const adapter = new FacebookMarketplaceAdapter();
 
   console.log(`Starting Facebook Marketplace spike (headless=${headless})...`);
   console.log(`Query: "${SEARCH_KEYWORDS}"`);
-  if (profileDir) {
-    console.log(`Using browser profile: ${profileDir}`);
-  } else if (storageStatePath) {
-    console.log(`Using storage state: ${storageStatePath}`);
-  } else {
-    console.log("No FACEBOOK_BROWSER_PROFILE_DIR or FACEBOOK_STORAGE_STATE_PATH set - Facebook may redirect to login.");
-  }
+  console.log(`Using browser profile: ${profileDir}`);
 
   const contextOptions: BrowserContextOptions = {
     locale: "pt-BR",
@@ -39,26 +32,11 @@ async function main(): Promise<void> {
       "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
   };
 
-  let browser: Browser | undefined;
-  let context: BrowserContext;
-  if (profileDir) {
-    context = await chromium.launchPersistentContext(profileDir, {
-      ...contextOptions,
-      headless,
-      args: ["--disable-blink-features=AutomationControlled"],
-    });
-  } else {
-    browser = await chromium.launch({
-      headless,
-      args: ["--disable-blink-features=AutomationControlled"],
-    });
-
-    if (storageStatePath) {
-      contextOptions.storageState = storageStatePath;
-    }
-
-    context = await browser.newContext(contextOptions);
-  }
+  const context: BrowserContext = await chromium.launchPersistentContext(profileDir, {
+    ...contextOptions,
+    headless,
+    args: ["--disable-blink-features=AutomationControlled"],
+  });
 
   const page = await context.newPage();
 
@@ -105,7 +83,6 @@ async function main(): Promise<void> {
     process.exitCode = 1;
   } finally {
     await context.close().catch(() => undefined);
-    await browser?.close().catch(() => undefined);
   }
 }
 

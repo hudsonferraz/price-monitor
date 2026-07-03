@@ -8,15 +8,8 @@ import {
 } from "./poll-errors";
 
 describe("getPollIssueCode", () => {
-  it("classifies login redirect and missing storage state errors", () => {
-    expect(
-      getPollIssueCode(
-        "Facebook redirected to login. Export a Playwright storage state after signing in.",
-      ),
-    ).toBe("FACEBOOK_SESSION");
-    expect(getPollIssueCode("ENOENT: no such file facebook-storage-state.json")).toBe(
-      "FACEBOOK_SESSION",
-    );
+  it("classifies login redirect errors", () => {
+    expect(getPollIssueCode("Facebook redirected to login.")).toBe("FACEBOOK_SESSION");
   });
 
   it("classifies checkpoint errors separately", () => {

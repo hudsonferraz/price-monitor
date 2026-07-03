@@ -3,99 +3,59 @@
 ![Next.js 15](https://img.shields.io/badge/Next.js-15-black)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5.8-blue)
 ![License](https://img.shields.io/badge/license-MIT-green)
-[![Live Demo](https://img.shields.io/badge/Live%20Demo-Vercel-black)](https://fb-price-monitor.vercel.app)
 
-**Full-stack Facebook Marketplace deal tracker** for Brazil. Save keyword + price searches, poll Marketplace on a schedule, and get dashboard alerts (and optional email) when new listings match or prices drop.
+**Local-first Facebook Marketplace deal monitor** for Brazil. Save keyword + price searches, run a local Playwright worker with your own Facebook browser profile, and review matching listings, price drops, and worker health in a polished dashboard.
 
-This is a **personal, educational, and portfolio project** — useful for exploring scraping resilience, job queues, and split serverless/long-running deploys. It is **not** authorized Facebook/Meta tooling. See [Legal notice](#legal-notice).
+This is a **personal, educational, and portfolio project** for exploring scraping resilience, job queues, local automation, and soon AI-assisted listing evaluation. It is **not** authorized Facebook/Meta tooling. See [Legal notice](#legal-notice).
 
-**What it does:** save searches → background worker scrapes Marketplace → diff against per-search history → alerts + email.  
-**How it's built:** Next.js, BullMQ, Playwright, Prisma/Neon, Redis/Upstash, Resend — web on Vercel, worker on Render.  
-**Scope and limits:** single-user OAuth, concurrency-1 polling, manual `db:push` before deploy — see [Operational assumptions](#operational-assumptions) and [design decisions](docs/design-decisions.md).
+**What it does:** save searches -> local worker scrapes Marketplace -> diff against per-search history -> dashboard alerts + optional email.
 
-## Live links
-
-| Service                | URL                                                                                                  |
-| ---------------------- | ---------------------------------------------------------------------------------------------------- |
-| Web (Vercel)           | [https://fb-price-monitor.vercel.app](https://fb-price-monitor.vercel.app)                           |
-| Worker health (Render) | [https://price-monitor-worker.onrender.com/health](https://price-monitor-worker.onrender.com/health) |
+**How it is built:** Next.js, BullMQ, Playwright, Prisma, local Docker Postgres/Redis, Resend, and a persistent local Facebook browser profile.
 
 ## Highlights
 
-- **57 automated tests** — Brazilian price parsing, Facebook URL/DOM/JSON parsers, poll schedule backoff, rate limits, price-drop logic, email HTML safety, Zod schemas, adapter merge priority
-- **Resilient Facebook scraping** — GraphQL interception + embedded JSON + DOM fallback with unified merge; scroll depth scales with listing limit
-- **Per-search price memory** — `SavedSearchListingPrice` tracks last seen price per search so drops are detected correctly across overlapping searches
-- **Reliable polling** — BullMQ job dedup, concurrency 1, exponential failure backoff, stale RUNNING recovery, abort if search deleted mid-poll
-- **Split deploy** — Vercel for UI/API; Render Docker worker for Playwright; Upstash Redis queue; Neon Postgres
-- **Brazil-first UX** — `pt-BR` default, BRL cents, Marketplace location hints; English supported
-- **Mock mode** — fake listings without Facebook session for local alert/email testing
+- **Local-first worker** - Facebook-facing browser/session stays on your machine in `.facebook-profile/`.
+- **Worker heartbeat dashboard** - the UI shows local worker online/stale/offline state, Facebook session mode, latest successful scrape, and latest failure type.
+- **Resilient Facebook scraping** - GraphQL interception + embedded JSON + DOM fallback with unified merge.
+- **Per-search price memory** - `SavedSearchListingPrice` tracks last seen price per search so overlapping searches still detect drops correctly.
+- **Reliable polling** - BullMQ job dedup, concurrency 1, exponential failure backoff, stale RUNNING recovery, and manual poll cooldown.
+- **Brazil-first UX** - `pt-BR` default, BRL cents, Marketplace location hints, with English supported.
+- **Mock mode** - fake listings without Facebook session for local alert/email testing.
 
-## Screenshots
+## Quickstart
 
-Public pages only (no auth required):
-
-| Landing                             | Sign in                             |
-| ----------------------------------- | ----------------------------------- |
-| ![Landing](docs/images/landing.png) | ![Sign in](docs/images/sign-in.png) |
-
-| Architecture                                  |
-| --------------------------------------------- |
-| ![Architecture](docs/images/architecture.png) |
-
-## Capabilities
-
-| Area               | What you get                                                                                                 |
-| ------------------ | ------------------------------------------------------------------------------------------------------------ |
-| **Saved searches** | Keywords, optional min/max price (BRL), poll interval (5–1440 min), listing limit (12/24/48), enable/disable |
-| **Polling**        | Manual **Poll now** (15 min cooldown) + scheduler every 60s; live status banner and poll run history         |
-| **Alerts**         | New matches and price-drop badges; sort by date/price; dismiss per alert or clear all                        |
-| **Email**          | Resend HTML + plain text from worker; respects user notification toggle; no email on baseline poll           |
-| **Auth**           | GitHub + Google OAuth via NextAuth v5                                                                        |
-| **i18n**           | Portuguese (default) and English                                                                             |
-
-## Quickstart (local)
-
-Requires Node.js 18+ and Docker Desktop for local Postgres/Redis.
+Requires Node.js 18+, Docker Desktop, and Playwright Chromium.
 
 ```bash
 cd price-monitor
 npm install
 npx playwright install chromium
 cp .env.example .env
-cp .env.example apps/web/.env.local   # fill AUTH_* and shared URLs
 npm run docker:up
 npm run db:push
+npm run facebook:login
+npm run spike:facebook
 ```
 
-**Terminal 1 — web:**
+Terminal 1 - web:
 
 ```bash
 npm run dev --workspace=@price-monitor/web
 ```
 
-**Terminal 2 — worker:**
+Terminal 2 - worker:
 
 ```bash
 npm run worker:dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000), sign in, create a search, click **Poll now**.
+Open [http://localhost:3000](http://localhost:3000), sign in, create a search, and click **Poll now**. The dashboard should show the local worker heartbeat once `npm run worker:dev` is running.
 
-### Mock mode (no Facebook session)
+For the full local setup flow, see [docs/local-first-setup.md](docs/local-first-setup.md).
 
-In root `.env`:
+## Facebook Session Model
 
-```
-MOCK_MARKETPLACE=true
-```
-
-Restart the worker. Polls return fake listings — useful for alerts and email without Playwright.
-
-### Local-first Facebook polling
-
-The recommended Facebook workflow is a persistent local browser profile. See [docs/local-first-setup.md](docs/local-first-setup.md).
-
-In root `.env`:
+The recommended workflow is a persistent local browser profile:
 
 ```env
 FACEBOOK_BROWSER_PROFILE_DIR=.facebook-profile
@@ -103,41 +63,24 @@ PLAYWRIGHT_HEADLESS=false
 MOCK_MARKETPLACE=false
 ```
 
-Then run:
+Run `npm run facebook:login` whenever Facebook asks for login, 2FA, checkpoint, or confirmation. The profile is ignored by git and should never be committed.
 
-```bash
-npm run facebook:login
-npm run spike:facebook
+
+## Mock Mode
+
+In root `.env`:
+
+```env
+MOCK_MARKETPLACE=true
 ```
 
-`FACEBOOK_STORAGE_STATE_PATH=facebook-storage-state.json` remains available as a legacy/cloud fallback.
+Restart the worker. Polls return fake listings, which is useful for dashboard, alert, and email testing without touching Facebook.
 
 ## Tests
 
 ```bash
 npm test
 ```
-
-## Deploy
-
-### Database schema (before deploy)
-
-Vercel and Render run `postinstall` → `db:generate` (Prisma Client only). They do **not** update Neon automatically.
-
-After schema changes (`packages/database/prisma/schema.prisma`):
-
-```bash
-# .env → production DATABASE_URL
-npm run db:push
-```
-
-Then deploy web (Vercel) and worker (Render).
-
-**Web (Vercel):** Root Directory `apps/web`. Env: `DATABASE_URL`, `REDIS_URL`, `AUTH_*`, OAuth keys, `APP_URL`, `WORKER_HEALTH_URL`.
-
-**Worker (Render):** Blueprint from `render.yaml`. Env: `DATABASE_URL`, `REDIS_URL`, `RESEND_API_KEY`, `EMAIL_FROM`, `APP_URL`. Upload `facebook-storage-state.json` as a secret file.
-
-See [docs/render-deploy.md](docs/render-deploy.md) for the full walkthrough.
 
 ## API
 
@@ -151,60 +94,41 @@ See [docs/render-deploy.md](docs/render-deploy.md) for the full walkthrough.
 | `GET /api/alerts`                    | Alert feed (`?savedSearchId=`, `?limit=`)      |
 | `DELETE /api/alerts/[id]`            | Dismiss alert                                  |
 | `GET/PATCH /api/user/preferences`    | Email notifications + locale                   |
-| `GET /health` (worker)               | Render health check + UptimeRobot wake target  |
+| `GET /health` (worker)               | Local worker health and Facebook session check |
 
 ## Roadmap
 
-The project is pivoting toward a local-first, self-hosted worker model with AI-assisted listing evaluation. See [Local-first setup](docs/local-first-setup.md) and [Local-first AI roadmap](docs/local-first-ai-roadmap.md).
+The project has pivoted from a hosted scraper into a local-first, self-hosted worker model. Next up is AI-assisted listing evaluation. See [Local-first AI roadmap](docs/local-first-ai-roadmap.md).
 
 ## Architecture
 
-See [docs/architecture.md](docs/architecture.md) for the full diagram, poll lifecycle, and storage model.
+```txt
+Local machine
+  Next.js web dashboard
+  BullMQ + Playwright worker
+  Docker Postgres
+  Docker Redis
+  .facebook-profile browser profile
+  optional Resend email
+  future AI provider
+```
 
-## Operational assumptions
-
-This project is a **personal deal-alert tool**, not production scraping infrastructure. Key simplifications:
-
-### Scraping
-
-- **Logged-in session required** — Playwright uses exported `facebook-storage-state.json`; sessions expire and must be refreshed manually.
-- **No official API** — HTML/GraphQL/DOM parsing can break when Facebook changes the UI.
-- **Concurrency 1** — one poll at a time to protect memory and rate limits.
-- **Resource blocking** — images/fonts/media blocked in Playwright; trades fidelity for Render free-tier stability.
-
-### Polling
-
-- **Baseline poll** — first successful poll records matches without email.
-- **Failure backoff** — consecutive failures increase delay up to 24h before the scheduler retries.
-- **Manual cooldown** — Poll now limited to once per 15 minutes per search.
-
-### Deploy
-
-- **Worker spin-down** — Render free tier sleeps without traffic; UptimeRobot or Poll now wakes it.
-- **Schema is manual** — run `npm run db:push` before deploy when Prisma schema changes.
-
-For rationale behind each choice, see [docs/design-decisions.md](docs/design-decisions.md).
+The worker currently writes directly to Postgres for local-first simplicity, including heartbeat rows used by the dashboard. A web API/token bridge can be added later if the worker needs to run on a separate machine.
 
 ## Configuration
 
 See `.env.example`. Key variables:
 
-| Variable                      | Description                             |
-| ----------------------------- | --------------------------------------- |
-| `DATABASE_URL`                | PostgreSQL (local Docker by default)    |
-| `REDIS_URL`                   | Redis for BullMQ (local Docker by default) |
-| `AUTH_SECRET`                 | NextAuth secret                         |
-| `WORKER_HEALTH_URL`           | Render `/health` URL (wake on Poll now) |
-| `RESEND_API_KEY`              | Email (worker only)                     |
-| `MOCK_MARKETPLACE`            | Skip Playwright; return fake listings   |
-| `FACEBOOK_BROWSER_PROFILE_DIR` | Persistent local Facebook browser profile |
-| `FACEBOOK_STORAGE_STATE_PATH` | Legacy exported Facebook session file   |
+| Variable                       | Description                                      |
+| ------------------------------ | ------------------------------------------------ |
+| `DATABASE_URL`                 | PostgreSQL, local Docker by default              |
+| `REDIS_URL`                    | Redis for BullMQ, local Docker by default        |
+| `AUTH_SECRET`                  | Auth.js / NextAuth secret                        |
+| `RESEND_API_KEY`               | Optional email alerts, used by the worker        |
+| `MOCK_MARKETPLACE`             | Skip Playwright and return fake listings         |
+| `FACEBOOK_BROWSER_PROFILE_DIR` | Persistent local Facebook browser profile        |
 
-## Design decisions
-
-Extended write-up: [docs/design-decisions.md](docs/design-decisions.md).
-
-## Legal notice
+## Legal Notice
 
 Facebook prohibits unauthorized automated data collection without permission. This project is intended for **personal, educational, and portfolio use**. You are responsible for complying with Meta's terms and applicable laws.
 

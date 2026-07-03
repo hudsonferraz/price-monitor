@@ -26,14 +26,9 @@ export function hasFacebookLoginWall(html: string): boolean {
   return FACEBOOK_LOGIN_WALL_PATTERNS.some((pattern) => pattern.test(html));
 }
 
-export interface FacebookMarketplaceAdapterOptions {
-  storageStatePath?: string;
-}
 
 export class FacebookMarketplaceAdapter {
   readonly source = SOURCE.FACEBOOK;
-
-  constructor(private readonly options: FacebookMarketplaceAdapterOptions = {}) {}
 
   async search(page: Page, input: SearchInput): Promise<NormalizedListing[]> {
     const limit = input.limit ?? 24;
@@ -143,7 +138,7 @@ export async function waitForSearchResults(
   const currentUrl = page.url();
   if (/login|checkpoint/i.test(currentUrl)) {
     throw new Error(
-      "Facebook redirected to login. Export a Playwright storage state after signing in and set FACEBOOK_STORAGE_STATE_PATH.",
+      "Facebook redirected to login. Run npm run facebook:login and fix the local Facebook browser profile.",
     );
   }
 
@@ -159,7 +154,7 @@ export async function waitForSearchResults(
 
     if (hasFacebookLoginWall(html)) {
       throw new Error(
-        "Facebook session expired or login wall detected. Run npm run facebook:login locally or refresh facebook-storage-state.json.",
+        "Facebook session expired or login wall detected. Run npm run facebook:login and fix the local Facebook browser profile.",
       );
     }
 
@@ -167,7 +162,7 @@ export async function waitForSearchResults(
   }
 
   throw new Error(
-    `No Facebook Marketplace listings found. Current URL: ${page.url()}. Try logging in and saving a storage state.`,
+    `No Facebook Marketplace listings found. Current URL: ${page.url()}. Run npm run facebook:login, confirm Marketplace works, and try again.`,
   );
 }
 

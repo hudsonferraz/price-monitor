@@ -135,16 +135,12 @@ export const messages = {
   pollStatusFailed: "Failed",
   pollStatusSending: "Sending poll request...",
   pollStatusQueuedAuto: "Poll queued. Updating automatically.",
-  pollStatusWorkerWakeFailed: "Poll queued, but the worker wake check failed ({detail}). Check the local worker terminal or WORKER_HEALTH_URL if configured.",
   pollStatusSuccessSummary: "Found {listings} listing(s), {alerts} new.",
   pollStatusFailedGeneric: "Poll failed. Try again in a few minutes.",
   pollStatusFailedQueue: "Failed to queue poll",
   pollStatusTimeout: "Poll is taking longer than expected. Refresh the page in a minute.",
 
   diagnosticsDocs: "Troubleshooting guide",
-  diagnosticsWorkerTitle: "Worker unreachable",
-  diagnosticsWorkerDescription:
-    "The web app is online, but the worker health check failed ({detail}). Polls can be queued, but listings will not appear until npm run worker:dev is running. Failed polls in the last 24h: {failedPolls}.",
   diagnosticsSessionTitle: "Facebook session expired",
   diagnosticsSessionDescription:
     "Recent polls reached the worker, but Facebook asked it to log in again. Run npm run facebook:login locally and clear the prompt. Failed polls in the last 24h: {failedPolls}.",

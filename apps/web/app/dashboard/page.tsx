@@ -14,7 +14,6 @@ import { auth } from "@/auth";
 import { formatSearchSummary, getTranslator } from "@/lib/i18n";
 import { getLocale } from "@/lib/i18n/get-locale";
 import { summarizeRecentPollHealth } from "@/lib/system-health";
-import { wakeWorker } from "@/lib/wake-worker";
 import { getPollIssueCode, isFacebookSessionError } from "@price-monitor/shared/poll-errors";
 import { prisma } from "@price-monitor/database";
 import { redirect } from "next/navigation";
@@ -29,7 +28,7 @@ export default async function DashboardPage() {
   const locale = await getLocale();
   const t = await getTranslator(locale);
 
-  const [searches, pollRuns, user, workerWake, latestWorkerHeartbeat] = await Promise.all([
+  const [searches, pollRuns, user, latestWorkerHeartbeat] = await Promise.all([
     prisma.savedSearch.findMany({
       where: { userId: session.user.id },
       orderBy: { createdAt: "desc" },
@@ -51,7 +50,6 @@ export default async function DashboardPage() {
       where: { id: session.user.id },
       select: { emailNotificationsEnabled: true },
     }),
-    wakeWorker(3_000),
     prisma.workerHeartbeat.findFirst({
       orderBy: { lastSeenAt: "desc" },
     }),
@@ -198,10 +196,8 @@ export default async function DashboardPage() {
         <WorkerStatusCard heartbeat={workerHeartbeat} activity={workerActivity} />
 
         <PollDiagnosticsPanel
-          workerWake={workerWake}
           latestIssueCode={pollHealth.latestIssueCode}
           failedPollCount24h={pollHealth.failedPollCount24h}
-          localWorkerOnline={getWorkerState(workerHeartbeat) === "online"}
         />
 
         <section className="mb-10">

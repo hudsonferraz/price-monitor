@@ -123,7 +123,7 @@ export const messages = {
     "Verificando Facebook Marketplace — costuma levar 1–2 minutos.",
   pollListingsSummary: "{listings} anúncios · {alerts} alerta(s) novo(s)",
   pollErrorSession:
-    "Sessão do Facebook expirou ou está ausente no worker. Atualize facebook-storage-state.json no Render.",
+    "Sessao do Facebook expirou ou esta ausente no worker. Rode npm run facebook:login localmente e confirme que o Marketplace carrega.",
   pollErrorCheckpoint:
     "Facebook enviou o worker para um checkpoint. Rode npm run facebook:login localmente e resolva o prompt.",
   pollErrorNoListings:
@@ -138,16 +138,12 @@ export const messages = {
   pollStatusFailed: "Falhou",
   pollStatusSending: "Enviando solicitação de poll...",
   pollStatusQueuedAuto: "Poll na fila. Atualizando automaticamente.",
-  pollStatusWorkerWakeFailed: "Poll na fila, mas a verificação para acordar o worker falhou ({detail}). Confira WORKER_HEALTH_URL e os logs do worker no Render.",
   pollStatusSuccessSummary: "Encontrados {listings} anúncio(s), {alerts} novo(s).",
   pollStatusFailedGeneric: "Poll falhou. Tente novamente em alguns minutos.",
   pollStatusFailedQueue: "Falha ao enfileirar poll",
   pollStatusTimeout: "Poll está demorando mais que o esperado. Atualize a página em um minuto.",
 
   diagnosticsDocs: "Guia de troubleshooting",
-  diagnosticsWorkerTitle: "Worker inacessivel",
-  diagnosticsWorkerDescription:
-    "O app web esta online, mas o health check do worker falhou ({detail}). Os polls podem entrar na fila, mas os anuncios nao aparecem ate npm run worker:dev estar rodando. Polls com falha nas ultimas 24h: {failedPolls}.",
   diagnosticsSessionTitle: "Sessao do Facebook expirou",
   diagnosticsSessionDescription:
     "Polls recentes chegaram ao worker, mas o Facebook pediu login novamente. Rode npm run facebook:login localmente e resolva o prompt. Polls com falha nas ultimas 24h: {failedPolls}.",

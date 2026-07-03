@@ -7,7 +7,6 @@
     "dev": "dotenv -e ../../.env -- tsx src/index.ts",
     "start": "tsx src/index.ts",
     "spike:facebook": "tsx scripts/spike-facebook.ts",
-    "save:facebook-session": "tsx scripts/save-facebook-session.ts",
     "facebook:login": "tsx scripts/facebook-login.ts"
   },
   "dependencies": {

@@ -1,16 +1,6 @@
-import {
-  chromium,
-  type Browser,
-  type BrowserContext,
-  type BrowserContextOptions,
-  type Page,
-} from "playwright";
+import { chromium, type BrowserContext, type BrowserContextOptions, type Page } from "playwright";
 import { FacebookMarketplaceAdapter } from "../adapters/facebook-marketplace.adapter";
-import {
-  assertFacebookSessionReady,
-  getFacebookBrowserProfileDir,
-  getFacebookStorageStatePath,
-} from "./facebook-session";
+import { assertFacebookSessionReady, getFacebookBrowserProfileDir } from "./facebook-session";
 import { getMockListings, isMockMarketplaceEnabled } from "./mock-marketplace";
 import {
   BLOCKED_PLAYWRIGHT_RESOURCE_TYPES,
@@ -21,10 +11,6 @@ import type { NormalizedListing, SearchInput } from "@price-monitor/shared/types
 
 function isHeadless(): boolean {
   return process.env.PLAYWRIGHT_HEADLESS !== "false";
-}
-
-function getStorageStatePath(): string | undefined {
-  return getFacebookStorageStatePath();
 }
 
 function getBrowserProfileDir(): string | undefined {
@@ -52,37 +38,19 @@ async function configureResourceBlocking(context: BrowserContext): Promise<void>
   });
 }
 
-async function createMarketplaceBrowserContext(): Promise<{
-  browser?: Browser;
-  context: BrowserContext;
-}> {
+async function createMarketplaceBrowserContext(): Promise<BrowserContext> {
   const profileDir = getBrowserProfileDir();
-  const contextOptions = getBrowserContextOptions();
-
-  if (profileDir) {
-    const context = await chromium.launchPersistentContext(profileDir, {
-      ...contextOptions,
-      headless: isHeadless(),
-      args: CHROMIUM_MEMORY_ARGS,
-    });
-    await configureResourceBlocking(context);
-    return { context };
+  if (!profileDir) {
+    throw new Error("FACEBOOK_BROWSER_PROFILE_DIR must be configured. Run npm run facebook:login first.");
   }
 
-  const browser = await chromium.launch({
+  const context = await chromium.launchPersistentContext(profileDir, {
+    ...getBrowserContextOptions(),
     headless: isHeadless(),
     args: CHROMIUM_MEMORY_ARGS,
   });
-
-  const storageStatePath = getStorageStatePath();
-  if (storageStatePath) {
-    contextOptions.storageState = storageStatePath;
-  }
-
-  const context = await browser.newContext(contextOptions);
   await configureResourceBlocking(context);
-
-  return { browser, context };
+  return context;
 }
 
 export async function searchMarketplace(input: SearchInput): Promise<NormalizedListing[]> {
@@ -94,18 +62,15 @@ export async function searchMarketplace(input: SearchInput): Promise<NormalizedL
 
   logMemoryUsage("before poll");
 
-  const { browser, context } = await createMarketplaceBrowserContext();
+  const context = await createMarketplaceBrowserContext();
   const page = await context.newPage();
-  const adapter = new FacebookMarketplaceAdapter({
-    storageStatePath: getStorageStatePath(),
-  });
+  const adapter = new FacebookMarketplaceAdapter();
 
   try {
     return await adapter.search(page, input);
   } finally {
     await page.close().catch(() => undefined);
     await context.close().catch(() => undefined);
-    await browser?.close().catch(() => undefined);
     logMemoryUsage("after poll");
   }
 }
@@ -115,10 +80,8 @@ export async function closeBrowser(): Promise<void> {
   return;
 }
 
-export async function withMarketplacePage<T>(
-  callback: (page: Page) => Promise<T>,
-): Promise<T> {
-  const { browser, context } = await createMarketplaceBrowserContext();
+export async function withMarketplacePage<T>(callback: (page: Page) => Promise<T>): Promise<T> {
+  const context = await createMarketplaceBrowserContext();
   const page = await context.newPage();
 
   try {
@@ -126,6 +89,5 @@ export async function withMarketplacePage<T>(
   } finally {
     await page.close().catch(() => undefined);
     await context.close().catch(() => undefined);
-    await browser?.close().catch(() => undefined);
   }
 }

@@ -12,7 +12,6 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "spike:facebook": "npm run spike:facebook --workspace=@price-monitor/worker",
-    "save:facebook-session": "npm run save:facebook-session --workspace=@price-monitor/worker",
     "facebook:login": "npm run facebook:login --workspace=@price-monitor/worker",
     "docker:up": "docker compose up -d postgres redis",
     "docker:down": "docker compose down",

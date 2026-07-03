@@ -1,7 +1,6 @@
 import { auth } from "@/auth";
 import { getOwnedBlockingSearchName } from "@/lib/poll-queue-context";
 import { queuePollSearch } from "@/lib/queue";
-import { wakeWorker } from "@/lib/wake-worker";
 import { prisma } from "@price-monitor/database";
 import {
   formatPollCooldownMessage,
@@ -48,7 +47,6 @@ export async function POST(_request: Request, context: RouteContext) {
   }
 
   try {
-    const workerWake = await wakeWorker();
     const result = await queuePollSearch(id, "manual");
     const { blockingSearchName, waitingForAnotherPoll } = await getOwnedBlockingSearchName(
       result.queueContext?.blockingSavedSearchId,
@@ -70,7 +68,6 @@ export async function POST(_request: Request, context: RouteContext) {
       blockingSearchName,
       waitingPosition: result.queueContext?.waitingPosition ?? null,
       message,
-      workerWake,
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Failed to queue poll";

@@ -19,9 +19,6 @@ export function getPollIssueCode(errorMessage: string | null | undefined): PollI
   if (
     normalized.includes("redirected to login") ||
     normalized.includes("login wall") ||
-    normalized.includes("storage state") ||
-    normalized.includes("facebook-storage-state") ||
-    normalized.includes("enoent") ||
     normalized.includes("session expired") ||
     normalized.includes("session")
   ) {
@@ -56,11 +53,11 @@ export function formatPollErrorForDisplay(errorMessage: string | null | undefine
   }
 
   if (issueCode === "FACEBOOK_CHECKPOINT") {
-    return "Facebook sent the worker to a checkpoint. Refresh facebook-storage-state.json on Render after clearing the checkpoint locally.";
+    return "Facebook sent the worker to a checkpoint. Run npm run facebook:login locally and clear the prompt in the browser profile.";
   }
 
   if (issueCode === "FACEBOOK_SESSION") {
-    return "Facebook session expired or missing on the worker. Refresh facebook-storage-state.json on Render.";
+    return "Facebook session expired or missing on the worker. Run npm run facebook:login locally and confirm Marketplace loads.";
   }
 
   if (issueCode === "NO_LISTINGS") {
@@ -68,7 +65,7 @@ export function formatPollErrorForDisplay(errorMessage: string | null | undefine
   }
 
   if (issueCode === "POLL_TIMEOUT") {
-    return "Poll timed out. The worker may have been asleep or Facebook took too long to respond. Try Poll now again.";
+    return "Poll timed out. The local worker may have been busy or Facebook took too long to respond. Try Poll now again.";
   }
 
   return errorMessage ?? "Poll failed for an unknown reason.";

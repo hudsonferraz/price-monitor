@@ -1,49 +1,40 @@
 "use client";
 
 import { useTranslations } from "@/components/locale-provider";
-import type { WakeWorkerResult } from "@/lib/wake-worker";
 import type { PollIssueCode } from "@price-monitor/shared/poll-errors";
 
-type DiagnosticsKind = "worker" | PollIssueCode;
+type DiagnosticsKind = PollIssueCode;
 
 interface PollDiagnosticsPanelProps {
-  workerWake: WakeWorkerResult;
   latestIssueCode: PollIssueCode | null;
   failedPollCount24h: number;
-  localWorkerOnline?: boolean;
 }
 
-const alertStyles: Record<"warning" | "danger" | "info", string> = {
+const alertStyles: Record<"warning" | "danger", string> = {
   danger:
     "border-red-300 bg-red-50 text-red-900 dark:border-red-800 dark:bg-red-950/40 dark:text-red-100",
   warning:
     "border-amber-300 bg-amber-50 text-amber-900 dark:border-amber-700 dark:bg-amber-950/40 dark:text-amber-100",
-  info:
-    "border-blue-200 bg-blue-50 text-blue-900 dark:border-blue-900/50 dark:bg-blue-950/30 dark:text-blue-100",
 };
 
 export function PollDiagnosticsPanel({
-  workerWake,
   latestIssueCode,
   failedPollCount24h,
-  localWorkerOnline = false,
 }: PollDiagnosticsPanelProps) {
   const t = useTranslations();
-  const kind = getDiagnosticsKind(workerWake, latestIssueCode, localWorkerOnline);
+  const kind = latestIssueCode;
 
   if (!kind) {
     return null;
   }
 
-  const detail = getWorkerWakeDetail(workerWake);
-  const severity = kind === "worker" || isFacebookAuthKind(kind) ? "danger" : "warning";
+  const severity = isFacebookAuthKind(kind) ? "danger" : "warning";
 
   return (
     <section className={`mb-10 rounded-lg border p-4 ${alertStyles[severity]}`} role="alert">
       <h2 className="text-sm font-semibold">{getTitle(kind, t)}</h2>
       <p className="mt-2 text-sm">
         {getDescription(kind, t, {
-          detail,
           failedPolls: failedPollCount24h,
         })}
       </p>
@@ -69,38 +60,12 @@ export function PollDiagnosticsPanel({
   );
 }
 
-function getDiagnosticsKind(
-  workerWake: WakeWorkerResult,
-  latestIssueCode: PollIssueCode | null,
-  localWorkerOnline: boolean,
-): DiagnosticsKind | null {
-  if (!localWorkerOnline && !workerWake.skipped && !workerWake.ok) {
-    return "worker";
-  }
-
-  return latestIssueCode;
-}
-
 function isFacebookAuthKind(kind: DiagnosticsKind): boolean {
   return kind === "FACEBOOK_SESSION" || kind === "FACEBOOK_CHECKPOINT";
 }
 
-function getWorkerWakeDetail(workerWake: WakeWorkerResult): string {
-  if (workerWake.skipped) {
-    return "WORKER_HEALTH_URL not configured";
-  }
-
-  if (workerWake.status) {
-    return `HTTP ${workerWake.status}`;
-  }
-
-  return workerWake.error ?? "timeout";
-}
-
 function getTitle(kind: DiagnosticsKind, t: ReturnType<typeof useTranslations>): string {
   switch (kind) {
-    case "worker":
-      return t("diagnosticsWorkerTitle");
     case "FACEBOOK_CHECKPOINT":
       return t("diagnosticsCheckpointTitle");
     case "FACEBOOK_SESSION":
@@ -117,11 +82,9 @@ function getTitle(kind: DiagnosticsKind, t: ReturnType<typeof useTranslations>):
 function getDescription(
   kind: DiagnosticsKind,
   t: ReturnType<typeof useTranslations>,
-  values: { detail: string; failedPolls: number },
+  values: { failedPolls: number },
 ): string {
   switch (kind) {
-    case "worker":
-      return t("diagnosticsWorkerDescription", values);
     case "FACEBOOK_CHECKPOINT":
       return t("diagnosticsCheckpointDescription", values);
     case "FACEBOOK_SESSION":
