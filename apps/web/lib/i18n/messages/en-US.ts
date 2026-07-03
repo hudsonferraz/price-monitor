@@ -153,7 +153,6 @@ export const messages = {
   pollErrorUnknown: "Poll failed for an unknown reason.",
 
   pollStatusQueuing: "Queuing",
-  pollStatusPending: "Pending",
   pollStatusQueued: "Queued",
   pollStatusRunning: "Running",
   pollStatusSuccess: "Complete",
@@ -165,6 +164,20 @@ export const messages = {
   pollStatusFailedQueue: "Failed to queue poll",
   pollStatusTimeout: "Poll is taking longer than expected. Refresh the page in a minute.",
   pollCooldown: "Please wait {minutes} minute(s) before polling this search again.",
+  pollQueueQueued:
+    "Poll queued. The worker may take up to a minute to start, then results will appear shortly.{positionNote} Updating automatically.",
+  pollQueueQueuedBehindNamed:
+    'Poll queued — waiting for "{searchName}" to finish first (one poll at a time).{positionNote} Updating automatically.',
+  pollQueueQueuedBehindGeneric:
+    "Poll queued — waiting for another search to finish first (one poll at a time).{positionNote} Updating automatically.",
+  pollQueuePositionNote: " You are #{position} in line.",
+  pollQueueAlreadyRunning: "A poll is already running for this search.",
+  pollQueueAlreadyQueuedBehindNamed:
+    'Poll already queued — waiting for "{searchName}" to finish first (one poll at a time).',
+  pollQueueAlreadyQueuedBehindGeneric:
+    "Poll already queued — waiting for another search to finish first (one poll at a time).",
+  pollQueueAlreadyQueued: "A poll is already queued. The worker may take up to a minute to start.",
+  pollQueueAlreadyInProgress: "A poll is already in progress for this search.",
 
   diagnosticsDocs: "Troubleshooting guide",
   diagnosticsSessionTitle: "Facebook session expired",

@@ -14,7 +14,6 @@ const prismaMock = vi.hoisted(() => ({
 
 vi.mock("@price-monitor/database", () => ({
   PollRunStatus: {
-    PENDING: "PENDING",
     RUNNING: "RUNNING",
     SUCCESS: "SUCCESS",
     FAILED: "FAILED",

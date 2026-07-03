@@ -7,7 +7,7 @@ import { formatDurationMs, type PollIssueCode } from "@price-monitor/shared/poll
 
 export interface WorkerHeartbeatRecord {
   workerId: string;
-  status: string;
+  status: "ONLINE" | "OFFLINE";
   hostname: string | null;
   pid: number | null;
   startedAt: string;

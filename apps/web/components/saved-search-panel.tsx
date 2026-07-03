@@ -9,6 +9,7 @@ import { PollRunHistory, type PollRunRecord } from "@/components/poll-run-histor
 import { formatAnyPrice, formatDateTime, formatPriceCents } from "@/lib/i18n";
 import { translateApiError } from "@/lib/api-error-i18n";
 import { translatePollError } from "@/lib/poll-error-i18n";
+import { translatePollQueueMessage } from "@/lib/poll-queue-i18n";
 import { LISTING_LIMIT_OPTIONS } from "@price-monitor/shared/queue";
 
 export interface SavedSearchRecord {
@@ -359,13 +360,15 @@ export function SavedSearchList({ searches, emptyMessage }: SavedSearchListProps
       if (statusResponse?.ok) {
         const status = (await statusResponse.json()) as {
           jobState?: string;
-          message?: string;
+          messageCode?: string;
+          searchName?: string;
+          waitingPosition?: number;
         };
 
         if (status.jobState === "waiting" || status.jobState === "delayed") {
           updateSearchPollState(searchId, {
             phase: "queued",
-            message: status.message ?? translate("pollStatusQueuedAuto"),
+            message: translatePollQueueMessage(status, translate),
           });
         }
 
@@ -485,7 +488,7 @@ export function SavedSearchList({ searches, emptyMessage }: SavedSearchListProps
 
       updateSearchPollState(searchId, {
         phase: "queued",
-        message: data?.message ?? t("pollStatusQueuedAuto"),
+        message: translatePollQueueMessage(data, t),
       });
       setWatchingPollSearchId(searchId);
       router.refresh();
@@ -507,6 +510,8 @@ export function SavedSearchList({ searches, emptyMessage }: SavedSearchListProps
     });
 
     if (!response.ok) {
+      const data = await response.json().catch(() => null);
+      window.alert(translateApiError(data?.errorCode, t));
       return;
     }
 

@@ -159,7 +159,6 @@ export const messages = {
   pollErrorUnknown: "Poll falhou por motivo desconhecido.",
 
   pollStatusQueuing: "Enfileirando",
-  pollStatusPending: "Pendente",
   pollStatusQueued: "Na fila",
   pollStatusRunning: "Em andamento",
   pollStatusSuccess: "Concluído",
@@ -171,6 +170,20 @@ export const messages = {
   pollStatusFailedQueue: "Falha ao enfileirar poll",
   pollStatusTimeout: "Poll está demorando mais que o esperado. Atualize a página em um minuto.",
   pollCooldown: "Aguarde {minutes} minuto(s) antes de fazer poll desta busca novamente.",
+  pollQueueQueued:
+    "Poll na fila. O worker pode levar ate um minuto para iniciar e os resultados aparecem em seguida.{positionNote} Atualizando automaticamente.",
+  pollQueueQueuedBehindNamed:
+    'Poll na fila — aguardando "{searchName}" terminar primeiro (um poll por vez).{positionNote} Atualizando automaticamente.',
+  pollQueueQueuedBehindGeneric:
+    "Poll na fila — aguardando outra busca terminar primeiro (um poll por vez).{positionNote} Atualizando automaticamente.",
+  pollQueuePositionNote: " Voce esta na posicao #{position} da fila.",
+  pollQueueAlreadyRunning: "Um poll ja esta em andamento para esta busca.",
+  pollQueueAlreadyQueuedBehindNamed:
+    'Poll ja na fila — aguardando "{searchName}" terminar primeiro (um poll por vez).',
+  pollQueueAlreadyQueuedBehindGeneric:
+    "Poll ja na fila — aguardando outra busca terminar primeiro (um poll por vez).",
+  pollQueueAlreadyQueued: "Um poll ja esta na fila. O worker pode levar ate um minuto para iniciar.",
+  pollQueueAlreadyInProgress: "Um poll ja esta em progresso para esta busca.",
 
   diagnosticsDocs: "Guia de troubleshooting",
   diagnosticsSessionTitle: "Sessao do Facebook expirou",

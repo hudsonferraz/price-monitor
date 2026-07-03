@@ -12,7 +12,6 @@ enum MarketplaceSource {
 }
 
 enum PollRunStatus {
-  PENDING
   RUNNING
   SUCCESS
   FAILED
@@ -161,7 +160,7 @@ model SavedSearchListingPrice {
 model PollRun {
   id            String        @id @default(cuid())
   savedSearchId String
-  status        PollRunStatus @default(PENDING)
+  status        PollRunStatus @default(RUNNING)
   listingsFound Int           @default(0)
   newAlerts     Int           @default(0)
   errorMessage  String?
@@ -174,10 +173,15 @@ model PollRun {
   @@index([savedSearchId, startedAt(sort: Desc)])
 }
 
+enum WorkerHeartbeatStatus {
+  ONLINE
+  OFFLINE
+}
+
 model WorkerHeartbeat {
-  id                     String   @id @default(cuid())
-  workerId               String   @unique
-  status                 String   @default("ONLINE")
+  id                     String                @id @default(cuid())
+  workerId               String                @unique
+  status                 WorkerHeartbeatStatus @default(ONLINE)
   hostname               String?
   pid                    Int?
   startedAt              DateTime

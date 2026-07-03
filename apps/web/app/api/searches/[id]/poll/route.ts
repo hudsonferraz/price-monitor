@@ -8,7 +8,7 @@ import {
   getPollCooldownRemainingMs,
   MIN_MANUAL_POLL_INTERVAL_MS,
 } from "@price-monitor/shared/poll-rate-limit";
-import { formatPollQueueMessage } from "@price-monitor/shared/poll-queue-messages";
+import { resolvePollQueueMessage } from "@price-monitor/shared/poll-queue-messages";
 import { NextResponse } from "next/server";
 
 interface RouteContext {
@@ -42,19 +42,21 @@ export async function POST(_request: Request, context: RouteContext) {
       session.user.id,
     );
 
+    const queueMessage = resolvePollQueueMessage({
+      queued: false,
+      jobState: queueContext.jobState,
+      blockingSearchName,
+      waitingForAnotherPoll,
+      waitingPosition: queueContext.waitingPosition,
+    });
+
     return NextResponse.json({
       queued: false,
       jobId: `poll-${id}`,
       state: queueContext.jobState,
       blockingSearchName,
       waitingPosition: queueContext.waitingPosition ?? null,
-      message: formatPollQueueMessage({
-        queued: false,
-        jobState: queueContext.jobState,
-        blockingSearchName,
-        waitingForAnotherPoll,
-        waitingPosition: queueContext.waitingPosition,
-      }),
+      ...queueMessage,
     });
   }
 
@@ -82,7 +84,7 @@ export async function POST(_request: Request, context: RouteContext) {
       session.user.id,
     );
 
-    const message = formatPollQueueMessage({
+    const queueMessage = resolvePollQueueMessage({
       queued: result.queued,
       jobState: result.state ?? result.queueContext?.jobState,
       blockingSearchName,
@@ -96,7 +98,7 @@ export async function POST(_request: Request, context: RouteContext) {
       state: result.state ?? result.queueContext?.jobState,
       blockingSearchName,
       waitingPosition: result.queueContext?.waitingPosition ?? null,
-      message,
+      ...queueMessage,
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : "";

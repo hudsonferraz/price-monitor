@@ -8,7 +8,7 @@ import { formatDurationMs } from "@price-monitor/shared/poll-errors";
 
 export interface PollRunRecord {
   id: string;
-  status: "PENDING" | "RUNNING" | "SUCCESS" | "FAILED";
+  status: "RUNNING" | "SUCCESS" | "FAILED";
   listingsFound: number;
   newAlerts: number;
   errorMessage: string | null;
@@ -26,14 +26,12 @@ export function PollRunHistory({ pollRuns }: PollRunHistoryProps) {
   const t = useTranslations();
 
   const statusStyles: Record<PollRunRecord["status"], string> = {
-    PENDING: "bg-neutral-100 text-neutral-600 dark:bg-neutral-800 dark:text-neutral-400",
     RUNNING: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/40 dark:text-yellow-300",
     SUCCESS: "bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300",
     FAILED: "bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-300",
   };
 
   const statusLabels: Record<PollRunRecord["status"], MessageKey> = {
-    PENDING: "pollStatusPending",
     RUNNING: "pollStatusRunning",
     SUCCESS: "pollStatusSuccess",
     FAILED: "pollStatusFailed",

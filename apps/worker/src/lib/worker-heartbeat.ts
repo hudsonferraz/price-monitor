@@ -1,5 +1,5 @@
 import os from "node:os";
-import { prisma } from "@price-monitor/database";
+import { WorkerHeartbeatStatus, prisma } from "@price-monitor/database";
 import { getFacebookSessionDiagnostics } from "./facebook-session";
 
 const DEFAULT_HEARTBEAT_INTERVAL_MS = 30_000;
@@ -17,7 +17,7 @@ export async function upsertWorkerHeartbeat(startedAt: Date, workerId = getWorke
   const facebookSession = getFacebookSessionDiagnostics();
   const now = new Date();
   const data = {
-    status: "ONLINE",
+    status: WorkerHeartbeatStatus.ONLINE,
     hostname: os.hostname(),
     pid: process.pid,
     startedAt,
@@ -38,7 +38,7 @@ export async function upsertWorkerHeartbeat(startedAt: Date, workerId = getWorke
 export async function markWorkerOffline(workerId = getWorkerId()): Promise<void> {
   await prisma.workerHeartbeat.updateMany({
     where: { workerId },
-    data: { status: "OFFLINE", lastSeenAt: new Date() },
+    data: { status: WorkerHeartbeatStatus.OFFLINE, lastSeenAt: new Date() },
   });
 }
 

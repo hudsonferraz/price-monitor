@@ -3,7 +3,7 @@ import { apiErrorResponse } from "@/lib/api-responses";
 import { getOwnedBlockingSearchName } from "@/lib/poll-queue-context";
 import { getPollQueueContext, isRedisConfigured } from "@/lib/queue";
 import { prisma } from "@price-monitor/database";
-import { formatPollQueueMessage } from "@price-monitor/shared/poll-queue-messages";
+import { resolvePollQueueMessage } from "@price-monitor/shared/poll-queue-messages";
 import { NextResponse } from "next/server";
 
 interface RouteContext {
@@ -37,7 +37,7 @@ export async function GET(_request: Request, context: RouteContext) {
     session.user.id,
   );
 
-  const message = formatPollQueueMessage({
+  const queueMessage = resolvePollQueueMessage({
     queued: queueContext.isQueued,
     jobState: queueContext.jobState,
     blockingSearchName,
@@ -50,6 +50,6 @@ export async function GET(_request: Request, context: RouteContext) {
     isQueued: queueContext.isQueued,
     waitingPosition: queueContext.waitingPosition,
     blockingSearchName,
-    message,
+    ...queueMessage,
   });
 }

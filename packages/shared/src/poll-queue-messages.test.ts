@@ -1,5 +1,46 @@
 import { describe, expect, it } from "vitest";
-import { formatPollQueueMessage } from "./poll-queue-messages";
+import { formatPollQueueMessage, resolvePollQueueMessage } from "./poll-queue-messages";
+
+describe("resolvePollQueueMessage", () => {
+  it("returns a named blocking descriptor when queued behind another poll", () => {
+    expect(
+      resolvePollQueueMessage({
+        queued: true,
+        blockingSearchName: "PlayStation 4",
+        waitingForAnotherPoll: true,
+        waitingPosition: 1,
+      }),
+    ).toEqual({
+      messageCode: "POLL_QUEUE_QUEUED_BEHIND_NAMED",
+      searchName: "PlayStation 4",
+      waitingPosition: 1,
+    });
+  });
+
+  it("returns a generic blocking descriptor with queue position", () => {
+    expect(
+      resolvePollQueueMessage({
+        queued: true,
+        waitingForAnotherPoll: true,
+        waitingPosition: 2,
+      }),
+    ).toEqual({
+      messageCode: "POLL_QUEUE_QUEUED_BEHIND_GENERIC",
+      waitingPosition: 2,
+    });
+  });
+
+  it("returns an active-job descriptor", () => {
+    expect(
+      resolvePollQueueMessage({
+        queued: false,
+        jobState: "active",
+      }),
+    ).toEqual({
+      messageCode: "POLL_QUEUE_ALREADY_RUNNING",
+    });
+  });
+});
 
 describe("formatPollQueueMessage", () => {
   it("mentions the blocking search when queued behind another poll", () => {
