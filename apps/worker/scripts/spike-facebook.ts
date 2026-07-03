@@ -1,7 +1,7 @@
 import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { chromium, type BrowserContextOptions } from "playwright";
+import { chromium, type Browser, type BrowserContext, type BrowserContextOptions } from "playwright";
 import { FacebookMarketplaceAdapter } from "../src/adapters/facebook-marketplace.adapter";
 import { parseListingsFromHtml } from "../src/adapters/facebook-dom-parser";
 
@@ -11,26 +11,26 @@ const fixturesDirectory = path.join(projectRoot, "fixtures");
 const fixturePath = path.join(fixturesDirectory, "facebook-search-iphone-13.html");
 const debugDirectory = path.join(fixturesDirectory, "debug");
 
+const defaultProfileDir = path.join(projectRoot, ".facebook-profile");
+
 const SEARCH_KEYWORDS = "iphone 13";
 const LISTING_LIMIT = 5;
 
 async function main(): Promise<void> {
   const headless = process.env.PLAYWRIGHT_HEADLESS !== "false";
-  const storageStatePath = process.env.FACEBOOK_STORAGE_STATE_PATH;
+  const storageStatePath = resolveProjectPath(process.env.FACEBOOK_STORAGE_STATE_PATH);
+  const profileDir = resolveProjectPath(process.env.FACEBOOK_BROWSER_PROFILE_DIR) ?? defaultProfileDir;
   const adapter = new FacebookMarketplaceAdapter({ storageStatePath });
 
   console.log(`Starting Facebook Marketplace spike (headless=${headless})...`);
   console.log(`Query: "${SEARCH_KEYWORDS}"`);
-  if (storageStatePath) {
+  if (profileDir) {
+    console.log(`Using browser profile: ${profileDir}`);
+  } else if (storageStatePath) {
     console.log(`Using storage state: ${storageStatePath}`);
   } else {
-    console.log("No FACEBOOK_STORAGE_STATE_PATH set — Facebook may redirect to login.");
+    console.log("No FACEBOOK_BROWSER_PROFILE_DIR or FACEBOOK_STORAGE_STATE_PATH set - Facebook may redirect to login.");
   }
-
-  const browser = await chromium.launch({
-    headless,
-    args: ["--disable-blink-features=AutomationControlled"],
-  });
 
   const contextOptions: BrowserContextOptions = {
     locale: "pt-BR",
@@ -39,11 +39,27 @@ async function main(): Promise<void> {
       "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
   };
 
-  if (storageStatePath) {
-    contextOptions.storageState = storageStatePath;
+  let browser: Browser | undefined;
+  let context: BrowserContext;
+  if (profileDir) {
+    context = await chromium.launchPersistentContext(profileDir, {
+      ...contextOptions,
+      headless,
+      args: ["--disable-blink-features=AutomationControlled"],
+    });
+  } else {
+    browser = await chromium.launch({
+      headless,
+      args: ["--disable-blink-features=AutomationControlled"],
+    });
+
+    if (storageStatePath) {
+      contextOptions.storageState = storageStatePath;
+    }
+
+    context = await browser.newContext(contextOptions);
   }
 
-  const context = await browser.newContext(contextOptions);
   const page = await context.newPage();
 
   try {
@@ -58,7 +74,7 @@ async function main(): Promise<void> {
 
     printListings(listings, "live Facebook Marketplace scrape");
     console.log(`Saved HTML fixture: ${path.relative(projectRoot, fixturePath)}`);
-    console.log(`\nNote: Facebook may show listings near your account location, not only the selected city.`);
+    console.log("\nNote: Facebook may show listings near your account location, not only the selected city.");
   } catch (error) {
     await mkdir(debugDirectory, { recursive: true });
     const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
@@ -88,8 +104,17 @@ async function main(): Promise<void> {
 
     process.exitCode = 1;
   } finally {
-    await browser.close();
+    await context.close().catch(() => undefined);
+    await browser?.close().catch(() => undefined);
   }
+}
+
+function resolveProjectPath(value: string | undefined): string | undefined {
+  if (!value) {
+    return undefined;
+  }
+
+  return path.isAbsolute(value) ? value : path.resolve(projectRoot, value);
 }
 
 function printListings(

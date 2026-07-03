@@ -90,19 +90,26 @@ MOCK_MARKETPLACE=true
 
 Restart the worker. Polls return fake listings — useful for alerts and email without Playwright.
 
-### Live Facebook polling
+### Local-first Facebook polling
 
-```bash
-npm run save:facebook-session
-```
+The recommended Facebook workflow is a persistent local browser profile. See [docs/local-first-setup.md](docs/local-first-setup.md).
 
-Then in root `.env`:
+In root `.env`:
 
-```
-FACEBOOK_STORAGE_STATE_PATH=facebook-storage-state.json
+```env
+FACEBOOK_BROWSER_PROFILE_DIR=.facebook-profile
 PLAYWRIGHT_HEADLESS=false
 MOCK_MARKETPLACE=false
 ```
+
+Then run:
+
+```bash
+npm run facebook:login
+npm run spike:facebook
+```
+
+`FACEBOOK_STORAGE_STATE_PATH=facebook-storage-state.json` remains available as a legacy/cloud fallback.
 
 ## Tests
 
@@ -144,6 +151,10 @@ See [docs/render-deploy.md](docs/render-deploy.md) for the full walkthrough.
 | `DELETE /api/alerts/[id]`            | Dismiss alert                                  |
 | `GET/PATCH /api/user/preferences`    | Email notifications + locale                   |
 | `GET /health` (worker)               | Render health check + UptimeRobot wake target  |
+
+## Roadmap
+
+The project is pivoting toward a local-first, self-hosted worker model with AI-assisted listing evaluation. See [Local-first setup](docs/local-first-setup.md) and [Local-first AI roadmap](docs/local-first-ai-roadmap.md).
 
 ## Architecture
 

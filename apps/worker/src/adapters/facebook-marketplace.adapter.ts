@@ -151,16 +151,16 @@ export async function waitForSearchResults(
 
   while (Date.now() < deadline) {
     const html = await page.content();
-    if (hasFacebookLoginWall(html)) {
-      throw new Error(
-        "Facebook session expired or login wall detected. Refresh facebook-storage-state.json on Render.",
-      );
-    }
-
     const listings = collectAvailableListings(html, minimumResults, capturedApiListings);
 
     if (listings.length >= 1) {
       return;
+    }
+
+    if (hasFacebookLoginWall(html)) {
+      throw new Error(
+        "Facebook session expired or login wall detected. Run npm run facebook:login locally or refresh facebook-storage-state.json.",
+      );
     }
 
     await page.waitForTimeout(1_000);

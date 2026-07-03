@@ -2,10 +2,15 @@ import {
   chromium,
   type Browser,
   type BrowserContext,
+  type BrowserContextOptions,
   type Page,
 } from "playwright";
 import { FacebookMarketplaceAdapter } from "../adapters/facebook-marketplace.adapter";
-import { assertFacebookSessionReady, getFacebookStorageStatePath } from "./facebook-session";
+import {
+  assertFacebookSessionReady,
+  getFacebookBrowserProfileDir,
+  getFacebookStorageStatePath,
+} from "./facebook-session";
 import { getMockListings, isMockMarketplaceEnabled } from "./mock-marketplace";
 import {
   BLOCKED_PLAYWRIGHT_RESOURCE_TYPES,
@@ -22,6 +27,21 @@ function getStorageStatePath(): string | undefined {
   return getFacebookStorageStatePath();
 }
 
+function getBrowserProfileDir(): string | undefined {
+  return getFacebookBrowserProfileDir();
+}
+
+function getBrowserContextOptions(): BrowserContextOptions {
+  return {
+    locale: "pt-BR",
+    viewport: { width: 1024, height: 720 },
+    userAgent:
+      "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
+    deviceScaleFactor: 1,
+    reducedMotion: "reduce",
+  };
+}
+
 async function configureResourceBlocking(context: BrowserContext): Promise<void> {
   await context.route("**/*", (route) => {
     if (BLOCKED_PLAYWRIGHT_RESOURCE_TYPES.has(route.request().resourceType())) {
@@ -32,23 +52,27 @@ async function configureResourceBlocking(context: BrowserContext): Promise<void>
   });
 }
 
-async function createEphemeralBrowserContext(): Promise<{
-  browser: Browser;
+async function createMarketplaceBrowserContext(): Promise<{
+  browser?: Browser;
   context: BrowserContext;
 }> {
+  const profileDir = getBrowserProfileDir();
+  const contextOptions = getBrowserContextOptions();
+
+  if (profileDir) {
+    const context = await chromium.launchPersistentContext(profileDir, {
+      ...contextOptions,
+      headless: isHeadless(),
+      args: CHROMIUM_MEMORY_ARGS,
+    });
+    await configureResourceBlocking(context);
+    return { context };
+  }
+
   const browser = await chromium.launch({
     headless: isHeadless(),
     args: CHROMIUM_MEMORY_ARGS,
   });
-
-  const contextOptions: Parameters<Browser["newContext"]>[0] = {
-    locale: "pt-BR",
-    viewport: { width: 1024, height: 720 },
-    userAgent:
-      "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
-    deviceScaleFactor: 1,
-    reducedMotion: "reduce",
-  };
 
   const storageStatePath = getStorageStatePath();
   if (storageStatePath) {
@@ -70,7 +94,7 @@ export async function searchMarketplace(input: SearchInput): Promise<NormalizedL
 
   logMemoryUsage("before poll");
 
-  const { browser, context } = await createEphemeralBrowserContext();
+  const { browser, context } = await createMarketplaceBrowserContext();
   const page = await context.newPage();
   const adapter = new FacebookMarketplaceAdapter({
     storageStatePath: getStorageStatePath(),
@@ -81,7 +105,7 @@ export async function searchMarketplace(input: SearchInput): Promise<NormalizedL
   } finally {
     await page.close().catch(() => undefined);
     await context.close().catch(() => undefined);
-    await browser.close().catch(() => undefined);
+    await browser?.close().catch(() => undefined);
     logMemoryUsage("after poll");
   }
 }
@@ -94,7 +118,7 @@ export async function closeBrowser(): Promise<void> {
 export async function withMarketplacePage<T>(
   callback: (page: Page) => Promise<T>,
 ): Promise<T> {
-  const { browser, context } = await createEphemeralBrowserContext();
+  const { browser, context } = await createMarketplaceBrowserContext();
   const page = await context.newPage();
 
   try {
@@ -102,6 +126,6 @@ export async function withMarketplacePage<T>(
   } finally {
     await page.close().catch(() => undefined);
     await context.close().catch(() => undefined);
-    await browser.close().catch(() => undefined);
+    await browser?.close().catch(() => undefined);
   }
 }

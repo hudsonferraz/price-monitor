@@ -38,6 +38,13 @@ describe("collectAvailableListings", () => {
     expect(listings.length).toBeGreaterThan(0);
     expect(listings.every((listing) => listing.externalId.length > 0)).toBe(true);
   });
+  it("keeps listings even when the page also contains login prompt text", () => {
+    const html = `${domFixture}<div>Log in to Facebook</div>`;
+    const listings = collectAvailableListings(html, 24);
+
+    expect(hasFacebookLoginWall(html)).toBe(true);
+    expect(listings).toHaveLength(1);
+  });
 });
 describe("hasFacebookLoginWall", () => {
   it("detects English and Portuguese Facebook login walls", () => {

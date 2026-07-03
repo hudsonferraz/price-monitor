@@ -1,4 +1,9 @@
 import { existsSync, readFileSync } from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const projectRoot = path.resolve(__dirname, "../../../..");
 
 interface StorageStateCookie {
   name?: string;
@@ -10,10 +15,12 @@ interface StorageStateFile {
   cookies?: StorageStateCookie[];
 }
 
+export type FacebookSessionMode = "browser_profile" | "storage_state" | "none";
 export type FacebookSessionStatus = "ok" | "missing" | "invalid" | "incomplete" | "not_configured";
 
 export interface FacebookSessionDiagnostics {
   status: FacebookSessionStatus;
+  mode: FacebookSessionMode;
   configured: boolean;
   path: string | null;
   exists: boolean;
@@ -27,17 +34,49 @@ export interface FacebookSessionDiagnostics {
   message: string;
 }
 
+function resolveProjectPath(value: string | null | undefined): string | undefined {
+  if (!value) {
+    return undefined;
+  }
+
+  return path.isAbsolute(value) ? value : path.resolve(projectRoot, value);
+}
+
+export function getFacebookBrowserProfileDir(): string | undefined {
+  return resolveProjectPath(process.env.FACEBOOK_BROWSER_PROFILE_DIR);
+}
+
 export function getFacebookStorageStatePath(): string | undefined {
-  return process.env.FACEBOOK_STORAGE_STATE_PATH || undefined;
+  return resolveProjectPath(process.env.FACEBOOK_STORAGE_STATE_PATH);
 }
 
 export function getFacebookSessionDiagnostics(
-  storageStatePath = getFacebookStorageStatePath(),
+  storageStatePath: string | null | undefined = getFacebookStorageStatePath(),
   now = Date.now(),
+  browserProfileDir: string | null | undefined = getFacebookBrowserProfileDir(),
 ): FacebookSessionDiagnostics {
+  if (browserProfileDir) {
+    return {
+      status: "ok",
+      mode: "browser_profile",
+      configured: true,
+      path: browserProfileDir,
+      exists: existsSync(browserProfileDir),
+      validJson: false,
+      facebookCookieCount: 0,
+      hasCUserCookie: false,
+      hasXsCookie: false,
+      expiredCookieCount: 0,
+      persistentCookieCount: 0,
+      earliestExpiryIso: null,
+      message: "Persistent Facebook browser profile is configured. Login is validated during browser navigation.",
+    };
+  }
+
   if (!storageStatePath) {
     return {
       status: "not_configured",
+      mode: "none",
       configured: false,
       path: null,
       exists: false,
@@ -48,13 +87,14 @@ export function getFacebookSessionDiagnostics(
       expiredCookieCount: 0,
       persistentCookieCount: 0,
       earliestExpiryIso: null,
-      message: "FACEBOOK_STORAGE_STATE_PATH is not configured.",
+      message: "FACEBOOK_BROWSER_PROFILE_DIR or FACEBOOK_STORAGE_STATE_PATH must be configured.",
     };
   }
 
   if (!existsSync(storageStatePath)) {
     return {
       status: "missing",
+      mode: "storage_state",
       configured: true,
       path: storageStatePath,
       exists: false,
@@ -75,6 +115,7 @@ export function getFacebookSessionDiagnostics(
   } catch {
     return {
       status: "invalid",
+      mode: "storage_state",
       configured: true,
       path: storageStatePath,
       exists: true,
@@ -112,6 +153,7 @@ export function getFacebookSessionDiagnostics(
   if (facebookCookies.length === 0) {
     return {
       status: "invalid",
+      mode: "storage_state",
       configured: true,
       path: storageStatePath,
       exists: true,
@@ -129,6 +171,7 @@ export function getFacebookSessionDiagnostics(
   if (!hasRequiredCookies) {
     return {
       status: "incomplete",
+      mode: "storage_state",
       configured: true,
       path: storageStatePath,
       exists: true,
@@ -145,6 +188,7 @@ export function getFacebookSessionDiagnostics(
 
   return {
     status: "ok",
+    mode: "storage_state",
     configured: true,
     path: storageStatePath,
     exists: true,
@@ -163,6 +207,6 @@ export function assertFacebookSessionReady(): void {
   const diagnostics = getFacebookSessionDiagnostics();
 
   if (diagnostics.status !== "ok") {
-    throw new Error(`${diagnostics.message} Refresh facebook-storage-state.json on Render.`);
+    throw new Error(`${diagnostics.message} Run npm run facebook:login locally or refresh facebook-storage-state.json.`);
   }
 }
