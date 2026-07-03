@@ -8,6 +8,9 @@ import type { NormalizedListing } from "@price-monitor/shared/types";
 import { sendNewAlertsEmail } from "../lib/email-notifications";
 import { searchMarketplace } from "../lib/marketplace-browser";
 
+export const STALE_RUNNING_POLL_MS = 5 * 60 * 1000;
+export const POLL_JOB_LOCK_MS = 10 * 60 * 1000;
+
 export interface PollSearchResult {
   pollRunId: string;
   listingsFound: number;
@@ -75,30 +78,12 @@ function emptyPollSearchResult(pollRunId: string): PollSearchResult {
   };
 }
 
-export async function executePollSearch(savedSearchId: string): Promise<PollSearchResult> {
-  const savedSearch = await prisma.savedSearch.findUnique({
-    where: { id: savedSearchId },
-  });
-
-  if (!savedSearch) {
-    console.warn(`Skipping poll for missing search: ${savedSearchId}`);
-    return {
-      pollRunId: "",
-      listingsFound: 0,
-      newAlerts: 0,
-      emailSent: false,
-    };
-  }
-
-  if (!savedSearch.isEnabled) {
-    throw new Error(`Saved search is disabled: ${savedSearchId}`);
-  }
-
-  await prisma.pollRun.updateMany({
+export async function cleanupStaleRunningPolls(savedSearchId?: string): Promise<number> {
+  const result = await prisma.pollRun.updateMany({
     where: {
-      savedSearchId,
+      ...(savedSearchId ? { savedSearchId } : {}),
       status: PollRunStatus.RUNNING,
-      startedAt: { lt: new Date(Date.now() - 5 * 60 * 1000) },
+      startedAt: { lt: new Date(Date.now() - STALE_RUNNING_POLL_MS) },
     },
     data: {
       status: PollRunStatus.FAILED,
@@ -106,6 +91,31 @@ export async function executePollSearch(savedSearchId: string): Promise<PollSear
       finishedAt: new Date(),
     },
   });
+
+  return result.count;
+}
+
+export async function recordPollEnqueueAttempt(savedSearchId: string): Promise<void> {
+  await prisma.savedSearch.update({
+    where: { id: savedSearchId },
+    data: { lastAttemptedAt: new Date() },
+  });
+}
+
+export async function executePollSearch(savedSearchId: string): Promise<PollSearchResult> {
+  const savedSearch = await prisma.savedSearch.findUnique({
+    where: { id: savedSearchId },
+  });
+
+  if (!savedSearch) {
+    throw new Error(`Saved search not found: ${savedSearchId}`);
+  }
+
+  if (!savedSearch.isEnabled) {
+    throw new Error(`Saved search is disabled: ${savedSearchId}`);
+  }
+
+  await cleanupStaleRunningPolls(savedSearchId);
 
   const successfulPollCountBeforeRun = await prisma.pollRun.count({
     where: {
@@ -420,6 +430,11 @@ async function persistListingsAndAlerts(
 }
 
 export async function scheduleDuePolls(): Promise<number> {
+  const staleCleaned = await cleanupStaleRunningPolls();
+  if (staleCleaned > 0) {
+    console.log(`[scheduler] marked ${staleCleaned} stale RUNNING poll(s) as FAILED.`);
+  }
+
   const { cleanupPollJobs } = await import("../lib/poll-job-cleanup.js");
   const cleanup = await cleanupPollJobs();
   if (cleanup.orphansRemoved > 0 || cleanup.activeJobsLeftRunning > 0) {
@@ -462,6 +477,7 @@ export async function scheduleDuePolls(): Promise<number> {
     const { enqueuePollSearch } = await import("@price-monitor/queue");
     const result = await enqueuePollSearch(search.id, "scheduler");
     if (result.queued) {
+      await recordPollEnqueueAttempt(search.id);
       enqueued += 1;
     }
   }

@@ -107,7 +107,7 @@ export const messages = {
   searchFormPollInterval: "Poll interval (minutes)",
   searchFormListingLimit: "Max listings per poll",
   searchFormListingLimitHint:
-    "Higher limits take longer to scrape and may be less reliable on the free worker tier.",
+    "Higher limits take longer to scrape and use more memory on your local machine.",
   searchFormEnabled: "Enabled",
   searchFormCreate: "Create search",
   searchFormUpdate: "Update search",

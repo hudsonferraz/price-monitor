@@ -110,7 +110,7 @@ export const messages = {
   searchFormPollInterval: "Intervalo de poll (minutos)",
   searchFormListingLimit: "Máx. anúncios por poll",
   searchFormListingLimitHint:
-    "Limites maiores demoram mais para extrair e podem ser menos confiáveis no worker gratuito.",
+    "Limites maiores demoram mais para extrair e consomem mais memória na sua máquina local.",
   searchFormEnabled: "Ativo",
   searchFormCreate: "Criar busca",
   searchFormUpdate: "Atualizar busca",

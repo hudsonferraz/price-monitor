@@ -12,7 +12,12 @@ import { closeBrowser } from "./lib/marketplace-browser";
 import { getFacebookSessionDiagnostics } from "./lib/facebook-session";
 import { startHealthServer } from "./lib/health-server";
 import { markWorkerOffline, startWorkerHeartbeat } from "./lib/worker-heartbeat";
-import { executePollSearch, scheduleDuePolls } from "./jobs/poll-search.job";
+import {
+  cleanupStaleRunningPolls,
+  executePollSearch,
+  POLL_JOB_LOCK_MS,
+  scheduleDuePolls,
+} from "./jobs/poll-search.job";
 
 async function main(): Promise<void> {
   const connection = getRedisConnectionOptions();
@@ -30,11 +35,6 @@ async function main(): Promise<void> {
       mode: facebookSession.mode,
       path: facebookSession.path,
       exists: facebookSession.exists,
-      validJson: facebookSession.validJson,
-      facebookCookieCount: facebookSession.facebookCookieCount,
-      hasCUserCookie: facebookSession.hasCUserCookie,
-      hasXsCookie: facebookSession.hasXsCookie,
-      earliestExpiryIso: facebookSession.earliestExpiryIso,
       message: facebookSession.message,
     };
 
@@ -44,6 +44,12 @@ async function main(): Promise<void> {
       console.warn("Facebook session diagnostics:", logPayload);
     }
   }
+
+  const staleCleaned = await cleanupStaleRunningPolls();
+  if (staleCleaned > 0) {
+    console.log(`Marked ${staleCleaned} stale RUNNING poll(s) as FAILED.`);
+  }
+
   const pollWorker = new Worker(
     POLL_SEARCH_QUEUE,
     async (job) => {
@@ -63,7 +69,7 @@ async function main(): Promise<void> {
     {
       connection,
       concurrency: 1,
-      lockDuration: 120_000,
+      lockDuration: POLL_JOB_LOCK_MS,
       stalledInterval: 30_000,
       maxStalledCount: 1,
     },

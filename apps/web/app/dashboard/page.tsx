@@ -15,8 +15,30 @@ import { formatSearchSummary, getTranslator } from "@/lib/i18n";
 import { getLocale } from "@/lib/i18n/get-locale";
 import { summarizeRecentPollHealth } from "@/lib/system-health";
 import { getPollIssueCode, isFacebookSessionError } from "@price-monitor/shared/poll-errors";
-import { prisma } from "@price-monitor/database";
+import { PollRunStatus, prisma } from "@price-monitor/database";
 import { redirect } from "next/navigation";
+
+function serializePollRun(run: {
+  id: string;
+  status: PollRunStatus;
+  listingsFound: number;
+  newAlerts: number;
+  errorMessage: string | null;
+  durationMs: number | null;
+  startedAt: Date;
+  finishedAt: Date | null;
+}): PollRunRecord {
+  return {
+    id: run.id,
+    status: run.status,
+    listingsFound: run.listingsFound,
+    newAlerts: run.newAlerts,
+    errorMessage: run.errorMessage,
+    durationMs: run.durationMs,
+    startedAt: run.startedAt.toISOString(),
+    finishedAt: run.finishedAt?.toISOString() ?? null,
+  };
+}
 
 export default async function DashboardPage() {
   const session = await auth();
@@ -28,7 +50,7 @@ export default async function DashboardPage() {
   const locale = await getLocale();
   const t = await getTranslator(locale);
 
-  const [searches, pollRuns, user, latestWorkerHeartbeat] = await Promise.all([
+  const [searches, pollRunsForHealth, user, latestWorkerHeartbeat] = await Promise.all([
     prisma.savedSearch.findMany({
       where: { userId: session.user.id },
       orderBy: { createdAt: "desc" },
@@ -38,6 +60,15 @@ export default async function DashboardPage() {
           include: { listing: true },
           orderBy: { createdAt: "desc" },
           take: 50,
+        },
+        pollRuns: {
+          orderBy: { startedAt: "desc" },
+          take: 20,
+        },
+        _count: {
+          select: {
+            pollRuns: { where: { status: PollRunStatus.SUCCESS } },
+          },
         },
       },
     }),
@@ -55,47 +86,11 @@ export default async function DashboardPage() {
     }),
   ]);
 
-  const pollHealth = summarizeRecentPollHealth(pollRuns);
-
-  const pollRunsBySearchId = new Map<string, PollRunRecord[]>();
-  const allPollRunsBySearchId = new Map<string, PollRunRecord[]>();
-  const successPollCountBySearchId = new Map<string, number>();
-
-  for (const run of pollRuns) {
-    if (run.status === "SUCCESS") {
-      successPollCountBySearchId.set(
-        run.savedSearchId,
-        (successPollCountBySearchId.get(run.savedSearchId) ?? 0) + 1,
-      );
-    }
-
-    const serializedRun = {
-      id: run.id,
-      status: run.status,
-      listingsFound: run.listingsFound,
-      newAlerts: run.newAlerts,
-      errorMessage: run.errorMessage,
-      durationMs: run.durationMs,
-      startedAt: run.startedAt.toISOString(),
-      finishedAt: run.finishedAt?.toISOString() ?? null,
-    };
-
-    const allRuns = allPollRunsBySearchId.get(run.savedSearchId) ?? [];
-    allRuns.push(serializedRun);
-    allPollRunsBySearchId.set(run.savedSearchId, allRuns);
-
-    const existing = pollRunsBySearchId.get(run.savedSearchId) ?? [];
-    if (existing.length < 3) {
-      existing.push(serializedRun);
-      pollRunsBySearchId.set(run.savedSearchId, existing);
-    }
-  }
+  const pollHealth = summarizeRecentPollHealth(pollRunsForHealth);
 
   const serializedSearches: SavedSearchRecord[] = searches.map((search) => {
-    const recentPollRuns = pollRunsBySearchId.get(search.id) ?? [];
-    const allPollRuns = allPollRunsBySearchId.get(search.id) ?? [];
-    const latestSuccess = recentPollRuns.find((run) => run.status === "SUCCESS");
-    const successPollCount = successPollCountBySearchId.get(search.id) ?? 0;
+    const recentPollRuns = search.pollRuns.slice(0, 3).map(serializePollRun);
+    const latestFailedRun = search.pollRuns.find((run) => run.status === PollRunStatus.FAILED);
     const alerts: AlertRecord[] = search.alerts.map((alert) => ({
       id: alert.id,
       createdAt: alert.createdAt.toISOString(),
@@ -116,6 +111,8 @@ export default async function DashboardPage() {
       },
     }));
 
+    const lastSuccessfulPollAt = search.lastSuccessfulPollAt?.toISOString() ?? null;
+
     return {
       id: search.id,
       name: search.name,
@@ -126,26 +123,27 @@ export default async function DashboardPage() {
       listingLimit: search.listingLimit,
       isEnabled: search.isEnabled,
       lastAttemptedAt: search.lastAttemptedAt?.toISOString() ?? null,
-      lastSuccessfulPollAt: search.lastSuccessfulPollAt?.toISOString() ?? null,
+      lastSuccessfulPollAt,
       createdAt: search.createdAt.toISOString(),
       updatedAt: search.updatedAt.toISOString(),
       recentPollRuns,
       alerts,
-      latestPollStartedAt: latestSuccess?.startedAt ?? null,
-      isFirstPollResults: successPollCount === 1 && latestSuccess != null && alerts.length > 0,
+      latestPollStartedAt: lastSuccessfulPollAt,
+      isFirstPollResults:
+        search._count.pollRuns === 1 && lastSuccessfulPollAt != null && alerts.length > 0,
       reliability: {
-        consecutiveFailures: countConsecutiveFailures(allPollRuns),
-        lastFailureMessage: allPollRuns.find((run) => run.status === "FAILED")?.errorMessage ?? null,
-        hasFacebookSessionFailure: allPollRuns.some(
-          (run) => run.status === "FAILED" && isFacebookSessionError(run.errorMessage),
+        consecutiveFailures: search.consecutiveFailures,
+        lastFailureMessage: latestFailedRun?.errorMessage ?? null,
+        hasFacebookSessionFailure: search.pollRuns.some(
+          (run) => run.status === PollRunStatus.FAILED && isFacebookSessionError(run.errorMessage),
         ),
       },
     };
   });
 
   const totalListings = serializedSearches.reduce((sum, search) => sum + search.alerts.length, 0);
-  const latestSuccessfulPoll = pollRuns.find((run) => run.status === "SUCCESS") ?? null;
-  const latestFailedPoll = pollRuns.find((run) => run.status === "FAILED") ?? null;
+  const latestSuccessfulPoll = pollRunsForHealth.find((run) => run.status === PollRunStatus.SUCCESS) ?? null;
+  const latestFailedPoll = pollRunsForHealth.find((run) => run.status === PollRunStatus.FAILED) ?? null;
   const workerActivity: WorkerActivitySummary = {
     latestSuccess: latestSuccessfulPoll
       ? {
@@ -225,17 +223,4 @@ export default async function DashboardPage() {
       </main>
     </div>
   );
-}
-
-function countConsecutiveFailures(pollRuns: PollRunRecord[]): number {
-  let count = 0;
-
-  for (const run of pollRuns) {
-    if (run.status !== "FAILED") {
-      break;
-    }
-    count += 1;
-  }
-
-  return count;
 }

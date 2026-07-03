@@ -34,6 +34,7 @@ export class FacebookMarketplaceAdapter {
     const limit = input.limit ?? 24;
     const apiListings: RawFacebookListing[] = [];
     const maxApiListings = limit * 2;
+    const pendingResponses: Promise<void>[] = [];
 
     const responseListener = (response: Response) => {
       if (!shouldInspectGraphqlResponse(response.url(), response.request().method())) {
@@ -44,19 +45,21 @@ export class FacebookMarketplaceAdapter {
         return;
       }
 
-      response
-        .text()
-        .then((body) => {
-          if (body.length > MAX_GRAPHQL_RESPONSE_BYTES) {
-            return;
-          }
+      pendingResponses.push(
+        response
+          .text()
+          .then((body) => {
+            if (body.length > MAX_GRAPHQL_RESPONSE_BYTES) {
+              return;
+            }
 
-          const parsed = parseFacebookGraphqlPayload(body);
-          if (parsed.length > 0) {
-            apiListings.push(...parsed.slice(0, maxApiListings - apiListings.length));
-          }
-        })
-        .catch(() => undefined);
+            const parsed = parseFacebookGraphqlPayload(body);
+            if (parsed.length > 0) {
+              apiListings.push(...parsed.slice(0, maxApiListings - apiListings.length));
+            }
+          })
+          .catch(() => undefined),
+      );
     };
 
     page.on("response", responseListener);
@@ -65,6 +68,7 @@ export class FacebookMarketplaceAdapter {
       await navigateToSearchResults(page, input, apiListings);
       await scrollSearchResults(page, limit, apiListings);
       await page.waitForTimeout(1_000);
+      await Promise.allSettled(pendingResponses);
 
       const html = await page.content();
       const merged = collectAvailableListings(html, limit, apiListings).slice(0, limit);

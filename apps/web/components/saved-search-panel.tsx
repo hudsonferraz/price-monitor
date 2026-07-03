@@ -494,11 +494,16 @@ export function SavedSearchList({ searches, emptyMessage }: SavedSearchListProps
   }
 
   async function toggleEnabled(search: SavedSearchRecord) {
-    await fetch("/api/searches", {
+    const response = await fetch("/api/searches", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ id: search.id, isEnabled: !search.isEnabled }),
     });
+
+    if (!response.ok) {
+      return;
+    }
+
     router.refresh();
   }
 
@@ -507,7 +512,11 @@ export function SavedSearchList({ searches, emptyMessage }: SavedSearchListProps
       return;
     }
 
-    await fetch(`/api/searches/${searchId}`, { method: "DELETE" });
+    const response = await fetch(`/api/searches/${searchId}`, { method: "DELETE" });
+    if (!response.ok) {
+      return;
+    }
+
     setEditingId(null);
     router.refresh();
   }

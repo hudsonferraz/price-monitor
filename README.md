@@ -16,7 +16,7 @@ This is a **personal, educational, and portfolio project** for exploring scrapin
 
 ## Highlights
 
-- **57 automated tests** — Brazilian price parsing, Facebook parsers, poll schedule backoff, rate limits, price-drop logic, email HTML safety, Zod schemas, adapter merge priority
+- **71 automated tests** — Brazilian price parsing, Facebook parsers, poll schedule backoff, rate limits, price-drop logic, email HTML safety, Zod schemas, adapter merge priority, poll job cleanup
 - **Local-first worker** — Facebook-facing browser/session stays on your machine in `.facebook-profile/`
 - **Worker heartbeat dashboard** — online/stale/offline state, Facebook session mode, latest successful scrape, and latest failure type
 - **Resilient Facebook scraping** — GraphQL interception + embedded JSON + DOM fallback with unified merge
@@ -53,11 +53,14 @@ cd price-monitor
 npm install
 npx playwright install chromium
 cp .env.example .env
+cp apps/web/.env.example apps/web/.env.local
 npm run docker:up
 npm run db:push
 npm run facebook:login
 npm run spike:facebook
 ```
+
+Fill in `AUTH_*` OAuth values in `apps/web/.env.local`. The web app and worker must use the **same** `DATABASE_URL` and `REDIS_URL`.
 
 Terminal 1 — web:
 

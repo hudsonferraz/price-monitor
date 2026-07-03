@@ -28,8 +28,8 @@ export function startHealthServer(): Server {
     response.end("Not found");
   });
 
-  server.listen(port, () => {
-    console.log(`Health server listening on port ${port}`);
+  server.listen(port, "127.0.0.1", () => {
+    console.log(`Health server listening on http://127.0.0.1:${port}/health`);
   });
 
   return server;
