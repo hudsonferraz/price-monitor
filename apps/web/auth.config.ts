@@ -1,6 +1,7 @@
 import type { NextAuthConfig } from "next-auth";
 import GitHub from "next-auth/providers/github";
 import Google from "next-auth/providers/google";
+import { isProtectedPath } from "./lib/auth-authorization";
 
 export const authConfig = {
   trustHost: true,
@@ -22,8 +23,7 @@ export const authConfig = {
       return session;
     },
     authorized({ auth, request }) {
-      const isDashboard = request.nextUrl.pathname.startsWith("/dashboard");
-      if (isDashboard) {
+      if (isProtectedPath(request.nextUrl.pathname)) {
         return Boolean(auth?.user);
       }
       return true;

@@ -22,6 +22,10 @@ describe("getPollIssueCode", () => {
     );
     expect(getPollIssueCode("Poll timed out before completing.")).toBe("POLL_TIMEOUT");
   });
+
+  it("does not classify unrelated session wording as a Facebook session error", () => {
+    expect(getPollIssueCode("Failed to restore browser session storage")).toBe("UNKNOWN");
+  });
 });
 
 describe("isFacebookSessionError", () => {

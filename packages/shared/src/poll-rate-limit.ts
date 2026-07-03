@@ -17,8 +17,12 @@ export function getPollCooldownRemainingMs(
   return Math.max(0, minIntervalMs - elapsed);
 }
 
+export function getPollCooldownRemainingMinutes(remainingMs: number): number {
+  return Math.ceil(remainingMs / 60_000);
+}
+
 export function formatPollCooldownMessage(remainingMs: number): string {
-  const remainingMinutes = Math.ceil(remainingMs / 60_000);
+  const remainingMinutes = getPollCooldownRemainingMinutes(remainingMs);
   return `Please wait ${remainingMinutes} minute(s) before polling this search again.`;
 }
 

@@ -3,7 +3,7 @@ import { getOwnedBlockingSearchName } from "@/lib/poll-queue-context";
 import { getPollQueueContext, queuePollSearch } from "@/lib/queue";
 import { prisma } from "@price-monitor/database";
 import {
-  formatPollCooldownMessage,
+  getPollCooldownRemainingMinutes,
   getPollCooldownRemainingMs,
   MIN_MANUAL_POLL_INTERVAL_MS,
 } from "@price-monitor/shared/poll-rate-limit";
@@ -59,9 +59,11 @@ export async function POST(_request: Request, context: RouteContext) {
 
   const cooldownRemainingMs = getPollCooldownRemainingMs(savedSearch.lastAttemptedAt);
   if (cooldownRemainingMs > 0) {
+    const remainingMinutes = getPollCooldownRemainingMinutes(cooldownRemainingMs);
     return NextResponse.json(
       {
-        error: formatPollCooldownMessage(cooldownRemainingMs),
+        errorCode: "POLL_COOLDOWN",
+        remainingMinutes,
         retryAfterSeconds: Math.ceil(cooldownRemainingMs / 1000),
         minPollIntervalMinutes: MIN_MANUAL_POLL_INTERVAL_MS / 60_000,
       },

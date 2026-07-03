@@ -7,6 +7,7 @@ import { useLocale, useTranslations } from "@/components/locale-provider";
 import { PollStatusBanner, type SearchPollState } from "@/components/poll-status-banner";
 import { PollRunHistory, type PollRunRecord } from "@/components/poll-run-history";
 import { formatAnyPrice, formatDateTime, formatPriceCents } from "@/lib/i18n";
+import { translatePollError } from "@/lib/poll-error-i18n";
 import { LISTING_LIMIT_OPTIONS } from "@price-monitor/shared/queue";
 
 export interface SavedSearchRecord {
@@ -291,7 +292,7 @@ function SearchReliabilitySummary({ search }: { search: SavedSearchRecord }) {
         <p className="mt-1 text-amber-600">{t("searchSessionFailureHint")}</p>
       ) : null}
       {search.reliability.lastFailureMessage ? (
-        <p className="mt-1">{search.reliability.lastFailureMessage}</p>
+        <p className="mt-1">{translatePollError(search.reliability.lastFailureMessage, t)}</p>
       ) : null}
     </div>
   );
@@ -416,7 +417,7 @@ export function SavedSearchList({ searches, emptyMessage }: SavedSearchListProps
         acknowledgedPollRunIdsRef.current[searchId] = latestRun.id;
         updateSearchPollState(searchId, {
           phase: "failed",
-          message: latestRun.errorMessage ?? translate("pollStatusFailedGeneric"),
+          message: translatePollError(latestRun.errorMessage, translate),
         });
         router.refresh();
         return true;
@@ -470,9 +471,15 @@ export function SavedSearchList({ searches, emptyMessage }: SavedSearchListProps
       const data = await response.json().catch(() => null);
 
       if (!response.ok) {
+        let message = t("pollStatusFailedQueue");
+        if (data?.errorCode === "POLL_COOLDOWN" && typeof data.remainingMinutes === "number") {
+          message = t("pollCooldown", { minutes: data.remainingMinutes });
+        } else if (data?.error) {
+          message = translatePollError(data.error, t);
+        }
         updateSearchPollState(searchId, {
           phase: "failed",
-          message: data?.error ?? t("pollStatusFailedQueue"),
+          message,
         });
         return;
       }

@@ -62,6 +62,12 @@ export const messages = {
   workerStatusNoFailure: "Nenhum poll com falha registrado.",
   workerStatusSuccessSummary: "{date} - {listings} anuncio(s), {alerts} alerta(s){duration}",
   workerStatusFailureSummary: "{date} - {issue}. Polls com falha em 24h: {failedPolls}",
+  workerFacebookSessionUnknown: "Desconhecido",
+  workerFacebookSessionOk: "Pronta",
+  workerFacebookSessionNeedsLogin: "Precisa de login",
+  workerFacebookSessionNotConfigured: "Nao configurada",
+  workerFacebookSessionModeProfile: "Perfil do navegador",
+  workerFacebookSessionModeNone: "Nao configurada",
   marketplaceLocationHint:
     "Os resultados seguem a região da sua conta Facebook — os anúncios aparecem perto de onde sua sessão está logada, não de uma cidade escolhida no app.",
 
@@ -132,6 +138,7 @@ export const messages = {
   pollErrorUnknown: "Poll falhou por motivo desconhecido.",
 
   pollStatusQueuing: "Enfileirando",
+  pollStatusPending: "Pendente",
   pollStatusQueued: "Na fila",
   pollStatusRunning: "Em andamento",
   pollStatusSuccess: "Concluído",
@@ -142,6 +149,7 @@ export const messages = {
   pollStatusFailedGeneric: "Poll falhou. Tente novamente em alguns minutos.",
   pollStatusFailedQueue: "Falha ao enfileirar poll",
   pollStatusTimeout: "Poll está demorando mais que o esperado. Atualize a página em um minuto.",
+  pollCooldown: "Aguarde {minutes} minuto(s) antes de fazer poll desta busca novamente.",
 
   diagnosticsDocs: "Guia de troubleshooting",
   diagnosticsSessionTitle: "Sessao do Facebook expirou",

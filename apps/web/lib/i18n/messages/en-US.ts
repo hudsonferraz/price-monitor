@@ -59,6 +59,12 @@ export const messages = {
   workerStatusNoFailure: "No failed polls recorded.",
   workerStatusSuccessSummary: "{date} - {listings} listing(s), {alerts} alert(s){duration}",
   workerStatusFailureSummary: "{date} - {issue}. Failed polls in 24h: {failedPolls}",
+  workerFacebookSessionUnknown: "Unknown",
+  workerFacebookSessionOk: "Ready",
+  workerFacebookSessionNeedsLogin: "Needs login",
+  workerFacebookSessionNotConfigured: "Not configured",
+  workerFacebookSessionModeProfile: "Browser profile",
+  workerFacebookSessionModeNone: "Not configured",
   marketplaceLocationHint:
     "Results follow your Facebook account's region — listings are shown near where your Facebook session is logged in, not a city you pick in the app.",
 
@@ -129,6 +135,7 @@ export const messages = {
   pollErrorUnknown: "Poll failed for an unknown reason.",
 
   pollStatusQueuing: "Queuing",
+  pollStatusPending: "Pending",
   pollStatusQueued: "Queued",
   pollStatusRunning: "Running",
   pollStatusSuccess: "Complete",
@@ -139,6 +146,7 @@ export const messages = {
   pollStatusFailedGeneric: "Poll failed. Try again in a few minutes.",
   pollStatusFailedQueue: "Failed to queue poll",
   pollStatusTimeout: "Poll is taking longer than expected. Refresh the page in a minute.",
+  pollCooldown: "Please wait {minutes} minute(s) before polling this search again.",
 
   diagnosticsDocs: "Troubleshooting guide",
   diagnosticsSessionTitle: "Facebook session expired",

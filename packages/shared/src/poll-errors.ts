@@ -20,7 +20,7 @@ export function getPollIssueCode(errorMessage: string | null | undefined): PollI
     normalized.includes("redirected to login") ||
     normalized.includes("login wall") ||
     normalized.includes("session expired") ||
-    normalized.includes("session")
+    normalized.includes("facebook session")
   ) {
     return "FACEBOOK_SESSION";
   }

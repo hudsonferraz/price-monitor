@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   formatPollCooldownMessage,
+  getPollCooldownRemainingMinutes,
   getPollCooldownRemainingMs,
 } from "./poll-rate-limit";
 
@@ -27,5 +28,12 @@ describe("formatPollCooldownMessage", () => {
     expect(formatPollCooldownMessage(90_000)).toBe(
       "Please wait 2 minute(s) before polling this search again.",
     );
+  });
+});
+
+describe("getPollCooldownRemainingMinutes", () => {
+  it("rounds up partial minutes", () => {
+    expect(getPollCooldownRemainingMinutes(90_000)).toBe(2);
+    expect(getPollCooldownRemainingMinutes(60_000)).toBe(1);
   });
 });

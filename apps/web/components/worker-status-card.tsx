@@ -95,7 +95,11 @@ export function WorkerStatusCard({ heartbeat, activity }: WorkerStatusCardProps)
             <div>
               <dt className="font-medium">{t("workerStatusFacebookSession")}</dt>
               <dd className="opacity-80">
-                {formatFacebookSession(heartbeat.facebookSessionStatus, heartbeat.facebookSessionMode)}
+                {formatFacebookSession(
+                  heartbeat.facebookSessionStatus,
+                  heartbeat.facebookSessionMode,
+                  t,
+                )}
               </dd>
             </div>
           </>
@@ -151,12 +155,48 @@ function formatRuntime(hostname: string | null, pid: number | null): string {
   return hostname ?? "local worker";
 }
 
-function formatFacebookSession(status: string | null, mode: string | null): string {
+function formatFacebookSession(
+  status: string | null,
+  mode: string | null,
+  t: ReturnType<typeof useTranslations>,
+): string {
   if (!status && !mode) {
-    return "unknown";
+    return t("workerFacebookSessionUnknown");
   }
 
-  return [status, mode].filter(Boolean).join(" / ");
+  const statusLabel = status ? translateFacebookSessionStatus(status, t) : null;
+  const modeLabel = mode ? translateFacebookSessionMode(mode, t) : null;
+  return [statusLabel, modeLabel].filter(Boolean).join(" / ");
+}
+
+function translateFacebookSessionStatus(
+  status: string,
+  t: ReturnType<typeof useTranslations>,
+): string {
+  switch (status) {
+    case "ok":
+      return t("workerFacebookSessionOk");
+    case "needs_login":
+      return t("workerFacebookSessionNeedsLogin");
+    case "not_configured":
+      return t("workerFacebookSessionNotConfigured");
+    default:
+      return status;
+  }
+}
+
+function translateFacebookSessionMode(
+  mode: string,
+  t: ReturnType<typeof useTranslations>,
+): string {
+  switch (mode) {
+    case "browser_profile":
+      return t("workerFacebookSessionModeProfile");
+    case "none":
+      return t("workerFacebookSessionModeNone");
+    default:
+      return mode;
+  }
 }
 
 function formatLatestSuccess(

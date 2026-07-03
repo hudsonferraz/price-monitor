@@ -2,7 +2,9 @@
 
 import { useLocale, useTranslations } from "@/components/locale-provider";
 import { formatDateTime } from "@/lib/i18n";
-import { formatDurationMs, getPollIssueCode } from "@price-monitor/shared/poll-errors";
+import type { MessageKey } from "@/lib/i18n/messages/en-US";
+import { translatePollError } from "@/lib/poll-error-i18n";
+import { formatDurationMs } from "@price-monitor/shared/poll-errors";
 
 export interface PollRunRecord {
   id: string;
@@ -30,27 +32,12 @@ export function PollRunHistory({ pollRuns }: PollRunHistoryProps) {
     FAILED: "bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-300",
   };
 
-  function formatPollError(errorMessage: string | null | undefined): string {
-    const issueCode = getPollIssueCode(errorMessage);
-
-    if (issueCode === "FACEBOOK_CHECKPOINT") {
-      return t("pollErrorCheckpoint");
-    }
-
-    if (issueCode === "FACEBOOK_SESSION") {
-      return t("pollErrorSession");
-    }
-
-    if (issueCode === "NO_LISTINGS") {
-      return t("pollErrorNoListings");
-    }
-
-    if (issueCode === "POLL_TIMEOUT") {
-      return t("pollErrorTimeout");
-    }
-
-    return errorMessage ?? t("pollErrorUnknown");
-  }
+  const statusLabels: Record<PollRunRecord["status"], MessageKey> = {
+    PENDING: "pollStatusPending",
+    RUNNING: "pollStatusRunning",
+    SUCCESS: "pollStatusSuccess",
+    FAILED: "pollStatusFailed",
+  };
 
   if (pollRuns.length === 0) {
     return null;
@@ -66,7 +53,7 @@ export function PollRunHistory({ pollRuns }: PollRunHistoryProps) {
           <li key={run.id} className="rounded-md bg-[var(--background)] px-3 py-2 text-xs">
             <div className="flex flex-wrap items-center gap-2">
               <span className={`rounded-full px-2 py-0.5 font-medium ${statusStyles[run.status]}`}>
-                {run.status}
+                {t(statusLabels[run.status])}
               </span>
               <span className="text-[var(--muted)]">{formatDateTime(run.startedAt, locale)}</span>
             </div>
@@ -83,7 +70,7 @@ export function PollRunHistory({ pollRuns }: PollRunHistoryProps) {
               <p className="mt-1 text-[var(--muted)]">{t("pollCheckingMarketplace")}</p>
             ) : null}
             {run.status === "FAILED" && run.errorMessage ? (
-              <p className="mt-1 text-red-600">{formatPollError(run.errorMessage)}</p>
+              <p className="mt-1 text-red-600">{translatePollError(run.errorMessage, t)}</p>
             ) : null}
           </li>
         ))}
