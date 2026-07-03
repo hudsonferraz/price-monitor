@@ -47,7 +47,7 @@ describe("DELETE /api/searches/[id]", () => {
     const body = await response.json();
 
     expect(response.status).toBe(401);
-    expect(body.error).toBe("Unauthorized");
+    expect(body.errorCode).toBe("UNAUTHORIZED");
   });
 
   it("returns 404 when the search does not belong to the user", async () => {
@@ -58,7 +58,7 @@ describe("DELETE /api/searches/[id]", () => {
     const body = await response.json();
 
     expect(response.status).toBe(404);
-    expect(body.error).toBe("Search not found");
+    expect(body.errorCode).toBe("SEARCH_NOT_FOUND");
   });
 
   it("returns 409 when an active poll cannot be cancelled", async () => {
@@ -76,7 +76,7 @@ describe("DELETE /api/searches/[id]", () => {
     const body = await response.json();
 
     expect(response.status).toBe(409);
-    expect(body.error).toContain("poll is currently running");
+    expect(body.errorCode).toBe("SEARCH_DELETE_ACTIVE_POLL");
     expect(mockUpdate).toHaveBeenCalledWith({
       where: { id: "search-1" },
       data: { isEnabled: false },

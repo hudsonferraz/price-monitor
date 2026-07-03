@@ -43,6 +43,24 @@ export const messages = {
   notificationsDisabled: "Email alerts disabled.",
   notificationsUpdateFailed: "Failed to update notification settings",
 
+  apiErrorUnauthorized: "Please sign in to continue.",
+  apiErrorSearchNotFound: "Saved search not found.",
+  apiErrorSearchIdRequired: "Search id is required.",
+  apiErrorSearchDisabled: "This search is disabled. Enable it before polling.",
+  apiErrorSearchDeleteActivePoll:
+    "A poll is currently running for this search. Try deleting again in a minute.",
+  apiErrorSearchDeleteCancelFailed:
+    "Could not cancel the pending poll job. Try again shortly.",
+  apiErrorAlertNotFound: "Alert not found.",
+  apiErrorUserNotFound: "User not found.",
+  apiErrorValidationFailed: "Some fields are invalid. Check the form and try again.",
+  apiErrorNoPreferenceFields: "No valid preference fields were provided.",
+  apiErrorEmailNotificationsNotBoolean: "Email notification preference must be true or false.",
+  apiErrorInvalidPreferredLocale: "Language must be English or Portuguese.",
+  apiErrorRedisNotConfigured: "Redis is not configured. Start Docker and the local worker to enable polling.",
+  apiErrorPollQueueFailed: "Failed to queue the poll. Check that Redis and the worker are running.",
+  apiErrorUnknown: "Something went wrong. Please try again.",
+
 
   workerStatusTitle: "Local worker",
   workerStatusOnline: "Worker is online and writing heartbeats. Polls should run locally.",

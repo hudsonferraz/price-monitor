@@ -1,4 +1,5 @@
 import { auth } from "@/auth";
+import { apiErrorResponse } from "@/lib/api-responses";
 import { prisma } from "@price-monitor/database";
 import {
   centsToReais,
@@ -41,7 +42,7 @@ function serializeSavedSearch(search: {
 export async function GET() {
   const session = await auth();
   if (!session?.user?.id) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    return apiErrorResponse("UNAUTHORIZED", 401);
   }
 
   const searches = await prisma.savedSearch.findMany({
@@ -55,17 +56,16 @@ export async function GET() {
 export async function POST(request: Request) {
   const session = await auth();
   if (!session?.user?.id) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    return apiErrorResponse("UNAUTHORIZED", 401);
   }
 
   const body = await request.json().catch(() => null);
   const parsed = createSavedSearchSchema.safeParse(body);
 
   if (!parsed.success) {
-    return NextResponse.json(
-      { error: "Validation failed", details: parsed.error.flatten() },
-      { status: 400 },
-    );
+    return apiErrorResponse("VALIDATION_FAILED", 400, {
+      details: parsed.error.flatten(),
+    });
   }
 
   const search = await prisma.savedSearch.create({
@@ -87,13 +87,13 @@ export async function POST(request: Request) {
 export async function PATCH(request: Request) {
   const session = await auth();
   if (!session?.user?.id) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    return apiErrorResponse("UNAUTHORIZED", 401);
   }
 
   const body = await request.json().catch(() => null);
   const searchId = typeof body?.id === "string" ? body.id : null;
   if (!searchId) {
-    return NextResponse.json({ error: "Search id is required" }, { status: 400 });
+    return apiErrorResponse("SEARCH_ID_REQUIRED", 400);
   }
 
   const existing = await prisma.savedSearch.findFirst({
@@ -101,7 +101,7 @@ export async function PATCH(request: Request) {
   });
 
   if (!existing) {
-    return NextResponse.json({ error: "Search not found" }, { status: 404 });
+    return apiErrorResponse("SEARCH_NOT_FOUND", 404);
   }
 
   const parsed = createUpdateSavedSearchSchema({
@@ -110,10 +110,9 @@ export async function PATCH(request: Request) {
   }).safeParse(body);
 
   if (!parsed.success) {
-    return NextResponse.json(
-      { error: "Validation failed", details: parsed.error.flatten() },
-      { status: 400 },
-    );
+    return apiErrorResponse("VALIDATION_FAILED", 400, {
+      details: parsed.error.flatten(),
+    });
   }
 
   const search = await prisma.savedSearch.update({

@@ -46,6 +46,27 @@ export const messages = {
   notificationsDisabled: "Alertas por e-mail desativados.",
   notificationsUpdateFailed: "Falha ao atualizar configurações de notificação",
 
+  apiErrorUnauthorized: "Entre para continuar.",
+  apiErrorSearchNotFound: "Busca salva nao encontrada.",
+  apiErrorSearchIdRequired: "O id da busca e obrigatorio.",
+  apiErrorSearchDisabled: "Esta busca esta desativada. Ative-a antes de fazer poll.",
+  apiErrorSearchDeleteActivePoll:
+    "Um poll esta em andamento para esta busca. Tente excluir novamente em um minuto.",
+  apiErrorSearchDeleteCancelFailed:
+    "Nao foi possivel cancelar o poll pendente. Tente novamente em instantes.",
+  apiErrorAlertNotFound: "Alerta nao encontrado.",
+  apiErrorUserNotFound: "Usuario nao encontrado.",
+  apiErrorValidationFailed: "Alguns campos sao invalidos. Revise o formulario e tente novamente.",
+  apiErrorNoPreferenceFields: "Nenhum campo de preferencia valido foi enviado.",
+  apiErrorEmailNotificationsNotBoolean:
+    "A preferencia de e-mail deve ser verdadeira ou falsa.",
+  apiErrorInvalidPreferredLocale: "O idioma deve ser ingles ou portugues.",
+  apiErrorRedisNotConfigured:
+    "Redis nao esta configurado. Inicie o Docker e o worker local para habilitar polling.",
+  apiErrorPollQueueFailed:
+    "Falha ao enfileirar o poll. Verifique se Redis e o worker estao rodando.",
+  apiErrorUnknown: "Algo deu errado. Tente novamente.",
+
 
   workerStatusTitle: "Worker local",
   workerStatusOnline: "Worker online e escrevendo heartbeats. Os polls devem rodar localmente.",

@@ -43,7 +43,7 @@ function createRequestContext(searchId: string) {
 
 describe("POST /api/searches/[id]/poll", () => {
   beforeEach(() => {
-    vi.clearAllMocks();
+    vi.resetAllMocks();
     process.env.REDIS_URL = "redis://localhost:6379";
     mockGetOwnedBlockingSearchName.mockResolvedValue({
       blockingSearchName: null,
@@ -58,7 +58,7 @@ describe("POST /api/searches/[id]/poll", () => {
     const body = await response.json();
 
     expect(response.status).toBe(401);
-    expect(body.error).toBe("Unauthorized");
+    expect(body.errorCode).toBe("UNAUTHORIZED");
   });
 
   it("returns 404 when the search does not belong to the user", async () => {
@@ -69,7 +69,7 @@ describe("POST /api/searches/[id]/poll", () => {
     const body = await response.json();
 
     expect(response.status).toBe(404);
-    expect(body.error).toBe("Search not found");
+    expect(body.errorCode).toBe("SEARCH_NOT_FOUND");
   });
 
   it("returns 400 when the search is disabled", async () => {
@@ -85,7 +85,7 @@ describe("POST /api/searches/[id]/poll", () => {
     const body = await response.json();
 
     expect(response.status).toBe(400);
-    expect(body.error).toBe("Search is disabled");
+    expect(body.errorCode).toBe("SEARCH_DISABLED");
   });
 
   it("returns 429 with cooldown metadata when polled recently", async () => {
@@ -185,5 +185,28 @@ describe("POST /api/searches/[id]/poll", () => {
       where: { id: "search-1" },
       data: { lastAttemptedAt: expect.any(Date) },
     });
+  });
+
+  it("returns REDIS_NOT_CONFIGURED when queueing fails without Redis", async () => {
+    mockAuth.mockResolvedValue({ user: { id: "user-1" } } as never);
+    mockFindFirst.mockResolvedValue({
+      id: "search-1",
+      userId: "user-1",
+      isEnabled: true,
+      lastAttemptedAt: null,
+    } as never);
+    mockGetPollQueueContext.mockResolvedValue({
+      isQueued: false,
+      jobState: null,
+      waitingPosition: null,
+      blockingSavedSearchId: undefined,
+    });
+    mockQueuePollSearch.mockRejectedValue(new Error("REDIS_URL is not configured. Start the worker with Redis to enable polling."));
+
+    const response = await POST(new Request("http://localhost/api/searches/search-1/poll", { method: "POST" }), createRequestContext("search-1"));
+    const body = await response.json();
+
+    expect(response.status).toBe(503);
+    expect(body.errorCode).toBe("REDIS_NOT_CONFIGURED");
   });
 });

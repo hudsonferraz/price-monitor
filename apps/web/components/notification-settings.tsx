@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useTranslations } from "@/components/locale-provider";
+import { translateApiError } from "@/lib/api-error-i18n";
 
 interface NotificationSettingsProps {
   emailNotificationsEnabled: boolean;
@@ -33,7 +34,7 @@ export function NotificationSettings({
       const data = await response.json().catch(() => null);
 
       if (!response.ok) {
-        setError(data?.error ?? t("notificationsUpdateFailed"));
+        setError(translateApiError(data?.errorCode, t));
         return;
       }
 

@@ -1,7 +1,7 @@
 import { Resend } from "resend";
 import { prisma } from "@price-monitor/database";
-import { encodeEmailHref, escapeHtml, renderEmailLink } from "@price-monitor/shared/email-html";
-import { formatPriceCents } from "@price-monitor/shared/poll-rate-limit";
+import { buildAlertEmailContent } from "@price-monitor/shared/alert-email";
+import { normalizeAppLocale } from "@price-monitor/shared/locales";
 
 function getResendClient(): Resend | null {
   const apiKey = process.env.RESEND_API_KEY;
@@ -37,7 +37,7 @@ export async function sendNewAlertsEmail(
 
   const user = await prisma.user.findUnique({
     where: { id: userId },
-    select: { email: true, emailNotificationsEnabled: true },
+    select: { email: true, emailNotificationsEnabled: true, preferredLocale: true },
   });
 
   if (!user?.email || !user.emailNotificationsEnabled) {
@@ -63,64 +63,28 @@ export async function sendNewAlertsEmail(
     return false;
   }
 
-  const alertCount = alerts.length;
-  const hasPriceDrop = alerts.some((alert) => alert.priceDroppedAt != null);
-  const subject = hasPriceDrop
-    ? alertCount === 1
-      ? `Price drop for ${savedSearch.name}`
-      : `Price drops and new matches for ${savedSearch.name}`
-    : alertCount === 1
-      ? `New match for ${savedSearch.name}`
-      : `${alertCount} new matches for ${savedSearch.name}`;
-
-  const listingLines = alerts
-    .map((alert) => {
-      const price = formatPriceCents(alert.listing.priceCents);
-      const location = alert.listing.location ? ` · ${alert.listing.location}` : "";
-      const priceDropNote =
-        alert.priceDroppedAt && alert.previousPriceCents != null
-          ? ` (was ${formatPriceCents(alert.previousPriceCents)})`
-          : "";
-      return `• ${alert.listing.title} — ${price}${priceDropNote}${location}\n  ${alert.listing.url}`;
-    })
-    .join("\n\n");
-
-  const dashboardUrl = encodeEmailHref(`${getDashboardUrl()}/dashboard`);
-  const safeSearchName = escapeHtml(savedSearch.name);
-  const text = [
-    `You have ${alertCount} new Facebook Marketplace match(es) for "${savedSearch.name}".`,
-    "",
-    listingLines,
-    "",
-    `View all alerts: ${dashboardUrl ?? getDashboardUrl() + "/dashboard"}`,
-  ].join("\n");
-
-  const html = `
-    <p>You have <strong>${alertCount}</strong> new Facebook Marketplace match(es) for <strong>${safeSearchName}</strong>.</p>
-    <ul>
-      ${alerts
-        .map((alert) => {
-          const price = escapeHtml(formatPriceCents(alert.listing.priceCents));
-          const location = alert.listing.location
-            ? ` · ${escapeHtml(alert.listing.location)}`
-            : "";
-          const priceDropNote =
-            alert.priceDroppedAt && alert.previousPriceCents != null
-              ? ` <em>(was ${escapeHtml(formatPriceCents(alert.previousPriceCents))})</em>`
-              : "";
-          return `<li>${renderEmailLink(alert.listing.url, alert.listing.title)} — ${price}${priceDropNote}${location}</li>`;
-        })
-        .join("")}
-    </ul>
-    <p>${dashboardUrl ? `<a href="${escapeHtml(dashboardUrl)}">Open your dashboard</a>` : "Open your dashboard"}</p>
-  `;
+  const locale = normalizeAppLocale(user.preferredLocale);
+  const dashboardUrl = `${getDashboardUrl()}/dashboard`;
+  const emailContent = buildAlertEmailContent({
+    locale,
+    searchName: savedSearch.name,
+    alerts: alerts.map((alert) => ({
+      title: alert.listing.title,
+      url: alert.listing.url,
+      priceCents: alert.listing.priceCents,
+      location: alert.listing.location,
+      priceDroppedAt: alert.priceDroppedAt,
+      previousPriceCents: alert.previousPriceCents,
+    })),
+    dashboardUrl,
+  });
 
   const response = await resend.emails.send({
     from: getFromAddress(),
     to: user.email,
-    subject,
-    text,
-    html,
+    subject: emailContent.subject,
+    text: emailContent.text,
+    html: emailContent.html,
   });
 
   if (response.error) {
@@ -132,6 +96,6 @@ export async function sendNewAlertsEmail(
     data: { emailSentAt: new Date() },
   });
 
-  console.log(`Sent alert email to ${user.email} (${alertCount} listing(s)).`);
+  console.log(`Sent alert email to ${user.email} (${alerts.length} listing(s)).`);
   return true;
 }

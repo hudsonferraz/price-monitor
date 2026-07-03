@@ -1,4 +1,5 @@
 import { auth } from "@/auth";
+import { apiErrorResponse } from "@/lib/api-responses";
 import { prisma } from "@price-monitor/database";
 import { parsePaginationLimit } from "@price-monitor/shared/pagination";
 import { NextResponse } from "next/server";
@@ -10,7 +11,7 @@ interface RouteContext {
 export async function GET(request: Request, context: RouteContext) {
   const session = await auth();
   if (!session?.user?.id) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    return apiErrorResponse("UNAUTHORIZED", 401);
   }
 
   const { id } = await context.params;
@@ -25,7 +26,7 @@ export async function GET(request: Request, context: RouteContext) {
   });
 
   if (!savedSearch) {
-    return NextResponse.json({ error: "Search not found" }, { status: 404 });
+    return apiErrorResponse("SEARCH_NOT_FOUND", 404);
   }
 
   const pollRuns = await prisma.pollRun.findMany({

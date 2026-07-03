@@ -1,4 +1,5 @@
 import { auth } from "@/auth";
+import { apiErrorResponse } from "@/lib/api-responses";
 import { prisma } from "@price-monitor/database";
 import { parsePaginationLimit } from "@price-monitor/shared/pagination";
 import { NextResponse } from "next/server";
@@ -6,7 +7,7 @@ import { NextResponse } from "next/server";
 export async function GET(request: Request) {
   const session = await auth();
   if (!session?.user?.id) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    return apiErrorResponse("UNAUTHORIZED", 401);
   }
 
   const { searchParams } = new URL(request.url);

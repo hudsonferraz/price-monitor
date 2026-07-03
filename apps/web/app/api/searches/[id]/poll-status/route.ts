@@ -1,4 +1,5 @@
 import { auth } from "@/auth";
+import { apiErrorResponse } from "@/lib/api-responses";
 import { getOwnedBlockingSearchName } from "@/lib/poll-queue-context";
 import { getPollQueueContext, isRedisConfigured } from "@/lib/queue";
 import { prisma } from "@price-monitor/database";
@@ -12,7 +13,7 @@ interface RouteContext {
 export async function GET(_request: Request, context: RouteContext) {
   const session = await auth();
   if (!session?.user?.id) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    return apiErrorResponse("UNAUTHORIZED", 401);
   }
 
   const { id } = await context.params;
@@ -23,11 +24,11 @@ export async function GET(_request: Request, context: RouteContext) {
   });
 
   if (!savedSearch) {
-    return NextResponse.json({ error: "Search not found" }, { status: 404 });
+    return apiErrorResponse("SEARCH_NOT_FOUND", 404);
   }
 
   if (!isRedisConfigured()) {
-    return NextResponse.json({ error: "REDIS_URL is not configured" }, { status: 503 });
+    return apiErrorResponse("REDIS_NOT_CONFIGURED", 503);
   }
 
   const queueContext = await getPollQueueContext(id);

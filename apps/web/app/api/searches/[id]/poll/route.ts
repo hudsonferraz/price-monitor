@@ -1,4 +1,5 @@
 import { auth } from "@/auth";
+import { apiErrorResponse } from "@/lib/api-responses";
 import { getOwnedBlockingSearchName } from "@/lib/poll-queue-context";
 import { getPollQueueContext, queuePollSearch } from "@/lib/queue";
 import { prisma } from "@price-monitor/database";
@@ -17,7 +18,7 @@ interface RouteContext {
 export async function POST(_request: Request, context: RouteContext) {
   const session = await auth();
   if (!session?.user?.id) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    return apiErrorResponse("UNAUTHORIZED", 401);
   }
 
   const { id } = await context.params;
@@ -27,11 +28,11 @@ export async function POST(_request: Request, context: RouteContext) {
   });
 
   if (!savedSearch) {
-    return NextResponse.json({ error: "Search not found" }, { status: 404 });
+    return apiErrorResponse("SEARCH_NOT_FOUND", 404);
   }
 
   if (!savedSearch.isEnabled) {
-    return NextResponse.json({ error: "Search is disabled" }, { status: 400 });
+    return apiErrorResponse("SEARCH_DISABLED", 400);
   }
 
   const queueContext = await getPollQueueContext(id);
@@ -60,15 +61,11 @@ export async function POST(_request: Request, context: RouteContext) {
   const cooldownRemainingMs = getPollCooldownRemainingMs(savedSearch.lastAttemptedAt);
   if (cooldownRemainingMs > 0) {
     const remainingMinutes = getPollCooldownRemainingMinutes(cooldownRemainingMs);
-    return NextResponse.json(
-      {
-        errorCode: "POLL_COOLDOWN",
-        remainingMinutes,
-        retryAfterSeconds: Math.ceil(cooldownRemainingMs / 1000),
-        minPollIntervalMinutes: MIN_MANUAL_POLL_INTERVAL_MS / 60_000,
-      },
-      { status: 429 },
-    );
+    return apiErrorResponse("POLL_COOLDOWN", 429, {
+      remainingMinutes,
+      retryAfterSeconds: Math.ceil(cooldownRemainingMs / 1000),
+      minPollIntervalMinutes: MIN_MANUAL_POLL_INTERVAL_MS / 60_000,
+    });
   }
 
   try {
@@ -102,7 +99,11 @@ export async function POST(_request: Request, context: RouteContext) {
       message,
     });
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Failed to queue poll";
-    return NextResponse.json({ error: message }, { status: 503 });
+    const message = error instanceof Error ? error.message : "";
+    if (message.includes("REDIS_URL")) {
+      return apiErrorResponse("REDIS_NOT_CONFIGURED", 503);
+    }
+
+    return apiErrorResponse("POLL_QUEUE_FAILED", 503);
   }
 }

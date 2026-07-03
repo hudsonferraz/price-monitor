@@ -1,4 +1,5 @@
 import { auth } from "@/auth";
+import { apiErrorResponse } from "@/lib/api-responses";
 import { prisma } from "@price-monitor/database";
 import { NextResponse } from "next/server";
 
@@ -9,7 +10,7 @@ interface RouteContext {
 export async function DELETE(_request: Request, context: RouteContext) {
   const session = await auth();
   if (!session?.user?.id) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    return apiErrorResponse("UNAUTHORIZED", 401);
   }
 
   const { id } = await context.params;
@@ -19,7 +20,7 @@ export async function DELETE(_request: Request, context: RouteContext) {
   });
 
   if (!alert) {
-    return NextResponse.json({ error: "Alert not found" }, { status: 404 });
+    return apiErrorResponse("ALERT_NOT_FOUND", 404);
   }
 
   await prisma.alert.update({

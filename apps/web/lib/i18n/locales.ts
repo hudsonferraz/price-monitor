@@ -1,14 +1,14 @@
-export const APP_LOCALES = ["en-US", "pt-BR"] as const;
+import type { AppLocale } from "@price-monitor/shared/locales";
 
-export type AppLocale = (typeof APP_LOCALES)[number];
-
-export const DEFAULT_LOCALE: AppLocale = "pt-BR";
+export {
+  APP_LOCALES,
+  DEFAULT_LOCALE,
+  isAppLocale,
+  normalizeAppLocale,
+  type AppLocale,
+} from "@price-monitor/shared/locales";
 
 export const LOCALE_COOKIE_NAME = "price-monitor-locale";
-
-export function isAppLocale(value: string | null | undefined): value is AppLocale {
-  return value != null && APP_LOCALES.includes(value as AppLocale);
-}
 
 export function getLocaleLabel(locale: AppLocale): string {
   return locale === "en-US" ? "English" : "Português";

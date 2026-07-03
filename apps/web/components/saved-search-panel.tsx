@@ -7,6 +7,7 @@ import { useLocale, useTranslations } from "@/components/locale-provider";
 import { PollStatusBanner, type SearchPollState } from "@/components/poll-status-banner";
 import { PollRunHistory, type PollRunRecord } from "@/components/poll-run-history";
 import { formatAnyPrice, formatDateTime, formatPriceCents } from "@/lib/i18n";
+import { translateApiError } from "@/lib/api-error-i18n";
 import { translatePollError } from "@/lib/poll-error-i18n";
 import { LISTING_LIMIT_OPTIONS } from "@price-monitor/shared/queue";
 
@@ -101,7 +102,7 @@ export function SavedSearchForm({ initialSearch, onSuccess, onCancel }: SavedSea
 
       if (!response.ok) {
         const data = await response.json().catch(() => null);
-        setError(data?.error ?? t("searchFormSaveFailed"));
+        setError(translateApiError(data?.errorCode, t));
         return;
       }
 
@@ -471,12 +472,10 @@ export function SavedSearchList({ searches, emptyMessage }: SavedSearchListProps
       const data = await response.json().catch(() => null);
 
       if (!response.ok) {
-        let message = t("pollStatusFailedQueue");
-        if (data?.errorCode === "POLL_COOLDOWN" && typeof data.remainingMinutes === "number") {
-          message = t("pollCooldown", { minutes: data.remainingMinutes });
-        } else if (data?.error) {
-          message = translatePollError(data.error, t);
-        }
+        let message = translateApiError(data?.errorCode, t, {
+          remainingMinutes:
+            typeof data?.remainingMinutes === "number" ? data.remainingMinutes : undefined,
+        });
         updateSearchPollState(searchId, {
           phase: "failed",
           message,
@@ -521,6 +520,8 @@ export function SavedSearchList({ searches, emptyMessage }: SavedSearchListProps
 
     const response = await fetch(`/api/searches/${searchId}`, { method: "DELETE" });
     if (!response.ok) {
+      const data = await response.json().catch(() => null);
+      window.alert(translateApiError(data?.errorCode, t));
       return;
     }
 

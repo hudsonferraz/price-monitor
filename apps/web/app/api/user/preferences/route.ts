@@ -1,11 +1,13 @@
 import { auth } from "@/auth";
+import { apiErrorResponse } from "@/lib/api-responses";
+import { isAppLocale, LOCALE_COOKIE_NAME } from "@/lib/i18n/locales";
 import { prisma } from "@price-monitor/database";
 import { NextResponse } from "next/server";
 
 export async function GET() {
   const session = await auth();
   if (!session?.user?.id) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    return apiErrorResponse("UNAUTHORIZED", 401);
   }
 
   const user = await prisma.user.findUnique({
@@ -14,7 +16,7 @@ export async function GET() {
   });
 
   if (!user) {
-    return NextResponse.json({ error: "User not found" }, { status: 404 });
+    return apiErrorResponse("USER_NOT_FOUND", 404);
   }
 
   return NextResponse.json({
@@ -26,31 +28,24 @@ export async function GET() {
 export async function PATCH(request: Request) {
   const session = await auth();
   if (!session?.user?.id) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    return apiErrorResponse("UNAUTHORIZED", 401);
   }
 
   const body = await request.json().catch(() => null);
 
-  if (
-    body?.emailNotificationsEnabled == null &&
-    body?.preferredLocale == null
-  ) {
-    return NextResponse.json({ error: "No valid preference fields provided" }, { status: 400 });
+  if (body?.emailNotificationsEnabled == null && body?.preferredLocale == null) {
+    return apiErrorResponse("NO_PREFERENCE_FIELDS", 400);
   }
 
   if (
     body?.emailNotificationsEnabled != null &&
     typeof body.emailNotificationsEnabled !== "boolean"
   ) {
-    return NextResponse.json(
-      { error: "emailNotificationsEnabled must be a boolean" },
-      { status: 400 },
-    );
+    return apiErrorResponse("EMAIL_NOTIFICATIONS_NOT_BOOLEAN", 400);
   }
 
-  const { isAppLocale, LOCALE_COOKIE_NAME } = await import("@/lib/i18n/locales");
   if (body?.preferredLocale != null && !isAppLocale(body.preferredLocale)) {
-    return NextResponse.json({ error: "preferredLocale must be en-US or pt-BR" }, { status: 400 });
+    return apiErrorResponse("INVALID_PREFERRED_LOCALE", 400);
   }
 
   const user = await prisma.user.update({
