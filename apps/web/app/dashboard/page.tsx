@@ -90,6 +90,7 @@ export default async function DashboardPage() {
 
   const serializedSearches: SavedSearchRecord[] = searches.map((search) => {
     const recentPollRuns = search.pollRuns.slice(0, 3).map(serializePollRun);
+    const latestSuccessRun = search.pollRuns.find((run) => run.status === PollRunStatus.SUCCESS);
     const latestFailedRun = search.pollRuns.find((run) => run.status === PollRunStatus.FAILED);
     const alerts: AlertRecord[] = search.alerts.map((alert) => ({
       id: alert.id,
@@ -112,6 +113,12 @@ export default async function DashboardPage() {
     }));
 
     const lastSuccessfulPollAt = search.lastSuccessfulPollAt?.toISOString() ?? null;
+    const latestPollStartedAt = latestSuccessRun?.startedAt.toISOString() ?? null;
+    const showLastFailureMessage =
+      search.consecutiveFailures > 0 &&
+      latestFailedRun != null &&
+      (lastSuccessfulPollAt == null ||
+        latestFailedRun.startedAt.getTime() >= new Date(lastSuccessfulPollAt).getTime());
 
     return {
       id: search.id,
@@ -128,15 +135,16 @@ export default async function DashboardPage() {
       updatedAt: search.updatedAt.toISOString(),
       recentPollRuns,
       alerts,
-      latestPollStartedAt: lastSuccessfulPollAt,
+      latestPollStartedAt,
       isFirstPollResults:
         search._count.pollRuns === 1 && lastSuccessfulPollAt != null && alerts.length > 0,
       reliability: {
         consecutiveFailures: search.consecutiveFailures,
-        lastFailureMessage: latestFailedRun?.errorMessage ?? null,
-        hasFacebookSessionFailure: search.pollRuns.some(
-          (run) => run.status === PollRunStatus.FAILED && isFacebookSessionError(run.errorMessage),
-        ),
+        lastFailureMessage: showLastFailureMessage ? latestFailedRun.errorMessage : null,
+        hasFacebookSessionFailure:
+          search.consecutiveFailures > 0 &&
+          latestFailedRun != null &&
+          isFacebookSessionError(latestFailedRun.errorMessage),
       },
     };
   });

@@ -38,4 +38,17 @@ describe("translatePollQueueMessage", () => {
   it("falls back to the default queued message when code is missing", () => {
     expect(translatePollQueueMessage(null, translate)).toBe(messages.pollStatusQueuedAuto);
   });
+
+  it("falls back to the generic blocking message when searchName is missing", () => {
+    const message = translatePollQueueMessage(
+      {
+        messageCode: "POLL_QUEUE_QUEUED_BEHIND_NAMED",
+        waitingPosition: 2,
+      },
+      translate,
+    );
+
+    expect(message).toContain("another search");
+    expect(message).not.toContain("{searchName}");
+  });
 });

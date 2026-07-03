@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import { useLocale, useTranslations } from "@/components/locale-provider";
 import { formatDateTime, formatPriceCents } from "@/lib/i18n";
+import { translateApiError } from "@/lib/api-error-i18n";
 import type { AlertSortOption } from "@price-monitor/shared/sort-alerts";
 import { isActivePriceDropAlert } from "@price-monitor/shared/price-drop";
 import { sortAlerts } from "@price-monitor/shared/sort-alerts";
@@ -337,7 +338,11 @@ export function SearchAlertsSection({
       const response = await fetch(`/api/alerts/${alertId}`, { method: "DELETE" });
       if (response.ok) {
         router.refresh();
+        return;
       }
+
+      const data = await response.json().catch(() => null);
+      window.alert(translateApiError(data?.errorCode, t));
     } finally {
       setDismissingId(null);
     }
@@ -353,7 +358,11 @@ export function SearchAlertsSection({
       const response = await fetch(`/api/searches/${savedSearchId}/alerts`, { method: "DELETE" });
       if (response.ok) {
         router.refresh();
+        return;
       }
+
+      const data = await response.json().catch(() => null);
+      window.alert(translateApiError(data?.errorCode, t));
     } finally {
       setIsClearing(false);
     }

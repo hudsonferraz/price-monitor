@@ -48,12 +48,18 @@ export function translatePollQueueMessage(
 
   const positionNote = formatPositionNote(response.waitingPosition, translate);
 
-  if (messageCode === "POLL_QUEUE_QUEUED_BEHIND_NAMED" && response.searchName) {
-    return translate(messageKey, { searchName: response.searchName, positionNote });
+  if (messageCode === "POLL_QUEUE_QUEUED_BEHIND_NAMED") {
+    if (response.searchName) {
+      return translate(messageKey, { searchName: response.searchName, positionNote });
+    }
+    return translate("pollQueueQueuedBehindGeneric", { positionNote });
   }
 
-  if (messageCode === "POLL_QUEUE_ALREADY_QUEUED_BEHIND_NAMED" && response.searchName) {
-    return translate(messageKey, { searchName: response.searchName });
+  if (messageCode === "POLL_QUEUE_ALREADY_QUEUED_BEHIND_NAMED") {
+    if (response.searchName) {
+      return translate(messageKey, { searchName: response.searchName });
+    }
+    return translate("pollQueueAlreadyQueuedBehindGeneric");
   }
 
   if (

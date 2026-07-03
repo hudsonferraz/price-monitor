@@ -8,8 +8,8 @@ import type { NormalizedListing } from "@price-monitor/shared/types";
 import { sendNewAlertsEmail } from "../lib/email-notifications";
 import { searchMarketplace } from "../lib/marketplace-browser";
 
-export const STALE_RUNNING_POLL_MS = 5 * 60 * 1000;
 export const POLL_JOB_LOCK_MS = 10 * 60 * 1000;
+export const STALE_RUNNING_POLL_MS = POLL_JOB_LOCK_MS;
 
 export interface PollSearchResult {
   pollRunId: string;
@@ -79,20 +79,45 @@ function emptyPollSearchResult(pollRunId: string): PollSearchResult {
 }
 
 export async function cleanupStaleRunningPolls(savedSearchId?: string): Promise<number> {
-  const result = await prisma.pollRun.updateMany({
+  const staleCutoff = new Date(Date.now() - STALE_RUNNING_POLL_MS);
+  const staleRuns = await prisma.pollRun.findMany({
     where: {
       ...(savedSearchId ? { savedSearchId } : {}),
       status: PollRunStatus.RUNNING,
-      startedAt: { lt: new Date(Date.now() - STALE_RUNNING_POLL_MS) },
+      startedAt: { lt: staleCutoff },
     },
-    data: {
-      status: PollRunStatus.FAILED,
-      errorMessage: "Poll timed out before completing.",
-      finishedAt: new Date(),
-    },
+    select: { id: true, savedSearchId: true, startedAt: true },
   });
 
-  return result.count;
+  if (staleRuns.length === 0) {
+    return 0;
+  }
+
+  const finishedAt = new Date();
+  await prisma.$transaction([
+    ...staleRuns.map((run) =>
+      prisma.pollRun.update({
+        where: { id: run.id },
+        data: {
+          status: PollRunStatus.FAILED,
+          errorMessage: "Poll timed out before completing.",
+          finishedAt,
+          durationMs: finishedAt.getTime() - run.startedAt.getTime(),
+        },
+      }),
+    ),
+    ...Array.from(new Set(staleRuns.map((run) => run.savedSearchId))).map((searchId) =>
+      prisma.savedSearch.update({
+        where: { id: searchId },
+        data: {
+          lastAttemptedAt: finishedAt,
+          consecutiveFailures: { increment: 1 },
+        },
+      }),
+    ),
+  ]);
+
+  return staleRuns.length;
 }
 
 export async function recordPollEnqueueAttempt(savedSearchId: string): Promise<void> {

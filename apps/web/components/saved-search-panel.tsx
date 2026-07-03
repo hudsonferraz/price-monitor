@@ -10,6 +10,12 @@ import { formatAnyPrice, formatDateTime, formatPriceCents } from "@/lib/i18n";
 import { translateApiError } from "@/lib/api-error-i18n";
 import { translatePollError } from "@/lib/poll-error-i18n";
 import { translatePollQueueMessage } from "@/lib/poll-queue-i18n";
+import {
+  createPollNowWatchContext,
+  createRunningPollWatchContext,
+  isTerminalPollRunFromWatch,
+  type PollWatchContext,
+} from "@/lib/poll-watch";
 import { LISTING_LIMIT_OPTIONS } from "@price-monitor/shared/queue";
 
 export interface SavedSearchRecord {
@@ -309,6 +315,7 @@ export function SavedSearchList({ searches, emptyMessage }: SavedSearchListProps
   const [watchingPollSearchId, setWatchingPollSearchId] = useState<string | null>(null);
   const [searchPollStates, setSearchPollStates] = useState<Record<string, SearchPollState>>({});
   const translateRef = useRef(t);
+  const pollWatchContextRef = useRef<Record<string, PollWatchContext>>({});
   const acknowledgedPollRunIdsRef = useRef<Record<string, string>>({});
   const bannerDismissTimeoutsRef = useRef<Record<string, number>>({});
 
@@ -341,6 +348,21 @@ export function SavedSearchList({ searches, emptyMessage }: SavedSearchListProps
   }
 
   useEffect(() => {
+    if (watchingPollSearchId) {
+      return;
+    }
+
+    const runningSearch = searches.find((search) => search.recentPollRuns[0]?.status === "RUNNING");
+    const runningRun = runningSearch?.recentPollRuns[0];
+    if (!runningSearch || !runningRun) {
+      return;
+    }
+
+    pollWatchContextRef.current[runningSearch.id] = createRunningPollWatchContext(runningRun.startedAt);
+    setWatchingPollSearchId(runningSearch.id);
+  }, [searches, watchingPollSearchId]);
+
+  useEffect(() => {
     if (!watchingPollSearchId) {
       return;
     }
@@ -349,6 +371,7 @@ export function SavedSearchList({ searches, emptyMessage }: SavedSearchListProps
     const startedAt = Date.now();
     const maxWaitMs = 3 * 60 * 1000;
     const searchId = watchingPollSearchId;
+    const watchContext = pollWatchContextRef.current[searchId];
 
     async function checkPollStatus(): Promise<boolean> {
       const translate = translateRef.current;
@@ -356,6 +379,15 @@ export function SavedSearchList({ searches, emptyMessage }: SavedSearchListProps
         fetch(`/api/searches/${searchId}/poll-runs?limit=1`).catch(() => null),
         fetch(`/api/searches/${searchId}/poll-status`).catch(() => null),
       ]);
+
+      if (statusResponse && !statusResponse.ok) {
+        const statusError = await statusResponse.json().catch(() => null);
+        updateSearchPollState(searchId, {
+          phase: "failed",
+          message: translateApiError(statusError?.errorCode, translate),
+        });
+        return true;
+      }
 
       if (statusResponse?.ok) {
         const status = (await statusResponse.json()) as {
@@ -380,7 +412,7 @@ export function SavedSearchList({ searches, emptyMessage }: SavedSearchListProps
         }
       }
 
-      if (!runsResponse?.ok) {
+      if (!runsResponse?.ok || !watchContext) {
         return false;
       }
 
@@ -395,34 +427,32 @@ export function SavedSearchList({ searches, emptyMessage }: SavedSearchListProps
         return false;
       }
 
-      if (latestRun?.status === "SUCCESS") {
+      if (
+        latestRun &&
+        isTerminalPollRunFromWatch(latestRun, watchContext)
+      ) {
         if (acknowledgedPollRunIdsRef.current[searchId] === latestRun.id) {
           return true;
         }
 
         acknowledgedPollRunIdsRef.current[searchId] = latestRun.id;
-        updateSearchPollState(searchId, {
-          phase: "success",
-          message: translate("pollStatusSuccessSummary", {
-            listings: latestRun.listingsFound,
-            alerts: latestRun.newAlerts,
-          }),
-        });
-        scheduleBannerDismiss(searchId);
-        router.refresh();
-        return true;
-      }
 
-      if (latestRun?.status === "FAILED") {
-        if (acknowledgedPollRunIdsRef.current[searchId] === latestRun.id) {
-          return true;
+        if (latestRun.status === "SUCCESS") {
+          updateSearchPollState(searchId, {
+            phase: "success",
+            message: translate("pollStatusSuccessSummary", {
+              listings: latestRun.listingsFound,
+              alerts: latestRun.newAlerts,
+            }),
+          });
+          scheduleBannerDismiss(searchId);
+        } else {
+          updateSearchPollState(searchId, {
+            phase: "failed",
+            message: translatePollError(latestRun.errorMessage, translate),
+          });
         }
 
-        acknowledgedPollRunIdsRef.current[searchId] = latestRun.id;
-        updateSearchPollState(searchId, {
-          phase: "failed",
-          message: translatePollError(latestRun.errorMessage, translate),
-        });
         router.refresh();
         return true;
       }
@@ -440,6 +470,7 @@ export function SavedSearchList({ searches, emptyMessage }: SavedSearchListProps
 
     function stopWatchingIfFinished(isFinished: boolean) {
       if (!cancelled && isFinished) {
+        delete pollWatchContextRef.current[searchId];
         setWatchingPollSearchId(null);
       }
     }
@@ -461,9 +492,17 @@ export function SavedSearchList({ searches, emptyMessage }: SavedSearchListProps
   }, [watchingPollSearchId, router]);
 
   async function pollNow(searchId: string) {
+    const search = searches.find((item) => item.id === searchId);
+    const latestRun = search?.recentPollRuns[0];
+
     setPollingId(searchId);
     setWatchingPollSearchId(null);
-    delete acknowledgedPollRunIdsRef.current[searchId];
+    pollWatchContextRef.current[searchId] = createPollNowWatchContext(latestRun?.id);
+    if (latestRun?.id) {
+      acknowledgedPollRunIdsRef.current[searchId] = latestRun.id;
+    } else {
+      delete acknowledgedPollRunIdsRef.current[searchId];
+    }
     clearBannerDismissTimeout(searchId);
     updateSearchPollState(searchId, {
       phase: "queuing",
