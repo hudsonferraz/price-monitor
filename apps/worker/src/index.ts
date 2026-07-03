@@ -9,6 +9,7 @@ import {
 import type { PollSearchJobData } from "@price-monitor/shared/queue";
 import { cleanupPollJobs } from "./lib/poll-job-cleanup";
 import { closeBrowser } from "./lib/marketplace-browser";
+import { getFacebookSessionDiagnostics } from "./lib/facebook-session";
 import { startHealthServer } from "./lib/health-server";
 import { executePollSearch, scheduleDuePolls } from "./jobs/poll-search.job";
 
@@ -19,15 +20,27 @@ async function main(): Promise<void> {
   console.log("Starting price-monitor worker...");
 
   if (process.env.MOCK_MARKETPLACE === "true") {
-    console.log("MOCK_MARKETPLACE=true — using mock listings instead of Facebook.");
-  } else if (process.env.FACEBOOK_STORAGE_STATE_PATH) {
-    console.log(`Using Facebook session: ${process.env.FACEBOOK_STORAGE_STATE_PATH}`);
+    console.log("MOCK_MARKETPLACE=true - using mock listings instead of Facebook.");
   } else {
-    console.warn(
-      "FACEBOOK_STORAGE_STATE_PATH is not set. Polls may fail when Facebook requires login.",
-    );
-  }
+    const facebookSession = getFacebookSessionDiagnostics();
+    const logPayload = {
+      status: facebookSession.status,
+      path: facebookSession.path,
+      exists: facebookSession.exists,
+      validJson: facebookSession.validJson,
+      facebookCookieCount: facebookSession.facebookCookieCount,
+      hasCUserCookie: facebookSession.hasCUserCookie,
+      hasXsCookie: facebookSession.hasXsCookie,
+      earliestExpiryIso: facebookSession.earliestExpiryIso,
+      message: facebookSession.message,
+    };
 
+    if (facebookSession.status === "ok") {
+      console.log("Facebook session diagnostics:", logPayload);
+    } else {
+      console.warn("Facebook session diagnostics:", logPayload);
+    }
+  }
   const pollWorker = new Worker(
     POLL_SEARCH_QUEUE,
     async (job) => {

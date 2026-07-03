@@ -5,6 +5,7 @@ import {
   type Page,
 } from "playwright";
 import { FacebookMarketplaceAdapter } from "../adapters/facebook-marketplace.adapter";
+import { assertFacebookSessionReady, getFacebookStorageStatePath } from "./facebook-session";
 import { getMockListings, isMockMarketplaceEnabled } from "./mock-marketplace";
 import {
   BLOCKED_PLAYWRIGHT_RESOURCE_TYPES,
@@ -18,7 +19,7 @@ function isHeadless(): boolean {
 }
 
 function getStorageStatePath(): string | undefined {
-  return process.env.FACEBOOK_STORAGE_STATE_PATH || undefined;
+  return getFacebookStorageStatePath();
 }
 
 async function configureResourceBlocking(context: BrowserContext): Promise<void> {
@@ -64,6 +65,8 @@ export async function searchMarketplace(input: SearchInput): Promise<NormalizedL
   if (isMockMarketplaceEnabled()) {
     return getMockListings(input.keywords);
   }
+
+  assertFacebookSessionReady();
 
   logMemoryUsage("before poll");
 
