@@ -1,5 +1,6 @@
 import { type AlertRecord } from "@/components/alerts-feed";
 import { PollDiagnosticsPanel } from "@/components/poll-diagnostics-panel";
+import { WorkerStatusCard, type WorkerHeartbeatRecord } from "@/components/worker-status-card";
 import { MarketplaceLocationHint } from "@/components/marketplace-location-hint";
 import { NotificationSettings } from "@/components/notification-settings";
 import type { PollRunRecord } from "@/components/poll-run-history";
@@ -23,7 +24,7 @@ export default async function DashboardPage() {
   const locale = await getLocale();
   const t = await getTranslator(locale);
 
-  const [searches, pollRuns, user, workerWake] = await Promise.all([
+  const [searches, pollRuns, user, workerWake, latestWorkerHeartbeat] = await Promise.all([
     prisma.savedSearch.findMany({
       where: { userId: session.user.id },
       orderBy: { createdAt: "desc" },
@@ -46,6 +47,9 @@ export default async function DashboardPage() {
       select: { emailNotificationsEnabled: true },
     }),
     wakeWorker(3_000),
+    prisma.workerHeartbeat.findFirst({
+      orderBy: { lastSeenAt: "desc" },
+    }),
   ]);
 
   const pollHealth = summarizeRecentPollHealth(pollRuns);
@@ -137,6 +141,19 @@ export default async function DashboardPage() {
   });
 
   const totalListings = serializedSearches.reduce((sum, search) => sum + search.alerts.length, 0);
+  const workerHeartbeat: WorkerHeartbeatRecord | null = latestWorkerHeartbeat
+    ? {
+        workerId: latestWorkerHeartbeat.workerId,
+        status: latestWorkerHeartbeat.status,
+        hostname: latestWorkerHeartbeat.hostname,
+        pid: latestWorkerHeartbeat.pid,
+        startedAt: latestWorkerHeartbeat.startedAt.toISOString(),
+        lastSeenAt: latestWorkerHeartbeat.lastSeenAt.toISOString(),
+        facebookSessionStatus: latestWorkerHeartbeat.facebookSessionStatus,
+        facebookSessionMode: latestWorkerHeartbeat.facebookSessionMode,
+        facebookSessionMessage: latestWorkerHeartbeat.facebookSessionMessage,
+      }
+    : null;
 
   return (
     <div className="min-h-screen">
@@ -151,6 +168,8 @@ export default async function DashboardPage() {
             emailNotificationsEnabled={user?.emailNotificationsEnabled ?? true}
           />
         </section>
+
+        <WorkerStatusCard heartbeat={workerHeartbeat} />
 
         <PollDiagnosticsPanel
           workerWake={workerWake}

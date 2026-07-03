@@ -173,3 +173,21 @@ model PollRun {
 
   @@index([savedSearchId, startedAt(sort: Desc)])
 }
+
+model WorkerHeartbeat {
+  id                     String   @id @default(cuid())
+  workerId               String   @unique
+  status                 String   @default("ONLINE")
+  hostname               String?
+  pid                    Int?
+  startedAt              DateTime
+  lastSeenAt             DateTime @default(now())
+  facebookSessionStatus  String?
+  facebookSessionMode    String?
+  facebookSessionPath    String?
+  facebookSessionMessage String?
+  createdAt              DateTime @default(now())
+  updatedAt              DateTime @updatedAt
+
+  @@index([lastSeenAt(sort: Desc)])
+}

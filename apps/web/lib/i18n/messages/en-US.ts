@@ -43,19 +43,29 @@ export const messages = {
   notificationsDisabled: "Email alerts disabled.",
   notificationsUpdateFailed: "Failed to update notification settings",
 
+
+  workerStatusTitle: "Local worker",
+  workerStatusOnline: "Worker is online and writing heartbeats. Polls should run locally.",
+  workerStatusStale: "Worker heartbeat is stale. Start npm run worker:dev or check the worker terminal.",
+  workerStatusOffline: "Worker stopped cleanly. Start npm run worker:dev before polling.",
+  workerStatusMissing: "No local worker heartbeat found yet. Start npm run worker:dev to connect the dashboard to the scraper.",
+  workerStatusId: "Worker: {id}",
+  workerStatusLastSeen: "Last seen: {date}",
+  workerStatusRuntime: "Runtime",
+  workerStatusFacebookSession: "Facebook session",
   marketplaceLocationHint:
     "Results follow your Facebook account's region — listings are shown near where your Facebook session is logged in, not a city you pick in the app.",
 
   facebookSessionTitle: "Facebook session needs refresh",
   facebookSessionDescription:
-    "Recent polls failed because the worker lost its Facebook login. This usually happens every few weeks on Render.",
+    "Recent polls failed because the local worker lost its Facebook login.",
   facebookSessionStep1:
-    "On your PC, run npm run save:facebook-session and sign in to Facebook.",
+    "Run npm run facebook:login and sign in to Facebook in the visible browser.",
   facebookSessionStep2: "Open Render → worker service → Environment → Secret Files.",
   facebookSessionStep3:
-    "Replace /etc/secrets/facebook-storage-state.json with the new file contents.",
-  facebookSessionStep4: "Redeploy the worker, then click Poll now again.",
-  facebookSessionDocs: "Full walkthrough in render-deploy.md",
+    "Open Marketplace in that browser and confirm listings are visible.",
+  facebookSessionStep4: "Return to the terminal, press Enter, then restart npm run worker:dev if needed.",
+  facebookSessionDocs: "Full walkthrough in local-first-setup.md",
 
   searchKeywords: "Keywords",
   searchPriceRange: "Price range",
@@ -103,9 +113,9 @@ export const messages = {
   pollCheckingMarketplace: "Checking Facebook Marketplace — usually takes 1–2 minutes.",
   pollListingsSummary: "{listings} listings · {alerts} new alert(s)",
   pollErrorSession:
-    "Facebook session expired or missing on the worker. Refresh facebook-storage-state.json on Render.",
+    "Facebook session expired or missing on the worker. Run npm run facebook:login locally.",
   pollErrorCheckpoint:
-    "Facebook sent the worker to a checkpoint. Open Facebook locally, clear the checkpoint, then refresh facebook-storage-state.json on Render.",
+    "Facebook sent the worker to a checkpoint. Run npm run facebook:login locally and clear the prompt.",
   pollErrorNoListings:
     "Facebook loaded, but the worker could not extract Marketplace listings. Try a broader search or refresh the Facebook session if this repeats.",
   pollErrorTimeout:
@@ -119,7 +129,7 @@ export const messages = {
   pollStatusFailed: "Failed",
   pollStatusSending: "Sending poll request...",
   pollStatusQueuedAuto: "Poll queued. Updating automatically.",
-  pollStatusWorkerWakeFailed: "Poll queued, but the worker wake check failed ({detail}). Check WORKER_HEALTH_URL and the Render worker logs.",
+  pollStatusWorkerWakeFailed: "Poll queued, but the worker wake check failed ({detail}). Check the local worker terminal or WORKER_HEALTH_URL if configured.",
   pollStatusSuccessSummary: "Found {listings} listing(s), {alerts} new.",
   pollStatusFailedGeneric: "Poll failed. Try again in a few minutes.",
   pollStatusFailedQueue: "Failed to queue poll",
@@ -128,22 +138,22 @@ export const messages = {
   diagnosticsDocs: "Troubleshooting guide",
   diagnosticsWorkerTitle: "Worker unreachable",
   diagnosticsWorkerDescription:
-    "The web app is online, but the Render worker health check failed ({detail}). Polls can be queued, but listings will not appear until the worker starts. Failed polls in the last 24h: {failedPolls}.",
+    "The web app is online, but the worker health check failed ({detail}). Polls can be queued, but listings will not appear until npm run worker:dev is running. Failed polls in the last 24h: {failedPolls}.",
   diagnosticsSessionTitle: "Facebook session expired",
   diagnosticsSessionDescription:
-    "Recent polls reached the worker, but Facebook asked it to log in again. Refresh the saved Facebook session on Render. Failed polls in the last 24h: {failedPolls}.",
+    "Recent polls reached the worker, but Facebook asked it to log in again. Run npm run facebook:login locally and clear the prompt. Failed polls in the last 24h: {failedPolls}.",
   diagnosticsCheckpointTitle: "Facebook checkpoint detected",
   diagnosticsCheckpointDescription:
-    "Facebook sent the worker session to a checkpoint. Clear it locally in Facebook, save a new session, and redeploy the worker. Failed polls in the last 24h: {failedPolls}.",
+    "Facebook sent the worker session to a checkpoint. Run npm run facebook:login locally, clear it, and try again. Failed polls in the last 24h: {failedPolls}.",
   diagnosticsNoListingsTitle: "No listings extracted",
   diagnosticsNoListingsDescription:
     "Facebook loaded, but the scraper could not find Marketplace listing data. This can happen with narrow searches, Marketplace layout changes, or a stale Facebook session. Failed polls in the last 24h: {failedPolls}.",
   diagnosticsTimeoutTitle: "Poll timed out",
   diagnosticsTimeoutDescription:
-    "The worker started a poll but did not finish in time. The Render free tier may be cold-starting, or Facebook may be slow. Failed polls in the last 24h: {failedPolls}.",
+    "The worker started a poll but did not finish in time. The local worker may be busy, asleep, or Facebook may be slow. Failed polls in the last 24h: {failedPolls}.",
   diagnosticsUnknownTitle: "Polling issue detected",
   diagnosticsUnknownDescription:
-    "A recent poll failed with an unclassified error. Check the poll history and Render worker logs. Failed polls in the last 24h: {failedPolls}.",
+    "A recent poll failed with an unclassified error. Check the poll history and local worker logs. Failed polls in the last 24h: {failedPolls}.",
 
   alertsNoListings: "No listings yet. Click Poll now to search Facebook Marketplace.",
   alertsListingsTitle: "Listings ({count})",

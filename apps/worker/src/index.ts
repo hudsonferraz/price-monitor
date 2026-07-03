@@ -11,11 +11,13 @@ import { cleanupPollJobs } from "./lib/poll-job-cleanup";
 import { closeBrowser } from "./lib/marketplace-browser";
 import { getFacebookSessionDiagnostics } from "./lib/facebook-session";
 import { startHealthServer } from "./lib/health-server";
+import { markWorkerOffline, startWorkerHeartbeat } from "./lib/worker-heartbeat";
 import { executePollSearch, scheduleDuePolls } from "./jobs/poll-search.job";
 
 async function main(): Promise<void> {
   const connection = getRedisConnectionOptions();
   const healthServer = startHealthServer();
+  const startedAt = new Date();
 
   console.log("Starting price-monitor worker...");
 
@@ -25,6 +27,7 @@ async function main(): Promise<void> {
     const facebookSession = getFacebookSessionDiagnostics();
     const logPayload = {
       status: facebookSession.status,
+      mode: facebookSession.mode,
       path: facebookSession.path,
       exists: facebookSession.exists,
       validJson: facebookSession.validJson,
@@ -99,6 +102,8 @@ async function main(): Promise<void> {
   });
 
   await registerScheduler();
+  const heartbeat = startWorkerHeartbeat(startedAt);
+  console.log(`Worker heartbeat active as ${heartbeat.workerId}.`);
   console.log("Scheduler registered (checks every 60 seconds).");
   console.log("Worker is running. Press Ctrl+C to stop.");
 
@@ -107,6 +112,13 @@ async function main(): Promise<void> {
     await pollWorker.close();
     await scheduleWorker.close();
     await closeBrowser();
+    heartbeat.stop();
+    try {
+      await markWorkerOffline(heartbeat.workerId);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      console.warn("Failed to mark worker offline:", message);
+    }
     healthServer.close();
     process.exit(0);
   };

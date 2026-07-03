@@ -46,19 +46,29 @@ export const messages = {
   notificationsDisabled: "Alertas por e-mail desativados.",
   notificationsUpdateFailed: "Falha ao atualizar configurações de notificação",
 
+
+  workerStatusTitle: "Worker local",
+  workerStatusOnline: "Worker online e escrevendo heartbeats. Os polls devem rodar localmente.",
+  workerStatusStale: "Heartbeat do worker esta antigo. Rode npm run worker:dev ou confira o terminal do worker.",
+  workerStatusOffline: "Worker parou corretamente. Rode npm run worker:dev antes de fazer poll.",
+  workerStatusMissing: "Nenhum heartbeat local encontrado ainda. Rode npm run worker:dev para conectar o painel ao scraper.",
+  workerStatusId: "Worker: {id}",
+  workerStatusLastSeen: "Ultimo sinal: {date}",
+  workerStatusRuntime: "Runtime",
+  workerStatusFacebookSession: "Sessao do Facebook",
   marketplaceLocationHint:
     "Os resultados seguem a região da sua conta Facebook — os anúncios aparecem perto de onde sua sessão está logada, não de uma cidade escolhida no app.",
 
   facebookSessionTitle: "Sessão do Facebook precisa ser renovada",
   facebookSessionDescription:
-    "Polls recentes falharam porque o worker perdeu o login do Facebook. Isso costuma acontecer a cada poucas semanas no Render.",
+    "Polls recentes falharam porque o worker local perdeu o login do Facebook.",
   facebookSessionStep1:
-    "No seu PC, rode npm run save:facebook-session e entre no Facebook.",
+    "Rode npm run facebook:login e entre no Facebook no navegador visivel.",
   facebookSessionStep2: "Abra Render → serviço worker → Environment → Secret Files.",
   facebookSessionStep3:
     "Substitua /etc/secrets/facebook-storage-state.json pelo conteúdo do novo arquivo.",
   facebookSessionStep4: "Faça redeploy do worker e clique em Poll now novamente.",
-  facebookSessionDocs: "Guia completo em render-deploy.md",
+  facebookSessionDocs: "Guia completo em local-first-setup.md",
 
   searchKeywords: "Palavras-chave",
   searchPriceRange: "Faixa de preço",
@@ -109,7 +119,7 @@ export const messages = {
   pollErrorSession:
     "Sessão do Facebook expirou ou está ausente no worker. Atualize facebook-storage-state.json no Render.",
   pollErrorCheckpoint:
-    "Facebook enviou o worker para um checkpoint. Abra o Facebook localmente, resolva o checkpoint e atualize facebook-storage-state.json no Render.",
+    "Facebook enviou o worker para um checkpoint. Rode npm run facebook:login localmente e resolva o prompt.",
   pollErrorNoListings:
     "Facebook carregou, mas o worker nao conseguiu extrair anuncios do Marketplace. Tente uma busca mais ampla ou atualize a sessao se isso se repetir.",  pollErrorTimeout:
     "Poll expirou. O worker pode ter estado dormindo ou o Facebook demorou demais. Tente Poll now novamente.",
@@ -131,22 +141,22 @@ export const messages = {
   diagnosticsDocs: "Guia de troubleshooting",
   diagnosticsWorkerTitle: "Worker inacessivel",
   diagnosticsWorkerDescription:
-    "O app web esta online, mas o health check do worker no Render falhou ({detail}). Os polls podem entrar na fila, mas os anuncios nao aparecem ate o worker iniciar. Polls com falha nas ultimas 24h: {failedPolls}.",
+    "O app web esta online, mas o health check do worker falhou ({detail}). Os polls podem entrar na fila, mas os anuncios nao aparecem ate npm run worker:dev estar rodando. Polls com falha nas ultimas 24h: {failedPolls}.",
   diagnosticsSessionTitle: "Sessao do Facebook expirou",
   diagnosticsSessionDescription:
-    "Polls recentes chegaram ao worker, mas o Facebook pediu login novamente. Atualize a sessao salva do Facebook no Render. Polls com falha nas ultimas 24h: {failedPolls}.",
+    "Polls recentes chegaram ao worker, mas o Facebook pediu login novamente. Rode npm run facebook:login localmente e resolva o prompt. Polls com falha nas ultimas 24h: {failedPolls}.",
   diagnosticsCheckpointTitle: "Checkpoint do Facebook detectado",
   diagnosticsCheckpointDescription:
-    "O Facebook enviou a sessao do worker para um checkpoint. Resolva localmente no Facebook, salve uma nova sessao e faca redeploy do worker. Polls com falha nas ultimas 24h: {failedPolls}.",
+    "O Facebook enviou a sessao do worker para um checkpoint. Rode npm run facebook:login localmente, resolva o prompt e tente de novo. Polls com falha nas ultimas 24h: {failedPolls}.",
   diagnosticsNoListingsTitle: "Nenhum anuncio extraido",
   diagnosticsNoListingsDescription:
     "O Facebook carregou, mas o scraper nao encontrou dados de anuncios do Marketplace. Isso pode acontecer com buscas muito restritas, mudancas no layout ou sessao antiga. Polls com falha nas ultimas 24h: {failedPolls}.",
   diagnosticsTimeoutTitle: "Poll expirou",
   diagnosticsTimeoutDescription:
-    "O worker iniciou o poll, mas nao terminou a tempo. O free tier do Render pode estar acordando, ou o Facebook pode estar lento. Polls com falha nas ultimas 24h: {failedPolls}.",
+    "O worker iniciou o poll, mas nao terminou a tempo. O worker local pode estar ocupado, parado ou o Facebook pode estar lento. Polls com falha nas ultimas 24h: {failedPolls}.",
   diagnosticsUnknownTitle: "Problema de polling detectado",
   diagnosticsUnknownDescription:
-    "Um poll recente falhou com erro nao classificado. Confira o historico de polls e os logs do worker no Render. Polls com falha nas ultimas 24h: {failedPolls}.",
+    "Um poll recente falhou com erro nao classificado. Confira o historico de polls e os logs do worker local. Polls com falha nas ultimas 24h: {failedPolls}.",
   alertsNoListings:
     "Nenhum anúncio ainda. Clique em Poll now para buscar no Facebook Marketplace.",
   alertsListingsTitle: "Anúncios ({count})",
