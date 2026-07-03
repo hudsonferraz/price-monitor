@@ -55,7 +55,7 @@ Public pages only (no auth required):
 
 ## Quickstart (local)
 
-Requires Node.js 18+.
+Requires Node.js 18+ and Docker Desktop for local Postgres/Redis.
 
 ```bash
 cd price-monitor
@@ -63,6 +63,7 @@ npm install
 npx playwright install chromium
 cp .env.example .env
 cp .env.example apps/web/.env.local   # fill AUTH_* and shared URLs
+npm run docker:up
 npm run db:push
 ```
 
@@ -190,13 +191,14 @@ See `.env.example`. Key variables:
 
 | Variable                      | Description                             |
 | ----------------------------- | --------------------------------------- |
-| `DATABASE_URL`                | PostgreSQL (Neon)                       |
-| `REDIS_URL`                   | Upstash Redis for BullMQ                |
+| `DATABASE_URL`                | PostgreSQL (local Docker by default)    |
+| `REDIS_URL`                   | Redis for BullMQ (local Docker by default) |
 | `AUTH_SECRET`                 | NextAuth secret                         |
 | `WORKER_HEALTH_URL`           | Render `/health` URL (wake on Poll now) |
 | `RESEND_API_KEY`              | Email (worker only)                     |
 | `MOCK_MARKETPLACE`            | Skip Playwright; return fake listings   |
-| `FACEBOOK_STORAGE_STATE_PATH` | Path to saved Facebook session          |
+| `FACEBOOK_BROWSER_PROFILE_DIR` | Persistent local Facebook browser profile |
+| `FACEBOOK_STORAGE_STATE_PATH` | Legacy exported Facebook session file   |
 
 ## Design decisions
 

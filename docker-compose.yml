@@ -1,0 +1,37 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: price-monitor-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: price_monitor
+      POSTGRES_USER: price_monitor
+      POSTGRES_PASSWORD: price_monitor
+    ports:
+      - "5432:5432"
+    volumes:
+      - price_monitor_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U price_monitor -d price_monitor"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    container_name: price-monitor-redis
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes", "--maxmemory-policy", "noeviction"]
+    ports:
+      - "6379:6379"
+    volumes:
+      - price_monitor_redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  price_monitor_postgres_data:
+  price_monitor_redis_data:
