@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="620">
+  <rect width="100%" height="100%" fill="#0a0a0a"/>
+  <text x="32" y="48" fill="#f3f4f6" font-family="Segoe UI, Arial, sans-serif" font-size="24" font-weight="700">price-monitor  local-first architecture</text>
+  <text x="32" y="96" fill="#9ca3af" font-family="Consolas, monospace" font-size="16">Next.js dashboard (localhost:3000)</text>
+  <text x="32" y="124" fill="#9ca3af" font-family="Consolas, monospace" font-size="16">  |-- saved searches, alerts, worker heartbeat</text>
+  <text x="32" y="152" fill="#9ca3af" font-family="Consolas, monospace" font-size="16">  '-- enqueues BullMQ poll jobs</text>
+  <text x="32" y="180" fill="#9ca3af" font-family="Consolas, monospace" font-size="16"></text>
+  <text x="32" y="208" fill="#9ca3af" font-family="Consolas, monospace" font-size="16">Docker Redis (localhost:6379)</text>
+  <text x="32" y="236" fill="#9ca3af" font-family="Consolas, monospace" font-size="16">  |-- poll-search queue (concurrency 1)</text>
+  <text x="32" y="264" fill="#9ca3af" font-family="Consolas, monospace" font-size="16">  '-- schedule-polls (every 60s)</text>
+  <text x="32" y="292" fill="#9ca3af" font-family="Consolas, monospace" font-size="16"></text>
+  <text x="32" y="320" fill="#9ca3af" font-family="Consolas, monospace" font-size="16">Local BullMQ + Playwright worker</text>
+  <text x="32" y="348" fill="#9ca3af" font-family="Consolas, monospace" font-size="16">  |-- persistent .facebook-profile session</text>
+  <text x="32" y="376" fill="#9ca3af" font-family="Consolas, monospace" font-size="16">  |-- GraphQL + JSON + DOM scraping</text>
+  <text x="32" y="404" fill="#9ca3af" font-family="Consolas, monospace" font-size="16">  '-- optional Resend email</text>
+  <text x="32" y="432" fill="#9ca3af" font-family="Consolas, monospace" font-size="16"></text>
+  <text x="32" y="460" fill="#9ca3af" font-family="Consolas, monospace" font-size="16">Docker Postgres (localhost:5433)</text>
+  <text x="32" y="488" fill="#9ca3af" font-family="Consolas, monospace" font-size="16">  users, searches, alerts, poll runs, WorkerHeartbeat</text>
+  <text x="32" y="516" fill="#6b7280" font-family="Consolas, monospace" font-size="14">Future: AI listing evaluation layer</text>
+</svg>
