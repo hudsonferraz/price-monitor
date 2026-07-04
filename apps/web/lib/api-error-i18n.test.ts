@@ -37,6 +37,11 @@ describe("translateApiError", () => {
     );
   });
 
+  it("translates worker availability errors", () => {
+    expect(translateApiError("WORKER_OFFLINE", translate)).toBe(messages.apiErrorWorkerOffline);
+    expect(translateApiError("WORKER_STALE", translate)).toBe(messages.apiErrorWorkerStale);
+  });
+
   it("falls back to unknown for missing codes", () => {
     expect(translateApiError(undefined, translate)).toBe(messages.apiErrorUnknown);
   });

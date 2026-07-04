@@ -36,6 +36,8 @@ describe("createApiErrorBody", () => {
       "REDIS_NOT_CONFIGURED",
       "POLL_QUEUE_FAILED",
       "POLL_COOLDOWN",
+      "WORKER_OFFLINE",
+      "WORKER_STALE",
     ];
 
     for (const errorCode of codes) {

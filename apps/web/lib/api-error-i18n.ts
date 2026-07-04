@@ -17,6 +17,8 @@ const apiErrorMessageKeys: Record<ApiErrorCode, MessageKey> = {
   REDIS_NOT_CONFIGURED: "apiErrorRedisNotConfigured",
   POLL_QUEUE_FAILED: "apiErrorPollQueueFailed",
   POLL_COOLDOWN: "pollCooldown",
+  WORKER_OFFLINE: "apiErrorWorkerOffline",
+  WORKER_STALE: "apiErrorWorkerStale",
 };
 
 export function getApiErrorMessageKey(errorCode: string | undefined): MessageKey | null {

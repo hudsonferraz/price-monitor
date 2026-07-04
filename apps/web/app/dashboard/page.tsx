@@ -1,7 +1,6 @@
 import { type AlertRecord } from "@/components/alerts-feed";
 import { PollDiagnosticsPanel } from "@/components/poll-diagnostics-panel";
 import {
-  getWorkerState,
   WorkerStatusCard,
   type WorkerActivitySummary,
   type WorkerHeartbeatRecord,

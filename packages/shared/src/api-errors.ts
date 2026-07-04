@@ -13,7 +13,9 @@ export type ApiErrorCode =
   | "INVALID_PREFERRED_LOCALE"
   | "REDIS_NOT_CONFIGURED"
   | "POLL_QUEUE_FAILED"
-  | "POLL_COOLDOWN";
+  | "POLL_COOLDOWN"
+  | "WORKER_OFFLINE"
+  | "WORKER_STALE";
 
 export function createApiErrorBody(
   errorCode: ApiErrorCode,

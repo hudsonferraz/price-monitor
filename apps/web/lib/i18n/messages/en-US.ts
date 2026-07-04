@@ -60,6 +60,10 @@ export const messages = {
   apiErrorInvalidPreferredLocale: "Language must be English or Portuguese.",
   apiErrorRedisNotConfigured: "Redis is not configured. Start Docker and the local worker to enable polling.",
   apiErrorPollQueueFailed: "Failed to queue the poll. Check that Redis and the worker are running.",
+  apiErrorWorkerOffline:
+    "No local worker is running. Start npm run worker:dev before polling.",
+  apiErrorWorkerStale:
+    "The local worker heartbeat is stale. Restart npm run worker:dev before polling.",
   apiErrorUnknown: "Something went wrong. Please try again.",
 
 

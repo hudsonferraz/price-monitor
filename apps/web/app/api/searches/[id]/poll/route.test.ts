@@ -22,9 +22,14 @@ vi.mock("@/lib/poll-queue-context", () => ({
   getOwnedBlockingSearchName: vi.fn(),
 }));
 
+vi.mock("@/lib/worker-health", () => ({
+  getLatestWorkerState: vi.fn(),
+}));
+
 import { auth } from "@/auth";
 import { getOwnedBlockingSearchName } from "@/lib/poll-queue-context";
 import { getPollQueueContext, queuePollSearch } from "@/lib/queue";
+import { getLatestWorkerState } from "@/lib/worker-health";
 import { prisma } from "@price-monitor/database";
 import { POST } from "./route";
 
@@ -34,6 +39,7 @@ const mockUpdate = vi.mocked(prisma.savedSearch.update);
 const mockGetPollQueueContext = vi.mocked(getPollQueueContext);
 const mockQueuePollSearch = vi.mocked(queuePollSearch);
 const mockGetOwnedBlockingSearchName = vi.mocked(getOwnedBlockingSearchName);
+const mockGetLatestWorkerState = vi.mocked(getLatestWorkerState);
 
 function createRequestContext(searchId: string) {
   return {
@@ -49,6 +55,7 @@ describe("POST /api/searches/[id]/poll", () => {
       blockingSearchName: null,
       waitingForAnotherPoll: false,
     });
+    mockGetLatestWorkerState.mockResolvedValue("online");
   });
 
   it("returns 401 when the user is not authenticated", async () => {
@@ -110,6 +117,54 @@ describe("POST /api/searches/[id]/poll", () => {
     expect(body.errorCode).toBe("POLL_COOLDOWN");
     expect(body.remainingMinutes).toBeGreaterThan(0);
     expect(body.retryAfterSeconds).toBeGreaterThan(0);
+    expect(mockQueuePollSearch).not.toHaveBeenCalled();
+  });
+
+  it("returns WORKER_OFFLINE when no local worker heartbeat exists", async () => {
+    mockAuth.mockResolvedValue({ user: { id: "user-1" } } as never);
+    mockFindFirst.mockResolvedValue({
+      id: "search-1",
+      userId: "user-1",
+      isEnabled: true,
+      lastAttemptedAt: null,
+    } as never);
+    mockGetPollQueueContext.mockResolvedValue({
+      isQueued: false,
+      jobState: null,
+      waitingPosition: null,
+      blockingSavedSearchId: undefined,
+    });
+    mockGetLatestWorkerState.mockResolvedValue("missing");
+
+    const response = await POST(new Request("http://localhost/api/searches/search-1/poll", { method: "POST" }), createRequestContext("search-1"));
+    const body = await response.json();
+
+    expect(response.status).toBe(503);
+    expect(body.errorCode).toBe("WORKER_OFFLINE");
+    expect(mockQueuePollSearch).not.toHaveBeenCalled();
+  });
+
+  it("returns WORKER_STALE when the worker heartbeat is too old", async () => {
+    mockAuth.mockResolvedValue({ user: { id: "user-1" } } as never);
+    mockFindFirst.mockResolvedValue({
+      id: "search-1",
+      userId: "user-1",
+      isEnabled: true,
+      lastAttemptedAt: null,
+    } as never);
+    mockGetPollQueueContext.mockResolvedValue({
+      isQueued: false,
+      jobState: null,
+      waitingPosition: null,
+      blockingSavedSearchId: undefined,
+    });
+    mockGetLatestWorkerState.mockResolvedValue("stale");
+
+    const response = await POST(new Request("http://localhost/api/searches/search-1/poll", { method: "POST" }), createRequestContext("search-1"));
+    const body = await response.json();
+
+    expect(response.status).toBe(503);
+    expect(body.errorCode).toBe("WORKER_STALE");
     expect(mockQueuePollSearch).not.toHaveBeenCalled();
   });
 

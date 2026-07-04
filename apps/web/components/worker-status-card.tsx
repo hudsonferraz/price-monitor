@@ -4,6 +4,14 @@ import { useLocale, useTranslations } from "@/components/locale-provider";
 import { formatDateTime } from "@/lib/i18n";
 import type { AppLocale } from "@/lib/i18n/locales";
 import { formatDurationMs, type PollIssueCode } from "@price-monitor/shared/poll-errors";
+import {
+  getWorkerState,
+  HEARTBEAT_STALE_MS,
+  type WorkerState,
+} from "@price-monitor/shared/worker-health";
+
+export { getWorkerState, HEARTBEAT_STALE_MS };
+export type { WorkerState };
 
 export interface WorkerHeartbeatRecord {
   workerId: string;
@@ -38,9 +46,7 @@ interface WorkerStatusCardProps {
   activity: WorkerActivitySummary;
 }
 
-export const HEARTBEAT_STALE_MS = 90_000;
-
-const statusStyles: Record<"online" | "stale" | "offline" | "missing", string> = {
+const statusStyles: Record<WorkerState, string> = {
   online:
     "border-emerald-200 bg-emerald-50 text-emerald-950 dark:border-emerald-900/60 dark:bg-emerald-950/30 dark:text-emerald-100",
   stale:
@@ -51,7 +57,7 @@ const statusStyles: Record<"online" | "stale" | "offline" | "missing", string> =
     "border-blue-200 bg-blue-50 text-blue-950 dark:border-blue-900/50 dark:bg-blue-950/30 dark:text-blue-100",
 };
 
-const dotStyles: Record<"online" | "stale" | "offline" | "missing", string> = {
+const dotStyles: Record<WorkerState, string> = {
   online: "bg-emerald-500",
   stale: "bg-amber-500",
   offline: "bg-slate-400",
@@ -117,24 +123,7 @@ export function WorkerStatusCard({ heartbeat, activity }: WorkerStatusCardProps)
   );
 }
 
-export function getWorkerState(heartbeat: WorkerHeartbeatRecord | null): "online" | "stale" | "offline" | "missing" {
-  if (!heartbeat) {
-    return "missing";
-  }
-
-  if (heartbeat.status === "OFFLINE") {
-    return "offline";
-  }
-
-  const lastSeenAt = new Date(heartbeat.lastSeenAt).getTime();
-  if (!Number.isFinite(lastSeenAt) || Date.now() - lastSeenAt > HEARTBEAT_STALE_MS) {
-    return "stale";
-  }
-
-  return "online";
-}
-
-function getStatusText(state: "online" | "stale" | "offline" | "missing", t: ReturnType<typeof useTranslations>): string {
+function getStatusText(state: WorkerState, t: ReturnType<typeof useTranslations>): string {
   switch (state) {
     case "online":
       return t("workerStatusOnline");

@@ -66,6 +66,10 @@ export const messages = {
     "Redis nao esta configurado. Inicie o Docker e o worker local para habilitar polling.",
   apiErrorPollQueueFailed:
     "Falha ao enfileirar o poll. Verifique se Redis e o worker estao rodando.",
+  apiErrorWorkerOffline:
+    "Nenhum worker local esta rodando. Inicie npm run worker:dev antes de fazer poll.",
+  apiErrorWorkerStale:
+    "O heartbeat do worker local esta antigo. Reinicie npm run worker:dev antes de fazer poll.",
   apiErrorUnknown: "Algo deu errado. Tente novamente.",
 
 

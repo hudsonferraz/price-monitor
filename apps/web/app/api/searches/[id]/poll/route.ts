@@ -2,6 +2,7 @@ import { auth } from "@/auth";
 import { apiErrorResponse } from "@/lib/api-responses";
 import { getOwnedBlockingSearchName } from "@/lib/poll-queue-context";
 import { getPollQueueContext, queuePollSearch } from "@/lib/queue";
+import { getLatestWorkerState } from "@/lib/worker-health";
 import { prisma } from "@price-monitor/database";
 import {
   getPollCooldownRemainingMinutes,
@@ -68,6 +69,15 @@ export async function POST(_request: Request, context: RouteContext) {
       retryAfterSeconds: Math.ceil(cooldownRemainingMs / 1000),
       minPollIntervalMinutes: MIN_MANUAL_POLL_INTERVAL_MS / 60_000,
     });
+  }
+
+  const workerState = await getLatestWorkerState();
+  if (workerState === "missing" || workerState === "offline") {
+    return apiErrorResponse("WORKER_OFFLINE", 503);
+  }
+
+  if (workerState === "stale") {
+    return apiErrorResponse("WORKER_STALE", 503);
   }
 
   try {
