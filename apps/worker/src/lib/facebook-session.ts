@@ -15,6 +15,7 @@ export type FacebookSessionVerificationSource = "facebook_login" | "successful_p
 export interface FacebookSessionVerification {
   verifiedAt: string;
   source: FacebookSessionVerificationSource;
+  lastFailureAt?: string | null;
 }
 
 export interface FacebookSessionDiagnostics {
@@ -30,6 +31,8 @@ export interface FacebookSessionDiagnostics {
   expiredCookieCount: number;
   persistentCookieCount: number;
   earliestExpiryIso: string | null;
+  lastVerifiedAt: string | null;
+  lastFailureAt: string | null;
   message: string;
 }
 
@@ -47,6 +50,10 @@ export function getFacebookSessionVerificationPath(profileDir: string): string {
   return path.join(profileDir, FACEBOOK_SESSION_VERIFICATION_FILE);
 }
 
+function isValidVerificationSource(value: unknown): value is FacebookSessionVerificationSource {
+  return value === "facebook_login" || value === "successful_poll";
+}
+
 export function readFacebookSessionVerification(
   profileDir: string,
 ): FacebookSessionVerification | null {
@@ -59,7 +66,11 @@ export function readFacebookSessionVerification(
   try {
     const parsed = JSON.parse(readFileSync(verificationPath, "utf8")) as FacebookSessionVerification;
 
-    if (typeof parsed.verifiedAt !== "string" || typeof parsed.source !== "string") {
+    if (typeof parsed.verifiedAt !== "string" || !isValidVerificationSource(parsed.source)) {
+      return null;
+    }
+
+    if (parsed.lastFailureAt != null && typeof parsed.lastFailureAt !== "string") {
       return null;
     }
 
@@ -69,22 +80,55 @@ export function readFacebookSessionVerification(
   }
 }
 
-export function markFacebookSessionVerified(
-  source: FacebookSessionVerificationSource,
-  profileDir: string = getFacebookBrowserProfileDir(),
+function writeFacebookSessionVerification(
+  profileDir: string,
+  verification: FacebookSessionVerification,
 ): void {
   mkdirSync(profileDir, { recursive: true });
-
-  const verification: FacebookSessionVerification = {
-    verifiedAt: new Date().toISOString(),
-    source,
-  };
 
   writeFileSync(
     getFacebookSessionVerificationPath(profileDir),
     `${JSON.stringify(verification, null, 2)}\n`,
     "utf8",
   );
+}
+
+export function isFacebookSessionAuthFailureActive(
+  verification: FacebookSessionVerification,
+): boolean {
+  if (!verification.lastFailureAt) {
+    return false;
+  }
+
+  return (
+    new Date(verification.lastFailureAt).getTime() >= new Date(verification.verifiedAt).getTime()
+  );
+}
+
+export function markFacebookSessionVerified(
+  source: FacebookSessionVerificationSource,
+  profileDir: string = getFacebookBrowserProfileDir(),
+): void {
+  const verification: FacebookSessionVerification = {
+    verifiedAt: new Date().toISOString(),
+    source,
+    lastFailureAt: null,
+  };
+
+  writeFacebookSessionVerification(profileDir, verification);
+}
+
+export function markFacebookSessionAuthFailure(
+  profileDir: string = getFacebookBrowserProfileDir(),
+): void {
+  const existing = readFacebookSessionVerification(profileDir);
+  const verification: FacebookSessionVerification = {
+    verifiedAt: existing?.verifiedAt ?? new Date(0).toISOString(),
+    source: existing?.source ?? "facebook_login",
+    lastFailureAt: new Date().toISOString(),
+  };
+
+  writeFacebookSessionVerification(profileDir, verification);
 }
 
 export function getFacebookSessionDiagnostics(
@@ -98,6 +142,8 @@ export function getFacebookSessionDiagnostics(
     expiredCookieCount: 0,
     persistentCookieCount: 0,
     earliestExpiryIso: null,
+    lastVerifiedAt: null,
+    lastFailureAt: null,
   };
 
   if (browserProfileDir == null) {
@@ -129,6 +175,23 @@ export function getFacebookSessionDiagnostics(
   }
 
   const verification = readFacebookSessionVerification(browserProfileDir);
+  const lastVerifiedAt = verification?.verifiedAt ?? null;
+  const lastFailureAt = verification?.lastFailureAt ?? null;
+
+  if (verification && isFacebookSessionAuthFailureActive(verification)) {
+    return {
+      status: "needs_login",
+      mode: "browser_profile",
+      configured: true,
+      path: browserProfileDir,
+      exists: true,
+      ...emptyCookieFields,
+      lastVerifiedAt,
+      lastFailureAt,
+      message:
+        "Facebook rejected the local browser session on a recent poll. Run npm run facebook:login and confirm Marketplace loads.",
+    };
+  }
 
   if (verification) {
     return {
@@ -138,6 +201,8 @@ export function getFacebookSessionDiagnostics(
       path: browserProfileDir,
       exists: true,
       ...emptyCookieFields,
+      lastVerifiedAt,
+      lastFailureAt,
       message:
         "Facebook session confirmed locally. Login is re-validated during each Marketplace poll.",
     };

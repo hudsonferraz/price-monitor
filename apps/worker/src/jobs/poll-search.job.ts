@@ -3,10 +3,11 @@ import {
   isSearchDueForScheduledPoll,
 } from "@price-monitor/shared/poll-schedule";
 import { hasPriceDropped, shouldClearPriceDropEvent } from "@price-monitor/shared/price-drop";
+import { isFacebookSessionError } from "@price-monitor/shared/poll-errors";
 import { normalizeListingLimit } from "@price-monitor/shared/sort-alerts";
 import type { NormalizedListing } from "@price-monitor/shared/types";
 import { sendNewAlertsEmail } from "../lib/email-notifications";
-import { markFacebookSessionVerified } from "../lib/facebook-session";
+import { markFacebookSessionAuthFailure, markFacebookSessionVerified } from "../lib/facebook-session";
 import { searchMarketplace } from "../lib/marketplace-browser";
 
 export const POLL_JOB_LOCK_MS = 10 * 60 * 1000;
@@ -255,6 +256,10 @@ export async function executePollSearch(savedSearchId: string): Promise<PollSear
         consecutiveFailures: { increment: 1 },
       },
     });
+
+    if (isFacebookSessionError(errorMessage)) {
+      markFacebookSessionAuthFailure();
+    }
 
     throw error;
   }
