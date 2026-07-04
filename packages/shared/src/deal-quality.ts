@@ -78,8 +78,8 @@ export function groupSnapshotPricesByListing(
     priceCents: number | null;
     savedSearchId: string;
   }>,
-): Map<string, number[]> {
-  const grouped = new Map<string, number[]>();
+): Map<string, Array<number | null>> {
+  const grouped = new Map<string, Array<number | null>>();
 
   for (const snapshot of snapshots) {
     const key = `${snapshot.savedSearchId}:${snapshot.listingId}`;

@@ -1,9 +1,14 @@
 import NextAuth from "next-auth";
-import { protectedRouteMatchers } from "./lib/auth-authorization";
 import { authConfig } from "./auth.config";
 
 export default NextAuth(authConfig).auth;
 
+// Keep in sync with protectedRouteMatchers in lib/auth-authorization.ts
 export const config = {
-  matcher: [...protectedRouteMatchers],
+  matcher: [
+    "/dashboard/:path*",
+    "/api/searches/:path*",
+    "/api/alerts/:path*",
+    "/api/user/:path*",
+  ],
 };
