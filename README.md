@@ -32,6 +32,10 @@ This is a **personal, educational, and portfolio project** for exploring scrapin
 |---------------------------------|--------------|
 | ![Dashboard](docs/images/dashboard.png) | ![Architecture](docs/images/architecture.png) |
 
+### Real listing results
+
+![Saved search with Facebook Marketplace listing alerts](docs/images/dashboard-listings.png)
+
 ## Capabilities
 
 | Area | What you get |
@@ -132,3 +136,4 @@ Facebook prohibits unauthorized automated data collection without permission. Th
 ## License
 
 See [LICENSE](LICENSE).
+
