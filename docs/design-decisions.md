@@ -4,7 +4,7 @@
 
 Facebook Marketplace sessions are interactive. Login walls, checkpoints, 2FA, and confirmation prompts are normal operational events, not rare edge cases. Keeping the Facebook-facing browser profile on your machine lets you fix those prompts directly with `npm run facebook:login`.
 
-The app is built as local, self-hosted automation: a Playwright worker on your machine, Docker Postgres and Redis for data and job queues, and a dashboard with clear worker and session diagnostics.
+The app is built as local-first automation: a Playwright worker on your machine, Docker Postgres and Redis for data and job queues, and a dashboard with clear worker and session diagnostics.
 
 ## Persistent browser profile
 

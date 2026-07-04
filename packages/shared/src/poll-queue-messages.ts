@@ -108,7 +108,7 @@ function formatEnglishPositionNote(waitingPosition: number | undefined): string 
   return ` You are #${waitingPosition} in line.`;
 }
 
-/** English fallback for logs and legacy callers. Prefer resolvePollQueueMessage + client i18n in the web app. */
+/** English fallback for logs and plain-string callers. Prefer resolvePollQueueMessage + client i18n in the web app. */
 export function formatPollQueueMessage(input: PollQueueMessageInput): string {
   const descriptor = resolvePollQueueMessage(input);
   return englishMessages[descriptor.messageCode](descriptor);

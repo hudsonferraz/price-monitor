@@ -3,6 +3,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import {
+  assertFacebookSessionReady,
   FACEBOOK_SESSION_VERIFICATION_FILE,
   getFacebookBrowserProfileDir,
   getFacebookSessionDiagnostics,
@@ -147,5 +148,26 @@ describe("markFacebookSessionAuthFailure", () => {
     const verification = readFacebookSessionVerification(dir);
     expect(verification?.lastFailureAt).toMatch(/^\d{4}-\d{2}-\d{2}T/);
     expect(getFacebookSessionDiagnostics(dir).status).toBe("needs_login");
+  });
+});
+describe("assertFacebookSessionReady", () => {
+  it("blocks polling after a recent Facebook auth failure", () => {
+    const previous = process.env.FACEBOOK_BROWSER_PROFILE_DIR;
+    const dir = join(makeTempDir(), "profile");
+    mkdirSync(dir);
+    process.env.FACEBOOK_BROWSER_PROFILE_DIR = dir;
+
+    try {
+      markFacebookSessionVerified("successful_poll", dir);
+      markFacebookSessionAuthFailure(dir);
+
+      expect(() => assertFacebookSessionReady()).toThrow(/Facebook rejected/);
+    } finally {
+      if (previous == null) {
+        delete process.env.FACEBOOK_BROWSER_PROFILE_DIR;
+      } else {
+        process.env.FACEBOOK_BROWSER_PROFILE_DIR = previous;
+      }
+    }
   });
 });

@@ -223,7 +223,7 @@ export function getFacebookSessionDiagnostics(
 export function assertFacebookSessionReady(): void {
   const diagnostics = getFacebookSessionDiagnostics();
 
-  if (diagnostics.status === "not_configured") {
+  if (diagnostics.status === "not_configured" || diagnostics.status === "needs_login") {
     throw new Error(`${diagnostics.message} Confirm Marketplace loads before starting the worker.`);
   }
 }
