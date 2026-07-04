@@ -10,7 +10,7 @@ export const messages = {
   homeEyebrow: "Facebook Marketplace · Brasil",
   homeTitle: "Receba alertas quando ofertas usadas baterem com sua busca",
   homeDescription:
-    "Salve buscas de itens no Facebook Marketplace. Quando novos anúncios aparecerem dentro da sua faixa de preço, você verá no painel e será notificado.",
+    "Salve buscas de itens no Facebook Marketplace. Quando novos anúncios aparecerem dentro da sua faixa de preço, eles aparecem no painel.",
   homeGetStarted: "Começar",
   homeGoToDashboard: "Ir para o painel",
   homeFeatureSaveTitle: "Salvar buscas",
@@ -37,15 +37,6 @@ export const messages = {
   dashboardNoSearches:
     "Nenhuma busca salva ainda. Crie uma abaixo para começar a monitorar o Facebook Marketplace.",
 
-  notificationsTitle: "Notificações",
-  notificationsDescription:
-    "Receba e-mail quando novos anuncios do Facebook Marketplace baterem com suas buscas apos a varredura inicial.",
-  notificationsEmailLabel: "Enviar e-mail sobre novos resultados e quedas de preco",
-  notificationsEmailHint:
-    "Requer Resend no worker. O primeiro poll bem-sucedido de cada busca e uma varredura inicial e nao envia e-mail.",
-  notificationsEnabled: "Alertas por e-mail ativados.",
-  notificationsDisabled: "Alertas por e-mail desativados.",
-  notificationsUpdateFailed: "Falha ao atualizar configurações de notificação",
 
   apiErrorUnauthorized: "Entre para continuar.",
   apiErrorSearchNotFound: "Busca salva nao encontrada.",
@@ -59,8 +50,6 @@ export const messages = {
   apiErrorUserNotFound: "Usuario nao encontrado.",
   apiErrorValidationFailed: "Alguns campos sao invalidos. Revise o formulario e tente novamente.",
   apiErrorNoPreferenceFields: "Nenhum campo de preferencia valido foi enviado.",
-  apiErrorEmailNotificationsNotBoolean:
-    "A preferencia de e-mail deve ser verdadeira ou falsa.",
   apiErrorInvalidPreferredLocale: "O idioma deve ser ingles ou portugues.",
   apiErrorRedisNotConfigured:
     "Redis nao esta configurado. Inicie o Docker e o worker local para habilitar polling.",
@@ -222,7 +211,7 @@ export const messages = {
   alertsFirstSeen: "Visto pela 1ª vez {date}",
   alertsLastSeen: "Visto por último {date}",
   alertsBaselineBanner:
-    "Varredura inicial concluida — mostrando todos os resultados deste primeiro poll (ate {limit} por poll). Alertas por e-mail comecam no proximo poll, quando houver anuncios novos ou quedas de preco.",
+    "Varredura inicial concluida — mostrando todos os resultados deste primeiro poll (ate {limit} por poll). Polls futuros destacam anuncios novos e quedas de preco.",
   alertsBaselineResults: "Resultados da linha de base ({count})",
   alertsNewSincePoll: "Novos desde o último poll ({count})",
   alertsPreviousListings: "Anúncios anteriores ({count})",

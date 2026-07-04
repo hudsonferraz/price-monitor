@@ -39,7 +39,6 @@ describe("/api/user/preferences", () => {
   it("GET returns user preferences", async () => {
     mockAuth.mockResolvedValue({ user: { id: "user-1" } } as never);
     mockFindUnique.mockResolvedValue({
-      emailNotificationsEnabled: true,
       preferredLocale: "pt-BR",
     } as never);
 
@@ -82,10 +81,9 @@ describe("/api/user/preferences", () => {
     expect(body.errorCode).toBe("INVALID_PREFERRED_LOCALE");
   });
 
-  it("PATCH updates notification preferences", async () => {
+  it("PATCH updates locale preferences", async () => {
     mockAuth.mockResolvedValue({ user: { id: "user-1" } } as never);
     mockUpdate.mockResolvedValue({
-      emailNotificationsEnabled: false,
       preferredLocale: "en-US",
     } as never);
 
@@ -93,12 +91,12 @@ describe("/api/user/preferences", () => {
       new Request("http://localhost/api/user/preferences", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ emailNotificationsEnabled: false }),
+        body: JSON.stringify({ preferredLocale: "en-US" }),
       }),
     );
     const body = await response.json();
 
     expect(response.status).toBe(200);
-    expect(body.emailNotificationsEnabled).toBe(false);
+    expect(body.preferredLocale).toBe("en-US");
   });
 });

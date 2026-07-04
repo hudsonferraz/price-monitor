@@ -12,7 +12,7 @@ export async function GET() {
 
   const user = await prisma.user.findUnique({
     where: { id: session.user.id },
-    select: { emailNotificationsEnabled: true, preferredLocale: true },
+    select: { preferredLocale: true },
   });
 
   if (!user) {
@@ -20,7 +20,6 @@ export async function GET() {
   }
 
   return NextResponse.json({
-    emailNotificationsEnabled: user.emailNotificationsEnabled,
     preferredLocale: user.preferredLocale,
   });
 }
@@ -33,16 +32,10 @@ export async function PATCH(request: Request) {
 
   const body = await request.json().catch(() => null);
 
-  if (body?.emailNotificationsEnabled == null && body?.preferredLocale == null) {
+  if (body?.preferredLocale == null) {
     return apiErrorResponse("NO_PREFERENCE_FIELDS", 400);
   }
 
-  if (
-    body?.emailNotificationsEnabled != null &&
-    typeof body.emailNotificationsEnabled !== "boolean"
-  ) {
-    return apiErrorResponse("EMAIL_NOTIFICATIONS_NOT_BOOLEAN", 400);
-  }
 
   if (body?.preferredLocale != null && !isAppLocale(body.preferredLocale)) {
     return apiErrorResponse("INVALID_PREFERRED_LOCALE", 400);
@@ -51,12 +44,9 @@ export async function PATCH(request: Request) {
   const user = await prisma.user.update({
     where: { id: session.user.id },
     data: {
-      ...(body?.emailNotificationsEnabled != null
-        ? { emailNotificationsEnabled: body.emailNotificationsEnabled }
-        : {}),
       ...(body?.preferredLocale != null ? { preferredLocale: body.preferredLocale } : {}),
     },
-    select: { emailNotificationsEnabled: true, preferredLocale: true },
+    select: { preferredLocale: true },
   });
 
   const response = NextResponse.json(user);

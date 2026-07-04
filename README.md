@@ -8,15 +8,15 @@
 
 This is a **personal, educational, and portfolio project** for exploring scraping resilience, job queues, and local automation. It is **not** authorized Facebook/Meta tooling.
 
-**What it does:** save searches → local worker scrapes Marketplace → diff against per-search history → dashboard alerts + optional email.
+**What it does:** save searches → local worker scrapes Marketplace → diff against per-search history → dashboard alerts.
 
-**How it's built:** Next.js, BullMQ, Playwright, Prisma, local Docker Postgres/Redis, Resend, and a persistent local Facebook browser profile.
+**How it's built:** Next.js, BullMQ, Playwright, Prisma, local Docker Postgres/Redis, and a persistent local Facebook browser profile.
 
 **Scope and limits:** local worker required, Facebook session is manual — see [Legal notice](#legal-notice) and [design decisions](docs/design-decisions.md).
 
 ## Highlights
 
-- **154 automated tests** — Brazilian price parsing, Facebook parsers, poll schedule backoff, rate limits, price-drop logic, deal-quality signals, email HTML safety, localized alert emails and poll queue messages, Zod schemas, adapter merge priority, poll job cleanup, API route auth/ownership/cooldown, middleware path guards
+- **147 automated tests** — Brazilian price parsing, Facebook parsers, poll schedule backoff, rate limits, price-drop logic, deal-quality signals, localized poll queue messages, Zod schemas, adapter merge priority, poll job cleanup, API route auth/ownership/cooldown, middleware path guards
 - **Local-first worker** — Facebook-facing browser/session stays on your machine in `.facebook-profile/`
 - **Worker heartbeat dashboard** — online/stale/offline state, Facebook session mode, latest successful scrape, and latest failure type
 - **Resilient Facebook scraping** — GraphQL interception + embedded JSON + DOM fallback with unified merge
@@ -40,7 +40,6 @@ This is a **personal, educational, and portfolio project** for exploring scrapin
 | **Polling** | Manual **Poll now** (15 min cooldown) + scheduler every 60s; live status banner and poll run history |
 | **Alerts** | New matches and price-drop badges; deal-quality signals (lowest seen, below recent average); sort by date/price; dismiss per alert or clear all |
 | **Worker health** | Postgres heartbeat, session mode, latest scrape/failure summaries in the dashboard |
-| **Email** | Optional Resend HTML + plain text from worker; respects user notification toggle; baseline scans do not send email |
 | **Auth** | GitHub + Google OAuth via NextAuth v5 |
 | **i18n** | Portuguese (default) and English |
 
@@ -104,7 +103,7 @@ npm test
 | `GET /api/searches/[id]/poll-runs` | Poll history (`?limit=`) |
 | `GET /api/alerts` | Alert feed (`?savedSearchId=`, `?limit=`) |
 | `DELETE /api/alerts/[id]` | Dismiss alert |
-| `GET/PATCH /api/user/preferences` | Email notifications + locale |
+| `GET/PATCH /api/user/preferences` | Locale preference |
 | `GET /health` (worker) | Local worker health and Facebook session check |
 
 ## Architecture
@@ -120,7 +119,6 @@ See `.env.example`. Key variables:
 | `DATABASE_URL` | PostgreSQL, local Docker by default (port 5433) |
 | `REDIS_URL` | Redis for BullMQ, local Docker by default |
 | `AUTH_SECRET` | Auth.js / NextAuth secret |
-| `RESEND_API_KEY` | Optional email alerts, used by the worker |
 | `FACEBOOK_BROWSER_PROFILE_DIR` | Persistent local Facebook browser profile |
 
 ## Design decisions

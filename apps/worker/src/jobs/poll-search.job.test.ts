@@ -29,9 +29,6 @@ vi.mock("../lib/marketplace-browser", () => ({
   searchMarketplace: vi.fn(),
 }));
 
-vi.mock("../lib/email-notifications", () => ({
-  sendNewAlertsEmail: vi.fn(),
-}));
 
 import { cleanupStaleRunningPolls, executePollSearch, STALE_RUNNING_POLL_MS } from "./poll-search.job";
 

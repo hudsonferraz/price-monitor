@@ -14,7 +14,6 @@ Local machine
     - scheduler and poll consumers
     - Playwright Facebook Marketplace scraper
     - persistent local browser profile
-    - optional Resend email sender
     - writes heartbeat and poll results to Postgres
 
   Docker Compose services

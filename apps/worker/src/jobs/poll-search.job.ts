@@ -6,7 +6,6 @@ import { hasPriceDropped, shouldClearPriceDropEvent } from "@price-monitor/share
 import { isFacebookSessionError } from "@price-monitor/shared/poll-errors";
 import { normalizeListingLimit } from "@price-monitor/shared/sort-alerts";
 import type { NormalizedListing } from "@price-monitor/shared/types";
-import { sendNewAlertsEmail } from "../lib/email-notifications";
 import { markFacebookSessionAuthFailure, markFacebookSessionVerified } from "../lib/facebook-session";
 import { searchMarketplace } from "../lib/marketplace-browser";
 
@@ -17,7 +16,6 @@ export interface PollSearchResult {
   pollRunId: string;
   listingsFound: number;
   newAlerts: number;
-  emailSent: boolean;
 }
 
 async function abortRunningPollIfSearchInactive(
@@ -76,7 +74,6 @@ function emptyPollSearchResult(pollRunId: string): PollSearchResult {
     pollRunId,
     listingsFound: 0,
     newAlerts: 0,
-    emailSent: false,
   };
 }
 
@@ -178,7 +175,7 @@ export async function executePollSearch(savedSearchId: string): Promise<PollSear
       return abortedResult;
     }
 
-    const { newAlerts, alertIds } = await persistListingsAndAlerts(
+    const { newAlerts } = await persistListingsAndAlerts(
       savedSearch.id,
       savedSearch.userId,
       pollRun.id,
@@ -215,20 +212,10 @@ export async function executePollSearch(savedSearchId: string): Promise<PollSear
 
     markFacebookSessionVerified("successful_poll");
 
-    let emailSent = false;
-    if (newAlerts > 0 && !isBaselinePoll) {
-      try {
-        emailSent = await sendNewAlertsEmail(savedSearch.userId, savedSearch.id, alertIds);
-      } catch (error) {
-        console.error("Failed to send alert email:", error instanceof Error ? error.message : error);
-      }
-    }
-
     return {
       pollRunId: pollRun.id,
       listingsFound: listings.length,
       newAlerts,
-      emailSent,
     };
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : "Unknown poll error";
@@ -267,7 +254,6 @@ export async function executePollSearch(savedSearchId: string): Promise<PollSear
 
 interface PersistResult {
   newAlerts: number;
-  alertIds: string[];
 }
 
 async function getLatestListingPricesForSearch(
@@ -417,7 +403,6 @@ async function persistListingsAndAlerts(
         data: {
           previousPriceCents,
           priceDroppedAt: new Date(),
-          emailSentAt: null,
           seenAt: null,
         },
       });
@@ -458,7 +443,6 @@ async function persistListingsAndAlerts(
 
   return {
     newAlerts: alertIds.length,
-    alertIds,
   };
 }
 

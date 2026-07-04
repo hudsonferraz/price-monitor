@@ -10,7 +10,7 @@ export const messages = {
   homeEyebrow: "Facebook Marketplace · Brazil",
   homeTitle: "Get alerted when used deals match your search",
   homeDescription:
-    "Save searches for items on Facebook Marketplace. When new listings appear within your price range, you will see them in your dashboard and get notified.",
+    "Save searches for items on Facebook Marketplace. When new listings appear within your price range, they show up in your dashboard.",
   homeGetStarted: "Get started",
   homeGoToDashboard: "Go to dashboard",
   homeFeatureSaveTitle: "Save searches",
@@ -34,15 +34,6 @@ export const messages = {
   dashboardNoSearches:
     "No saved searches yet. Create one below to start monitoring Facebook Marketplace.",
 
-  notificationsTitle: "Notifications",
-  notificationsDescription:
-    "Get an email when new Facebook Marketplace listings match your saved searches after the baseline scan.",
-  notificationsEmailLabel: "Email me about new matches and price drops",
-  notificationsEmailHint:
-    "Requires Resend on the worker. The first successful poll per search is a baseline scan and does not send email.",
-  notificationsEnabled: "Email alerts enabled.",
-  notificationsDisabled: "Email alerts disabled.",
-  notificationsUpdateFailed: "Failed to update notification settings",
 
   apiErrorUnauthorized: "Please sign in to continue.",
   apiErrorSearchNotFound: "Saved search not found.",
@@ -56,7 +47,6 @@ export const messages = {
   apiErrorUserNotFound: "User not found.",
   apiErrorValidationFailed: "Some fields are invalid. Check the form and try again.",
   apiErrorNoPreferenceFields: "No valid preference fields were provided.",
-  apiErrorEmailNotificationsNotBoolean: "Email notification preference must be true or false.",
   apiErrorInvalidPreferredLocale: "Language must be English or Portuguese.",
   apiErrorRedisNotConfigured: "Redis is not configured. Start Docker and the local worker to enable polling.",
   apiErrorPollQueueFailed: "Failed to queue the poll. Check that Redis and the worker are running.",
@@ -216,7 +206,7 @@ export const messages = {
   alertsFirstSeen: "First seen {date}",
   alertsLastSeen: "Last seen {date}",
   alertsBaselineBanner:
-    "Baseline scan complete — showing every match from this first poll (up to {limit} per poll). Email alerts start on the next poll when new listings or price drops appear.",
+    "Baseline scan complete — showing every match from this first poll (up to {limit} per poll). Future polls will highlight new listings and price drops.",
   alertsBaselineResults: "Baseline results ({count})",
   alertsNewSincePoll: "New since last poll ({count})",
   alertsPreviousListings: "Previous listings ({count})",

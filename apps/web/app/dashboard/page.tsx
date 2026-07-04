@@ -6,7 +6,6 @@ import {
   type WorkerHeartbeatRecord,
 } from "@/components/worker-status-card";
 import { MarketplaceLocationHint } from "@/components/marketplace-location-hint";
-import { NotificationSettings } from "@/components/notification-settings";
 import type { PollRunRecord } from "@/components/poll-run-history";
 import { SavedSearchForm, SavedSearchList, type SavedSearchRecord } from "@/components/saved-search-panel";
 import { auth } from "@/auth";
@@ -53,7 +52,7 @@ export default async function DashboardPage() {
   const locale = await getLocale();
   const t = await getTranslator(locale);
 
-  const [searches, pollRunsForHealth, user, latestWorkerHeartbeat, snapshotPrices] = await Promise.all([
+  const [searches, pollRunsForHealth, latestWorkerHeartbeat, snapshotPrices] = await Promise.all([
     prisma.savedSearch.findMany({
       where: { userId: session.user.id },
       orderBy: { createdAt: "desc" },
@@ -79,10 +78,6 @@ export default async function DashboardPage() {
       where: { savedSearch: { userId: session.user.id } },
       orderBy: { startedAt: "desc" },
       take: 100,
-    }),
-    prisma.user.findUnique({
-      where: { id: session.user.id },
-      select: { emailNotificationsEnabled: true },
     }),
     prisma.workerHeartbeat.findFirst({
       orderBy: { lastSeenAt: "desc" },
@@ -230,11 +225,6 @@ export default async function DashboardPage() {
           <p className="mt-1 text-sm text-[var(--muted)]">{t("dashboardDescription")}</p>
         </div>
 
-        <section className="mb-10">
-          <NotificationSettings
-            emailNotificationsEnabled={user?.emailNotificationsEnabled ?? true}
-          />
-        </section>
 
         <WorkerStatusCard heartbeat={workerHeartbeat} activity={workerActivity} />
 

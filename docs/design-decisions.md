@@ -32,8 +32,5 @@ Facebook scraping is heavy and stateful. One poll at a time is enough for a pers
 
 ## Baseline poll behavior
 
-The first successful poll establishes a baseline and displays matches in the dashboard, but email notifications are reserved for new matches or future price drops. This prevents a new search from immediately spamming all existing Marketplace results.
+The first successful poll establishes a baseline and displays matches in the dashboard. Future polls highlight new matches and price drops so the first scan does not make every existing Marketplace result look newly discovered.
 
-## Optional email
-
-Email is useful, but not required. Resend failures are logged and do not fail the poll because scraping and alert persistence are the core workflow.

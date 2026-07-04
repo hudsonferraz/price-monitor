@@ -12,7 +12,6 @@ const apiErrorMessageKeys: Record<ApiErrorCode, MessageKey> = {
   USER_NOT_FOUND: "apiErrorUserNotFound",
   VALIDATION_FAILED: "apiErrorValidationFailed",
   NO_PREFERENCE_FIELDS: "apiErrorNoPreferenceFields",
-  EMAIL_NOTIFICATIONS_NOT_BOOLEAN: "apiErrorEmailNotificationsNotBoolean",
   INVALID_PREFERRED_LOCALE: "apiErrorInvalidPreferredLocale",
   REDIS_NOT_CONFIGURED: "apiErrorRedisNotConfigured",
   POLL_QUEUE_FAILED: "apiErrorPollQueueFailed",

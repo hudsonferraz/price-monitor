@@ -13,7 +13,6 @@
   <text x="32" y="320" fill="#9ca3af" font-family="Consolas, monospace" font-size="16">Local BullMQ + Playwright worker</text>
   <text x="32" y="348" fill="#9ca3af" font-family="Consolas, monospace" font-size="16">  |-- persistent .facebook-profile session</text>
   <text x="32" y="376" fill="#9ca3af" font-family="Consolas, monospace" font-size="16">  |-- GraphQL + JSON + DOM scraping</text>
-  <text x="32" y="404" fill="#9ca3af" font-family="Consolas, monospace" font-size="16">  '-- optional Resend email</text>
   <text x="32" y="432" fill="#9ca3af" font-family="Consolas, monospace" font-size="16"></text>
   <text x="32" y="460" fill="#9ca3af" font-family="Consolas, monospace" font-size="16">Docker Postgres (localhost:5433)</text>
   <text x="32" y="488" fill="#9ca3af" font-family="Consolas, monospace" font-size="16">  users, searches, alerts, poll runs, WorkerHeartbeat</text>

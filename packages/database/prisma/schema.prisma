@@ -23,7 +23,6 @@ model User {
   email                     String        @unique
   emailVerified             DateTime?
   image                     String?
-  emailNotificationsEnabled Boolean       @default(true)
   preferredLocale             String        @default("pt-BR")
   accounts                  Account[]
   sessions                  Session[]
@@ -117,7 +116,6 @@ model Alert {
   userId        String
   savedSearchId String
   listingId     String
-  emailSentAt   DateTime?
   previousPriceCents Int?
   priceDroppedAt     DateTime?
   seenAt             DateTime?
