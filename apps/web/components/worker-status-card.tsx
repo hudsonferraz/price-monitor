@@ -3,6 +3,7 @@
 import { useLocale, useTranslations } from "@/components/locale-provider";
 import { formatDateTime } from "@/lib/i18n";
 import type { AppLocale } from "@/lib/i18n/locales";
+import { useWorkerState } from "@/lib/use-worker-state";
 import { formatDurationMs, type PollIssueCode } from "@price-monitor/shared/poll-errors";
 import {
   getWorkerState,
@@ -67,7 +68,9 @@ const dotStyles: Record<WorkerState, string> = {
 export function WorkerStatusCard({ heartbeat, activity }: WorkerStatusCardProps) {
   const locale = useLocale();
   const t = useTranslations();
-  const state = getWorkerState(heartbeat);
+  const state = useWorkerState(
+    heartbeat ? { status: heartbeat.status, lastSeenAt: heartbeat.lastSeenAt } : null,
+  );
 
   return (
     <section className={`mb-10 rounded-lg border p-4 ${statusStyles[state]}`}>

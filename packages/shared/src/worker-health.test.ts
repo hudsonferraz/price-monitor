@@ -29,22 +29,31 @@ describe("getWorkerState", () => {
   });
 
   it("returns stale when the last heartbeat is too old", () => {
-    const staleLastSeenAt = new Date(Date.now() - HEARTBEAT_STALE_MS - 1).toISOString();
+    const nowMs = new Date("2026-06-17T12:00:00.000Z").getTime();
+    const staleLastSeenAt = new Date(nowMs - HEARTBEAT_STALE_MS - 1).toISOString();
 
     expect(
-      getWorkerState({
-        status: "ONLINE",
-        lastSeenAt: staleLastSeenAt,
-      }),
+      getWorkerState(
+        {
+          status: "ONLINE",
+          lastSeenAt: staleLastSeenAt,
+        },
+        nowMs,
+      ),
     ).toBe("stale");
   });
 
   it("returns online for a recent heartbeat", () => {
+    const nowMs = new Date("2026-06-17T12:00:00.000Z").getTime();
+
     expect(
-      getWorkerState({
-        status: "ONLINE",
-        lastSeenAt: new Date().toISOString(),
-      }),
+      getWorkerState(
+        {
+          status: "ONLINE",
+          lastSeenAt: new Date(nowMs).toISOString(),
+        },
+        nowMs,
+      ),
     ).toBe("online");
   });
 });
