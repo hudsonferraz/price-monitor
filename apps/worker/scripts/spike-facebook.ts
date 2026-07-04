@@ -4,6 +4,7 @@ import { fileURLToPath } from "node:url";
 import { chromium, type BrowserContext, type BrowserContextOptions } from "playwright";
 import { FacebookMarketplaceAdapter } from "../src/adapters/facebook-marketplace.adapter";
 import { parseListingsFromHtml } from "../src/adapters/facebook-dom-parser";
+import { getFacebookBrowserProfileDir } from "../src/lib/facebook-session.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const projectRoot = path.resolve(__dirname, "../../..");
@@ -11,14 +12,12 @@ const fixturesDirectory = path.join(projectRoot, "fixtures");
 const fixturePath = path.join(fixturesDirectory, "facebook-search-iphone-13.html");
 const debugDirectory = path.join(fixturesDirectory, "debug");
 
-const defaultProfileDir = path.join(projectRoot, ".facebook-profile");
-
 const SEARCH_KEYWORDS = "iphone 13";
 const LISTING_LIMIT = 5;
 
 async function main(): Promise<void> {
   const headless = process.env.PLAYWRIGHT_HEADLESS !== "false";
-  const profileDir = resolveProjectPath(process.env.FACEBOOK_BROWSER_PROFILE_DIR) ?? defaultProfileDir;
+  const profileDir = getFacebookBrowserProfileDir();
   const adapter = new FacebookMarketplaceAdapter();
 
   console.log(`Starting Facebook Marketplace spike (headless=${headless})...`);
@@ -84,14 +83,6 @@ async function main(): Promise<void> {
   } finally {
     await context.close().catch(() => undefined);
   }
-}
-
-function resolveProjectPath(value: string | undefined): string | undefined {
-  if (!value) {
-    return undefined;
-  }
-
-  return path.isAbsolute(value) ? value : path.resolve(projectRoot, value);
 }
 
 function printListings(

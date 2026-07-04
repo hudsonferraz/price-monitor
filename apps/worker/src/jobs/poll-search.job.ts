@@ -6,6 +6,7 @@ import { hasPriceDropped, shouldClearPriceDropEvent } from "@price-monitor/share
 import { normalizeListingLimit } from "@price-monitor/shared/sort-alerts";
 import type { NormalizedListing } from "@price-monitor/shared/types";
 import { sendNewAlertsEmail } from "../lib/email-notifications";
+import { markFacebookSessionVerified } from "../lib/facebook-session";
 import { searchMarketplace } from "../lib/marketplace-browser";
 
 export const POLL_JOB_LOCK_MS = 10 * 60 * 1000;
@@ -210,6 +211,8 @@ export async function executePollSearch(savedSearchId: string): Promise<PollSear
         consecutiveFailures: 0,
       },
     });
+
+    markFacebookSessionVerified("successful_poll");
 
     let emailSent = false;
     if (newAlerts > 0 && !isBaselinePoll) {

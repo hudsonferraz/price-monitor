@@ -1,10 +1,10 @@
 # Design Decisions
 
-## Local-first over hosted scraping
+## Local-first architecture
 
-Facebook Marketplace sessions are interactive. Login walls, checkpoints, 2FA, and confirmation prompts are normal operational events, not rare edge cases. Keeping the Facebook-facing browser profile local lets the user fix those prompts directly with `npm run facebook:login`.
+Facebook Marketplace sessions are interactive. Login walls, checkpoints, 2FA, and confirmation prompts are normal operational events, not rare edge cases. Keeping the Facebook-facing browser profile on your machine lets you fix those prompts directly with `npm run facebook:login`.
 
-The old hosted worker path required exporting cookies and uploading a secret file. That made the demo look cloud-native, but it made the core workflow unreliable. The current product story is simpler and more honest: local/self-hosted automation with clear diagnostics.
+The app is built as local, self-hosted automation: a Playwright worker on your machine, Docker Postgres and Redis for data and job queues, and a dashboard with clear worker and session diagnostics.
 
 ## Persistent browser profile
 
@@ -13,11 +13,11 @@ The old hosted worker path required exporting cookies and uploading a secret fil
 
 ## Direct DB heartbeat
 
-The worker writes `WorkerHeartbeat` directly to Postgres every 30 seconds. This avoids adding a worker-to-web API and token before the project needs it. If the worker later runs on a separate host with tighter network boundaries, a `WORKER_TOKEN` + web API bridge can replace direct DB writes.
+The worker writes `WorkerHeartbeat` directly to Postgres every 30 seconds. The dashboard reads that table for local worker health without a separate worker-to-web API.
 
-## BullMQ and Redis remain
+## BullMQ and Redis
 
-Even in local-first mode, BullMQ keeps useful behavior:
+BullMQ provides:
 
 - manual and scheduled polls share one queue
 - deduplication prevents duplicate poll jobs per search
@@ -36,8 +36,4 @@ The first successful poll establishes a baseline and displays matches in the das
 
 ## Optional email
 
-Email is useful, but not required for the local-first app. Resend failures are logged and do not fail the poll because scraping and alert persistence are the core workflow.
-
-## AI after scraping stability
-
-AI evaluation is intentionally Phase 5. The scraper, worker heartbeat, and session recovery needed to be understandable first. Once listings are reliably captured, AI can score relevance, explain risks, and reduce notification noise without masking infrastructure problems.
+Email is useful, but not required. Resend failures are logged and do not fail the poll because scraping and alert persistence are the core workflow.

@@ -13,7 +13,7 @@ function isHeadless(): boolean {
   return process.env.PLAYWRIGHT_HEADLESS !== "false";
 }
 
-function getBrowserProfileDir(): string | undefined {
+function getBrowserProfileDir(): string {
   return getFacebookBrowserProfileDir();
 }
 
@@ -40,9 +40,6 @@ async function configureResourceBlocking(context: BrowserContext): Promise<void>
 
 async function createMarketplaceBrowserContext(): Promise<BrowserContext> {
   const profileDir = getBrowserProfileDir();
-  if (!profileDir) {
-    throw new Error("FACEBOOK_BROWSER_PROFILE_DIR must be configured. Run npm run facebook:login first.");
-  }
 
   const context = await chromium.launchPersistentContext(profileDir, {
     ...getBrowserContextOptions(),

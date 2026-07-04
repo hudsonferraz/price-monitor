@@ -17,5 +17,4 @@
   <text x="32" y="432" fill="#9ca3af" font-family="Consolas, monospace" font-size="16"></text>
   <text x="32" y="460" fill="#9ca3af" font-family="Consolas, monospace" font-size="16">Docker Postgres (localhost:5433)</text>
   <text x="32" y="488" fill="#9ca3af" font-family="Consolas, monospace" font-size="16">  users, searches, alerts, poll runs, WorkerHeartbeat</text>
-  <text x="32" y="516" fill="#6b7280" font-family="Consolas, monospace" font-size="14">Future: AI listing evaluation layer</text>
 </svg>

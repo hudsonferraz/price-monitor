@@ -5,9 +5,9 @@
   "type": "module",
   "scripts": {
     "dev": "dotenv -e ../../.env -- tsx src/index.ts",
-    "start": "tsx src/index.ts",
-    "spike:facebook": "tsx scripts/spike-facebook.ts",
-    "facebook:login": "tsx scripts/facebook-login.ts"
+    "start": "dotenv -e ../../.env -- tsx src/index.ts",
+    "spike:facebook": "dotenv -e ../../.env -- tsx scripts/spike-facebook.ts",
+    "facebook:login": "dotenv -e ../../.env -- tsx scripts/facebook-login.ts"
   },
   "dependencies": {
     "@price-monitor/database": "*",

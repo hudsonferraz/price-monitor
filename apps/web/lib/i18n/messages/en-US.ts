@@ -79,7 +79,8 @@ export const messages = {
   workerStatusSuccessSummary: "{date} - {listings} listing(s), {alerts} alert(s){duration}",
   workerStatusFailureSummary: "{date} - {issue}. Failed polls in 24h: {failedPolls}",
   workerFacebookSessionUnknown: "Unknown",
-  workerFacebookSessionOk: "Ready",
+  workerFacebookSessionOk: "Confirmed",
+  workerFacebookSessionUnverified: "Not confirmed yet",
   workerFacebookSessionNeedsLogin: "Needs login",
   workerFacebookSessionNotConfigured: "Not configured",
   workerFacebookSessionModeProfile: "Browser profile",
@@ -96,7 +97,6 @@ export const messages = {
   facebookSessionStep3:
     "Open Marketplace in that browser and confirm listings are visible.",
   facebookSessionStep4: "Return to the terminal, press Enter, then restart npm run worker:dev if needed.",
-  facebookSessionDocs: "Full walkthrough in local-first-setup.md",
 
   searchKeywords: "Keywords",
   searchPriceRange: "Price range",
@@ -180,7 +180,6 @@ export const messages = {
   pollQueueAlreadyQueued: "A poll is already queued. The worker may take up to a minute to start.",
   pollQueueAlreadyInProgress: "A poll is already in progress for this search.",
 
-  diagnosticsDocs: "Troubleshooting guide",
   diagnosticsSessionTitle: "Facebook session expired",
   diagnosticsSessionDescription:
     "Recent polls reached the worker, but Facebook asked it to log in again. Run npm run facebook:login locally and clear the prompt. Failed polls in the last 24h: {failedPolls}.",

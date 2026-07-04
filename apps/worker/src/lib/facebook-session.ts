@@ -1,12 +1,21 @@
-import { existsSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const projectRoot = path.resolve(__dirname, "../../../..");
 
+export const DEFAULT_FACEBOOK_BROWSER_PROFILE_DIR = ".facebook-profile";
+export const FACEBOOK_SESSION_VERIFICATION_FILE = ".facebook-session-verified.json";
+
 export type FacebookSessionMode = "browser_profile" | "none";
-export type FacebookSessionStatus = "ok" | "needs_login" | "not_configured";
+export type FacebookSessionStatus = "ok" | "unverified" | "needs_login" | "not_configured";
+export type FacebookSessionVerificationSource = "facebook_login" | "successful_poll";
+
+export interface FacebookSessionVerification {
+  verifiedAt: string;
+  source: FacebookSessionVerificationSource;
+}
 
 export interface FacebookSessionDiagnostics {
   status: FacebookSessionStatus;
@@ -24,16 +33,58 @@ export interface FacebookSessionDiagnostics {
   message: string;
 }
 
-function resolveProjectPath(value: string | null | undefined): string | undefined {
-  if (!value) {
-    return undefined;
-  }
-
+function resolveProjectPath(value: string): string {
   return path.isAbsolute(value) ? value : path.resolve(projectRoot, value);
 }
 
-export function getFacebookBrowserProfileDir(): string | undefined {
-  return resolveProjectPath(process.env.FACEBOOK_BROWSER_PROFILE_DIR);
+export function getFacebookBrowserProfileDir(): string {
+  const configured = process.env.FACEBOOK_BROWSER_PROFILE_DIR?.trim();
+  const profilePath = configured || DEFAULT_FACEBOOK_BROWSER_PROFILE_DIR;
+  return resolveProjectPath(profilePath);
+}
+
+export function getFacebookSessionVerificationPath(profileDir: string): string {
+  return path.join(profileDir, FACEBOOK_SESSION_VERIFICATION_FILE);
+}
+
+export function readFacebookSessionVerification(
+  profileDir: string,
+): FacebookSessionVerification | null {
+  const verificationPath = getFacebookSessionVerificationPath(profileDir);
+
+  if (!existsSync(verificationPath)) {
+    return null;
+  }
+
+  try {
+    const parsed = JSON.parse(readFileSync(verificationPath, "utf8")) as FacebookSessionVerification;
+
+    if (typeof parsed.verifiedAt !== "string" || typeof parsed.source !== "string") {
+      return null;
+    }
+
+    return parsed;
+  } catch {
+    return null;
+  }
+}
+
+export function markFacebookSessionVerified(
+  source: FacebookSessionVerificationSource,
+  profileDir: string = getFacebookBrowserProfileDir(),
+): void {
+  mkdirSync(profileDir, { recursive: true });
+
+  const verification: FacebookSessionVerification = {
+    verifiedAt: new Date().toISOString(),
+    source,
+  };
+
+  writeFileSync(
+    getFacebookSessionVerificationPath(profileDir),
+    `${JSON.stringify(verification, null, 2)}\n`,
+    "utf8",
+  );
 }
 
 export function getFacebookSessionDiagnostics(
@@ -49,22 +100,37 @@ export function getFacebookSessionDiagnostics(
     earliestExpiryIso: null,
   };
 
-  if (browserProfileDir) {
-    const profileExists = existsSync(browserProfileDir);
+  if (browserProfileDir == null) {
+    return {
+      status: "not_configured",
+      mode: "none",
+      configured: false,
+      path: null,
+      exists: false,
+      ...emptyCookieFields,
+      message:
+        "FACEBOOK_BROWSER_PROFILE_DIR must be configured. Run npm run facebook:login to create a local Facebook browser profile.",
+    };
+  }
 
-    if (!profileExists) {
-      return {
-        status: "needs_login",
-        mode: "browser_profile",
-        configured: true,
-        path: browserProfileDir,
-        exists: false,
-        ...emptyCookieFields,
-        message:
-          "Facebook browser profile directory is not created yet. Run npm run facebook:login before polling.",
-      };
-    }
+  const profileExists = existsSync(browserProfileDir);
 
+  if (!profileExists) {
+    return {
+      status: "needs_login",
+      mode: "browser_profile",
+      configured: true,
+      path: browserProfileDir,
+      exists: false,
+      ...emptyCookieFields,
+      message:
+        "Facebook browser profile directory is not created yet. Run npm run facebook:login before polling.",
+    };
+  }
+
+  const verification = readFacebookSessionVerification(browserProfileDir);
+
+  if (verification) {
     return {
       status: "ok",
       mode: "browser_profile",
@@ -73,19 +139,19 @@ export function getFacebookSessionDiagnostics(
       exists: true,
       ...emptyCookieFields,
       message:
-        "Persistent Facebook browser profile is ready. Login is re-validated during each Marketplace poll.",
+        "Facebook session confirmed locally. Login is re-validated during each Marketplace poll.",
     };
   }
 
   return {
-    status: "not_configured",
-    mode: "none",
-    configured: false,
-    path: null,
-    exists: false,
+    status: "unverified",
+    mode: "browser_profile",
+    configured: true,
+    path: browserProfileDir,
+    exists: true,
     ...emptyCookieFields,
     message:
-      "FACEBOOK_BROWSER_PROFILE_DIR must be configured. Run npm run facebook:login to create a local Facebook browser profile.",
+      "Facebook browser profile folder exists, but login has not been confirmed yet. Run npm run facebook:login or complete a successful poll.",
   };
 }
 

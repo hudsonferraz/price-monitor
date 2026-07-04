@@ -178,6 +178,8 @@ function translateFacebookSessionStatus(
       return t("workerFacebookSessionOk");
     case "needs_login":
       return t("workerFacebookSessionNeedsLogin");
+    case "unverified":
+      return t("workerFacebookSessionUnverified");
     case "not_configured":
       return t("workerFacebookSessionNotConfigured");
     default:

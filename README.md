@@ -6,17 +6,17 @@
 
 **Local-first Facebook Marketplace deal monitor** for Brazil. Save keyword + price searches, run a local Playwright worker with your own Facebook browser profile, and review matching listings, price drops, and worker health in a polished dashboard.
 
-This is a **personal, educational, and portfolio project** for exploring scraping resilience, job queues, local automation, and soon AI-assisted listing evaluation. It is **not** authorized Facebook/Meta tooling.
+This is a **personal, educational, and portfolio project** for exploring scraping resilience, job queues, and local automation. It is **not** authorized Facebook/Meta tooling.
 
 **What it does:** save searches → local worker scrapes Marketplace → diff against per-search history → dashboard alerts + optional email.
 
 **How it's built:** Next.js, BullMQ, Playwright, Prisma, local Docker Postgres/Redis, Resend, and a persistent local Facebook browser profile.
 
-**Scope and limits:** local worker required, Facebook session is manual, AI layer not shipped yet — see [Legal notice](#legal-notice) and [design decisions](docs/design-decisions.md).
+**Scope and limits:** local worker required, Facebook session is manual — see [Legal notice](#legal-notice) and [design decisions](docs/design-decisions.md).
 
 ## Highlights
 
-- **139 automated tests** — Brazilian price parsing, Facebook parsers, poll schedule backoff, rate limits, price-drop logic, deal-quality signals, email HTML safety, localized alert emails and poll queue messages, Zod schemas, adapter merge priority, poll job cleanup, API route auth/ownership/cooldown, middleware path guards
+- **142 automated tests** — Brazilian price parsing, Facebook parsers, poll schedule backoff, rate limits, price-drop logic, deal-quality signals, email HTML safety, localized alert emails and poll queue messages, Zod schemas, adapter merge priority, poll job cleanup, API route auth/ownership/cooldown, middleware path guards
 - **Local-first worker** — Facebook-facing browser/session stays on your machine in `.facebook-profile/`
 - **Worker heartbeat dashboard** — online/stale/offline state, Facebook session mode, latest successful scrape, and latest failure type
 - **Resilient Facebook scraping** — GraphQL interception + embedded JSON + DOM fallback with unified merge
@@ -76,8 +76,6 @@ npm run worker:dev
 
 Open [http://localhost:3000](http://localhost:3000), sign in, create a search, and click **Poll now**. The dashboard should show the local worker heartbeat once `npm run worker:dev` is running.
 
-For the full local setup flow, see [docs/local-first-setup.md](docs/local-first-setup.md).
-
 ## Facebook Session Model
 
 The recommended workflow is a persistent local browser profile:
@@ -108,10 +106,6 @@ npm test
 | `DELETE /api/alerts/[id]` | Dismiss alert |
 | `GET/PATCH /api/user/preferences` | Email notifications + locale |
 | `GET /health` (worker) | Local worker health and Facebook session check |
-
-## Roadmap
-
-The project has pivoted from a hosted scraper into a local-first, self-hosted worker model. Next up is AI-assisted listing evaluation. See [Local-first AI roadmap](docs/local-first-ai-roadmap.md).
 
 ## Architecture
 

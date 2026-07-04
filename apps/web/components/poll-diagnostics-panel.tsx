@@ -46,16 +46,6 @@ export function PollDiagnosticsPanel({
           <li>{t("facebookSessionStep4")}</li>
         </ol>
       ) : null}
-      <p className="mt-3 text-sm">
-        <a
-          href="https://github.com/hudsonferraz/price-monitor/blob/main/docs/local-first-setup.md#session-diagnostics"
-          className="font-medium underline"
-          target="_blank"
-          rel="noreferrer"
-        >
-          {t("diagnosticsDocs")}
-        </a>
-      </p>
     </section>
   );
 }
