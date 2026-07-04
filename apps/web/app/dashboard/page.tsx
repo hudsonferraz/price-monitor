@@ -15,6 +15,10 @@ import { formatSearchSummary, getTranslator } from "@/lib/i18n";
 import { getLocale } from "@/lib/i18n/get-locale";
 import { summarizeRecentPollHealth } from "@/lib/system-health";
 import { getPollIssueCode, isFacebookSessionError } from "@price-monitor/shared/poll-errors";
+import {
+  computeDealQualitySignals,
+  groupSnapshotPricesByListing,
+} from "@price-monitor/shared/deal-quality";
 import { PollRunStatus, prisma } from "@price-monitor/database";
 import { redirect } from "next/navigation";
 
@@ -50,7 +54,7 @@ export default async function DashboardPage() {
   const locale = await getLocale();
   const t = await getTranslator(locale);
 
-  const [searches, pollRunsForHealth, user, latestWorkerHeartbeat] = await Promise.all([
+  const [searches, pollRunsForHealth, user, latestWorkerHeartbeat, snapshotPrices] = await Promise.all([
     prisma.savedSearch.findMany({
       where: { userId: session.user.id },
       orderBy: { createdAt: "desc" },
@@ -84,7 +88,27 @@ export default async function DashboardPage() {
     prisma.workerHeartbeat.findFirst({
       orderBy: { lastSeenAt: "desc" },
     }),
+    prisma.pollSnapshotListing.findMany({
+      where: {
+        pollRun: {
+          savedSearch: { userId: session.user.id },
+        },
+      },
+      select: {
+        listingId: true,
+        priceCents: true,
+        pollRun: { select: { savedSearchId: true } },
+      },
+    }),
   ]);
+
+  const snapshotPricesByListing = groupSnapshotPricesByListing(
+    snapshotPrices.map((snapshot) => ({
+      listingId: snapshot.listingId,
+      priceCents: snapshot.priceCents,
+      savedSearchId: snapshot.pollRun.savedSearchId,
+    })),
+  );
 
   const pollHealth = summarizeRecentPollHealth(pollRunsForHealth);
 
@@ -92,25 +116,39 @@ export default async function DashboardPage() {
     const recentPollRuns = search.pollRuns.slice(0, 3).map(serializePollRun);
     const latestSuccessRun = search.pollRuns.find((run) => run.status === PollRunStatus.SUCCESS);
     const latestFailedRun = search.pollRuns.find((run) => run.status === PollRunStatus.FAILED);
-    const alerts: AlertRecord[] = search.alerts.map((alert) => ({
-      id: alert.id,
-      createdAt: alert.createdAt.toISOString(),
-      previousPriceCents: alert.previousPriceCents,
-      priceDroppedAt: alert.priceDroppedAt?.toISOString() ?? null,
-      savedSearch: { id: search.id, name: search.name },
-      listing: {
-        id: alert.listing.id,
-        source: alert.listing.source,
-        title: alert.listing.title,
-        priceCents: alert.listing.priceCents,
-        currency: alert.listing.currency,
-        url: alert.listing.url,
-        imageUrl: alert.listing.imageUrl,
-        location: alert.listing.location,
-        firstSeenAt: alert.listing.createdAt.toISOString(),
-        lastSeenAt: alert.listing.updatedAt.toISOString(),
-      },
-    }));
+    const alerts: AlertRecord[] = search.alerts.map((alert) => {
+      const snapshotPricesForListing =
+        snapshotPricesByListing.get(`${search.id}:${alert.listingId}`) ?? [];
+      const dealQuality = computeDealQualitySignals({
+        currentPriceCents: alert.listing.priceCents,
+        snapshotPricesCents: snapshotPricesForListing,
+      });
+
+      return {
+        id: alert.id,
+        createdAt: alert.createdAt.toISOString(),
+        previousPriceCents: alert.previousPriceCents,
+        priceDroppedAt: alert.priceDroppedAt?.toISOString() ?? null,
+        savedSearch: { id: search.id, name: search.name },
+        dealQuality: {
+          isLowestSeen: dealQuality.isLowestSeen,
+          isBelowRecentAverage: dealQuality.isBelowRecentAverage,
+          recentAverageCents: dealQuality.recentAverageCents,
+        },
+        listing: {
+          id: alert.listing.id,
+          source: alert.listing.source,
+          title: alert.listing.title,
+          priceCents: alert.listing.priceCents,
+          currency: alert.listing.currency,
+          url: alert.listing.url,
+          imageUrl: alert.listing.imageUrl,
+          location: alert.listing.location,
+          firstSeenAt: alert.listing.createdAt.toISOString(),
+          lastSeenAt: alert.listing.updatedAt.toISOString(),
+        },
+      };
+    });
 
     const lastSuccessfulPollAt = search.lastSuccessfulPollAt?.toISOString() ?? null;
     const latestPollStartedAt = latestSuccessRun?.startedAt.toISOString() ?? null;

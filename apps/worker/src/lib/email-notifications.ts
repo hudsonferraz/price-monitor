@@ -1,6 +1,10 @@
 import { Resend } from "resend";
 import { prisma } from "@price-monitor/database";
 import { buildAlertEmailContent } from "@price-monitor/shared/alert-email";
+import {
+  computeDealQualitySignals,
+  groupSnapshotPricesByListing,
+} from "@price-monitor/shared/deal-quality";
 import { normalizeAppLocale } from "@price-monitor/shared/locales";
 
 function getResendClient(): Resend | null {
@@ -63,19 +67,53 @@ export async function sendNewAlertsEmail(
     return false;
   }
 
+  const listingIds = alerts.map((alert) => alert.listingId);
+  const snapshots = await prisma.pollSnapshotListing.findMany({
+    where: {
+      listingId: { in: listingIds },
+      pollRun: { savedSearchId },
+    },
+    select: {
+      listingId: true,
+      priceCents: true,
+      pollRun: { select: { savedSearchId: true } },
+    },
+  });
+  const snapshotPricesByListing = groupSnapshotPricesByListing(
+    snapshots.map((snapshot) => ({
+      listingId: snapshot.listingId,
+      priceCents: snapshot.priceCents,
+      savedSearchId: snapshot.pollRun.savedSearchId,
+    })),
+  );
+
   const locale = normalizeAppLocale(user.preferredLocale);
   const dashboardUrl = `${getDashboardUrl()}/dashboard`;
   const emailContent = buildAlertEmailContent({
     locale,
     searchName: savedSearch.name,
-    alerts: alerts.map((alert) => ({
-      title: alert.listing.title,
-      url: alert.listing.url,
-      priceCents: alert.listing.priceCents,
-      location: alert.listing.location,
-      priceDroppedAt: alert.priceDroppedAt,
-      previousPriceCents: alert.previousPriceCents,
-    })),
+    alerts: alerts.map((alert) => {
+      const snapshotPrices =
+        snapshotPricesByListing.get(`${savedSearchId}:${alert.listingId}`) ?? [];
+      const dealQuality = computeDealQualitySignals({
+        currentPriceCents: alert.listing.priceCents,
+        snapshotPricesCents: snapshotPrices,
+      });
+
+      return {
+        title: alert.listing.title,
+        url: alert.listing.url,
+        priceCents: alert.listing.priceCents,
+        location: alert.listing.location,
+        priceDroppedAt: alert.priceDroppedAt,
+        previousPriceCents: alert.previousPriceCents,
+        dealQuality: {
+          isLowestSeen: dealQuality.isLowestSeen,
+          isBelowRecentAverage: dealQuality.isBelowRecentAverage,
+          recentAverageCents: dealQuality.recentAverageCents,
+        },
+      };
+    }),
     dashboardUrl,
   });
 

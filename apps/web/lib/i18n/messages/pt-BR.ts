@@ -39,9 +39,10 @@ export const messages = {
 
   notificationsTitle: "Notificações",
   notificationsDescription:
-    "Receba e-mail quando novos anúncios do Facebook Marketplace baterem com suas buscas.",
-  notificationsEmailLabel: "Enviar e-mail sobre novos resultados",
-  notificationsEmailHint: "Requer Resend configurado no worker.",
+    "Receba e-mail quando novos anuncios do Facebook Marketplace baterem com suas buscas apos a varredura inicial.",
+  notificationsEmailLabel: "Enviar e-mail sobre novos resultados e quedas de preco",
+  notificationsEmailHint:
+    "Requer Resend no worker. O primeiro poll bem-sucedido de cada busca e uma varredura inicial e nao envia e-mail.",
   notificationsEnabled: "Alertas por e-mail ativados.",
   notificationsDisabled: "Alertas por e-mail desativados.",
   notificationsUpdateFailed: "Falha ao atualizar configurações de notificação",
@@ -218,7 +219,7 @@ export const messages = {
   alertsFirstSeen: "Visto pela 1ª vez {date}",
   alertsLastSeen: "Visto por último {date}",
   alertsBaselineBanner:
-    "Linha de base criada — mostrando todos os resultados da última varredura (até {limit} por poll).",
+    "Varredura inicial concluida — mostrando todos os resultados deste primeiro poll (ate {limit} por poll). Alertas por e-mail comecam no proximo poll, quando houver anuncios novos ou quedas de preco.",
   alertsBaselineResults: "Resultados da linha de base ({count})",
   alertsNewSincePoll: "Novos desde o último poll ({count})",
   alertsPreviousListings: "Anúncios anteriores ({count})",
@@ -227,6 +228,8 @@ export const messages = {
   alertsWhyPriceRange: "Dentro da faixa de preço",
   alertsWhyBaseline: "Resultado da linha de base",
   alertsWhyNew: "Novo desde o último poll",
+  alertsWhyLowestSeen: "Menor preco visto",
+  alertsWhyBelowAverage: "Abaixo da media recente ({average})",
   alertsNoNewSincePoll:
     "Nenhum anúncio novo desde o último poll. Resultados anteriores abaixo.",
   alertsShowAll: "Mostrar todos ({count})",

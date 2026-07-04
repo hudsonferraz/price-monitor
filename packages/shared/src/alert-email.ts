@@ -1,4 +1,5 @@
 import { encodeEmailHref, escapeHtml, renderEmailLink } from "./email-html";
+import type { DealQualitySignals } from "./deal-quality";
 import type { AppLocale } from "./locales";
 import { formatPriceCents } from "./poll-rate-limit";
 
@@ -9,6 +10,10 @@ export interface AlertEmailListing {
   location: string | null;
   priceDroppedAt: Date | string | null;
   previousPriceCents: number | null;
+  dealQuality?: Pick<
+    DealQualitySignals,
+    "isLowestSeen" | "isBelowRecentAverage" | "recentAverageCents"
+  >;
 }
 
 export interface AlertEmailContentInput {
@@ -36,6 +41,8 @@ const messages = {
     htmlIntro: (count: number) =>
       `You have <strong>${count}</strong> new Facebook Marketplace match(es) for`,
     priceWas: (price: string) => `(was ${price})`,
+    lowestSeen: "Lowest seen",
+    belowRecentAverage: (average: string) => `Below recent average (${average})`,
     viewAllAlerts: "View all alerts",
     openDashboard: "Open your dashboard",
   },
@@ -51,6 +58,8 @@ const messages = {
     htmlIntro: (count: number) =>
       `Voce tem <strong>${count}</strong> novo(s) anuncio(s) no Facebook Marketplace para`,
     priceWas: (price: string) => `(era ${price})`,
+    lowestSeen: "Menor preco visto",
+    belowRecentAverage: (average: string) => `Abaixo da media recente (${average})`,
     viewAllAlerts: "Ver todos os alertas",
     openDashboard: "Abrir seu painel",
   },
@@ -89,6 +98,37 @@ function buildPriceDropNote(
   return html ? ` <em>${escapeHtml(note)}</em>` : ` ${note}`;
 }
 
+function buildDealQualityNote(
+  locale: AppLocale,
+  alert: AlertEmailListing,
+  html: boolean,
+): string {
+  if (!alert.dealQuality) {
+    return "";
+  }
+
+  const notes: string[] = [];
+  const copy = messages[locale];
+
+  if (alert.dealQuality.isLowestSeen) {
+    notes.push(copy.lowestSeen);
+  }
+
+  if (
+    alert.dealQuality.isBelowRecentAverage &&
+    alert.dealQuality.recentAverageCents != null
+  ) {
+    notes.push(copy.belowRecentAverage(formatPriceCents(alert.dealQuality.recentAverageCents)));
+  }
+
+  if (notes.length === 0) {
+    return "";
+  }
+
+  const joined = notes.join(" · ");
+  return html ? ` <span>${escapeHtml(joined)}</span>` : ` · ${joined}`;
+}
+
 export function buildAlertEmailContent(input: AlertEmailContentInput): AlertEmailContent {
   const { locale, searchName, alerts, dashboardUrl } = input;
   const copy = messages[locale];
@@ -103,7 +143,8 @@ export function buildAlertEmailContent(input: AlertEmailContentInput): AlertEmai
       const price = formatPriceCents(alert.priceCents);
       const location = alert.location ? ` · ${alert.location}` : "";
       const priceDropNote = buildPriceDropNote(locale, alert, false);
-      return `• ${alert.title} — ${price}${priceDropNote}${location}\n  ${alert.url}`;
+      const dealQualityNote = buildDealQualityNote(locale, alert, false);
+      return `• ${alert.title} — ${price}${priceDropNote}${dealQualityNote}${location}\n  ${alert.url}`;
     })
     .join("\n\n");
 
@@ -123,7 +164,8 @@ export function buildAlertEmailContent(input: AlertEmailContentInput): AlertEmai
           const price = escapeHtml(formatPriceCents(alert.priceCents));
           const location = alert.location ? ` · ${escapeHtml(alert.location)}` : "";
           const priceDropNote = buildPriceDropNote(locale, alert, true);
-          return `<li>${renderEmailLink(alert.url, alert.title)} — ${price}${priceDropNote}${location}</li>`;
+          const dealQualityNote = buildDealQualityNote(locale, alert, true);
+          return `<li>${renderEmailLink(alert.url, alert.title)} — ${price}${priceDropNote}${dealQualityNote}${location}</li>`;
         })
         .join("")}
     </ul>

@@ -49,4 +49,26 @@ describe("buildAlertEmailContent", () => {
     expect(content.text).toContain("(era R$");
     expect(content.html).toContain("Abrir seu painel");
   });
+
+  it("includes deal-quality notes in email content", () => {
+    const content = buildAlertEmailContent({
+      locale: "en-US",
+      searchName: "iPhone deals",
+      alerts: [
+        {
+          ...alerts[0],
+          dealQuality: {
+            isLowestSeen: true,
+            isBelowRecentAverage: true,
+            recentAverageCents: 480000,
+          },
+        },
+      ],
+      dashboardUrl: "http://localhost:3000/dashboard",
+    });
+
+    expect(content.text).toContain("Lowest seen");
+    expect(content.text).toContain("Below recent average (R$");
+    expect(content.html).toContain("Lowest seen");
+  });
 });

@@ -15,6 +15,11 @@ export interface AlertRecord {
   previousPriceCents: number | null;
   priceDroppedAt: string | null;
   savedSearch: { id: string; name: string };
+  dealQuality?: {
+    isLowestSeen: boolean;
+    isBelowRecentAverage: boolean;
+    recentAverageCents: number | null;
+  };
   listing: {
     id: string;
     source: string;
@@ -155,6 +160,19 @@ function AlertCard({
           {!isBaselineResults && isNewMatch ? (
             <span className="inline-block rounded-full bg-violet-100 px-2 py-0.5 text-xs font-medium text-violet-900 dark:bg-violet-900/40 dark:text-violet-200">
               {t("alertsWhyNew")}
+            </span>
+          ) : null}
+          {alert.dealQuality?.isLowestSeen ? (
+            <span className="inline-block rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-900 dark:bg-amber-900/40 dark:text-amber-200">
+              {t("alertsWhyLowestSeen")}
+            </span>
+          ) : null}
+          {alert.dealQuality?.isBelowRecentAverage &&
+          alert.dealQuality.recentAverageCents != null ? (
+            <span className="inline-block rounded-full bg-teal-100 px-2 py-0.5 text-xs font-medium text-teal-900 dark:bg-teal-900/40 dark:text-teal-200">
+              {t("alertsWhyBelowAverage", {
+                average: formatPriceCents(alert.dealQuality.recentAverageCents, locale),
+              })}
             </span>
           ) : null}
         </div>

@@ -16,7 +16,7 @@ This is a **personal, educational, and portfolio project** for exploring scrapin
 
 ## Highlights
 
-- **131 automated tests** — Brazilian price parsing, Facebook parsers, poll schedule backoff, rate limits, price-drop logic, email HTML safety, localized alert emails and poll queue messages, Zod schemas, adapter merge priority, poll job cleanup, API route auth/ownership/cooldown, middleware path guards
+- **139 automated tests** — Brazilian price parsing, Facebook parsers, poll schedule backoff, rate limits, price-drop logic, deal-quality signals, email HTML safety, localized alert emails and poll queue messages, Zod schemas, adapter merge priority, poll job cleanup, API route auth/ownership/cooldown, middleware path guards
 - **Local-first worker** — Facebook-facing browser/session stays on your machine in `.facebook-profile/`
 - **Worker heartbeat dashboard** — online/stale/offline state, Facebook session mode, latest successful scrape, and latest failure type
 - **Resilient Facebook scraping** — GraphQL interception + embedded JSON + DOM fallback with unified merge
@@ -38,9 +38,9 @@ This is a **personal, educational, and portfolio project** for exploring scrapin
 |------|----------------|
 | **Saved searches** | Keywords, optional min/max price (BRL), poll interval (5–1440 min), listing limit (12/24/48), enable/disable |
 | **Polling** | Manual **Poll now** (15 min cooldown) + scheduler every 60s; live status banner and poll run history |
-| **Alerts** | New matches and price-drop badges; sort by date/price; dismiss per alert or clear all |
+| **Alerts** | New matches and price-drop badges; deal-quality signals (lowest seen, below recent average); sort by date/price; dismiss per alert or clear all |
 | **Worker health** | Postgres heartbeat, session mode, latest scrape/failure summaries in the dashboard |
-| **Email** | Optional Resend HTML + plain text from worker; respects user notification toggle |
+| **Email** | Optional Resend HTML + plain text from worker; respects user notification toggle; baseline scans do not send email |
 | **Auth** | GitHub + Google OAuth via NextAuth v5 |
 | **i18n** | Portuguese (default) and English |
 

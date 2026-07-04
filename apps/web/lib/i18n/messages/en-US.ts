@@ -36,9 +36,10 @@ export const messages = {
 
   notificationsTitle: "Notifications",
   notificationsDescription:
-    "Get an email when new Facebook Marketplace listings match your saved searches.",
-  notificationsEmailLabel: "Email me about new matches",
-  notificationsEmailHint: "Requires Resend to be configured on the worker.",
+    "Get an email when new Facebook Marketplace listings match your saved searches after the baseline scan.",
+  notificationsEmailLabel: "Email me about new matches and price drops",
+  notificationsEmailHint:
+    "Requires Resend on the worker. The first successful poll per search is a baseline scan and does not send email.",
   notificationsEnabled: "Email alerts enabled.",
   notificationsDisabled: "Email alerts disabled.",
   notificationsUpdateFailed: "Failed to update notification settings",
@@ -212,7 +213,7 @@ export const messages = {
   alertsFirstSeen: "First seen {date}",
   alertsLastSeen: "Last seen {date}",
   alertsBaselineBanner:
-    "Baseline established — showing all matches from the latest scan (up to {limit} per poll).",
+    "Baseline scan complete — showing every match from this first poll (up to {limit} per poll). Email alerts start on the next poll when new listings or price drops appear.",
   alertsBaselineResults: "Baseline results ({count})",
   alertsNewSincePoll: "New since last poll ({count})",
   alertsPreviousListings: "Previous listings ({count})",
@@ -221,6 +222,8 @@ export const messages = {
   alertsWhyPriceRange: "Within price range",
   alertsWhyBaseline: "Baseline result",
   alertsWhyNew: "New since last poll",
+  alertsWhyLowestSeen: "Lowest seen",
+  alertsWhyBelowAverage: "Below recent average ({average})",
   alertsNoNewSincePoll: "No new listings since the last poll. Showing previous matches below.",
   alertsShowAll: "Show all {count}",
   alertsShowLess: "Show less",
