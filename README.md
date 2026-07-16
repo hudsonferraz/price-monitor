@@ -1,5 +1,6 @@
 # price-monitor
 
+![CI](https://github.com/hudsonferraz/price-monitor/actions/workflows/ci.yml/badge.svg)
 ![Next.js 15](https://img.shields.io/badge/Next.js-15-black)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5.8-blue)
 ![License](https://img.shields.io/badge/license-MIT-green)
