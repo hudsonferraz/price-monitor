@@ -12,10 +12,28 @@ export interface DealQualitySignals {
   recentAverageCents: number | null;
 }
 
-const MIN_SNAPSHOTS_FOR_COMPARISON = 2;
+/** Minimum prior (non-current) snapshots required before deal-quality badges can fire. */
+export const MIN_SNAPSHOTS_FOR_COMPARISON = 2;
+
+/** How far back snapshot history is considered for deal-quality averages. */
+export const DEAL_QUALITY_HISTORY_DAYS = 30;
 
 export function collectValidPrices(prices: Array<number | null | undefined>): number[] {
   return prices.filter((price): price is number => price != null && price > 0);
+}
+
+/**
+ * Snapshots must be chronological (oldest → newest). Drops the newest observation
+ * so current price is not compared against a baseline that already includes itself.
+ */
+export function getPriorSnapshotPrices(
+  snapshotPricesCents: Array<number | null | undefined>,
+): Array<number | null | undefined> {
+  if (snapshotPricesCents.length === 0) {
+    return [];
+  }
+
+  return snapshotPricesCents.slice(0, -1);
 }
 
 export function computeListingPriceStats(
@@ -47,9 +65,11 @@ export function computeListingPriceStats(
 
 export function computeDealQualitySignals(input: {
   currentPriceCents: number | null;
+  /** Chronological snapshot prices (oldest → newest), including the current poll's snapshot. */
   snapshotPricesCents: Array<number | null | undefined>;
 }): DealQualitySignals {
-  const stats = computeListingPriceStats(input.snapshotPricesCents);
+  const priorPrices = getPriorSnapshotPrices(input.snapshotPricesCents);
+  const stats = computeListingPriceStats(priorPrices);
   const hasEnoughHistory = stats.validPriceCount >= MIN_SNAPSHOTS_FOR_COMPARISON;
 
   const isLowestSeen =
@@ -89,4 +109,8 @@ export function groupSnapshotPricesByListing(
   }
 
   return grouped;
+}
+
+export function getDealQualityHistoryCutoff(now: Date = new Date()): Date {
+  return new Date(now.getTime() - DEAL_QUALITY_HISTORY_DAYS * 24 * 60 * 60 * 1000);
 }

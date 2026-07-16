@@ -14,9 +14,4 @@ export function isProtectedPath(pathname: string): boolean {
   );
 }
 
-export const protectedRouteMatchers = [
-  "/dashboard/:path*",
-  "/api/searches/:path*",
-  "/api/alerts/:path*",
-  "/api/user/:path*",
-] as const;
+export { protectedRouteMatchers } from "./protected-route-matchers";

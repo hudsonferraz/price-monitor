@@ -15,6 +15,7 @@ import { summarizeRecentPollHealth } from "@/lib/system-health";
 import { getPollIssueCode, isFacebookSessionError } from "@price-monitor/shared/poll-errors";
 import {
   computeDealQualitySignals,
+  getDealQualityHistoryCutoff,
   groupSnapshotPricesByListing,
 } from "@price-monitor/shared/deal-quality";
 import { PollRunStatus, prisma } from "@price-monitor/database";
@@ -86,12 +87,16 @@ export default async function DashboardPage() {
       where: {
         pollRun: {
           savedSearch: { userId: session.user.id },
+          startedAt: { gte: getDealQualityHistoryCutoff() },
         },
       },
       select: {
         listingId: true,
         priceCents: true,
-        pollRun: { select: { savedSearchId: true } },
+        pollRun: { select: { savedSearchId: true, startedAt: true } },
+      },
+      orderBy: {
+        pollRun: { startedAt: "asc" },
       },
     }),
   ]);
