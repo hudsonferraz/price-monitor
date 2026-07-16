@@ -51,17 +51,19 @@ export const messages = {
   apiErrorRedisNotConfigured: "Redis is not configured. Start Docker and the local worker to enable polling.",
   apiErrorPollQueueFailed: "Failed to queue the poll. Check that Redis and the worker are running.",
   apiErrorWorkerOffline:
-    "No local worker is running. Start npm run worker:dev before polling.",
+    "Local worker is not running. Open a second terminal and run: npm run worker:dev — then try Poll now again.",
   apiErrorWorkerStale:
-    "The local worker heartbeat is stale. Restart npm run worker:dev before polling.",
+    "Local worker heartbeat is stale (worker may have stopped). Restart it with: npm run worker:dev — then try Poll now again.",
   apiErrorUnknown: "Something went wrong. Please try again.",
 
 
   workerStatusTitle: "Local worker",
   workerStatusOnline: "Worker is online and writing heartbeats. Polls should run locally.",
-  workerStatusStale: "Worker heartbeat is stale. Start npm run worker:dev or check the worker terminal.",
-  workerStatusOffline: "Worker stopped cleanly. Start npm run worker:dev before polling.",
-  workerStatusMissing: "No local worker heartbeat found yet. Start npm run worker:dev to connect the dashboard to the scraper.",
+  workerStatusStale:
+    "Worker heartbeat is stale. Restart the worker with: npm run worker:dev",
+  workerStatusOffline: "Worker stopped cleanly. Start it again with: npm run worker:dev",
+  workerStatusMissing:
+    "No local worker connected yet. Open a second terminal and run: npm run worker:dev",
   workerStatusId: "Worker: {id}",
   workerStatusLastSeen: "Last seen: {date}",
   workerStatusRuntime: "Runtime",

@@ -37,7 +37,9 @@ describe("translateApiError", () => {
     );
   });
 
-  it("translates worker availability errors", () => {
+  it("translates worker availability errors with the worker:dev command", () => {
+    expect(translateApiError("WORKER_OFFLINE", translate)).toContain("npm run worker:dev");
+    expect(translateApiError("WORKER_STALE", translate)).toContain("npm run worker:dev");
     expect(translateApiError("WORKER_OFFLINE", translate)).toBe(messages.apiErrorWorkerOffline);
     expect(translateApiError("WORKER_STALE", translate)).toBe(messages.apiErrorWorkerStale);
   });

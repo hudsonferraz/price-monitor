@@ -56,17 +56,19 @@ export const messages = {
   apiErrorPollQueueFailed:
     "Falha ao enfileirar o poll. Verifique se Redis e o worker estao rodando.",
   apiErrorWorkerOffline:
-    "Nenhum worker local esta rodando. Inicie npm run worker:dev antes de fazer poll.",
+    "Worker local nao esta rodando. Abra um segundo terminal e rode: npm run worker:dev — depois tente Poll now de novo.",
   apiErrorWorkerStale:
-    "O heartbeat do worker local esta antigo. Reinicie npm run worker:dev antes de fazer poll.",
+    "Heartbeat do worker local esta antigo (o worker pode ter parado). Reinicie com: npm run worker:dev — depois tente Poll now de novo.",
   apiErrorUnknown: "Algo deu errado. Tente novamente.",
 
 
   workerStatusTitle: "Worker local",
   workerStatusOnline: "Worker online e escrevendo heartbeats. Os polls devem rodar localmente.",
-  workerStatusStale: "Heartbeat do worker esta antigo. Rode npm run worker:dev ou confira o terminal do worker.",
-  workerStatusOffline: "Worker parou corretamente. Rode npm run worker:dev antes de fazer poll.",
-  workerStatusMissing: "Nenhum heartbeat local encontrado ainda. Rode npm run worker:dev para conectar o painel ao scraper.",
+  workerStatusStale:
+    "Heartbeat do worker esta antigo. Reinicie o worker com: npm run worker:dev",
+  workerStatusOffline: "Worker parou corretamente. Inicie de novo com: npm run worker:dev",
+  workerStatusMissing:
+    "Nenhum worker local conectado ainda. Abra um segundo terminal e rode: npm run worker:dev",
   workerStatusId: "Worker: {id}",
   workerStatusLastSeen: "Ultimo sinal: {date}",
   workerStatusRuntime: "Runtime",
