@@ -8,6 +8,17 @@ import {
 } from "./poll-errors";
 
 describe("getPollIssueCode", () => {
+  it("classifies locked browser profile errors", () => {
+    expect(
+      getPollIssueCode(
+        "Facebook browser profile is already in use. Close other Chrome windows using .facebook-profile.",
+      ),
+    ).toBe("BROWSER_PROFILE_LOCKED");
+    expect(getPollIssueCode("Abrindo em uma sessao de navegador existente.")).toBe(
+      "BROWSER_PROFILE_LOCKED",
+    );
+  });
+
   it("classifies login redirect errors", () => {
     expect(getPollIssueCode("Facebook redirected to login.")).toBe("FACEBOOK_SESSION");
   });
@@ -56,8 +67,10 @@ describe("isNoListingsPollError", () => {
 });
 
 describe("formatPollErrorForDisplay", () => {
-  it("returns a friendly session message", () => {
-    expect(formatPollErrorForDisplay("Facebook redirected to login")).toContain("session expired");
+  it("returns profile-locked guidance", () => {
+    expect(
+      formatPollErrorForDisplay("Facebook browser profile is already in use"),
+    ).toContain("already open");
   });
 
   it("returns checkpoint guidance", () => {

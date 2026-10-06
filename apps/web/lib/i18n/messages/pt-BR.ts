@@ -150,6 +150,8 @@ export const messages = {
     "Sessao do Facebook expirou ou esta ausente no worker. Rode npm run facebook:login localmente e confirme que o Marketplace carrega.",
   pollErrorCheckpoint:
     "Facebook enviou o worker para um checkpoint. Rode npm run facebook:login localmente e resolva o prompt.",
+  pollErrorBrowserProfileLocked:
+    "O perfil do navegador do Facebook ja esta aberto em outra janela. Feche npm run facebook:login e qualquer Chrome usando .facebook-profile, depois tente de novo.",
   pollErrorParseEmpty:
     "O Facebook Marketplace carregou, mas o scraper nao conseguiu ler os cards de anuncios. Atualize a sessao ou tente de novo apos mudanca de layout.",
   pollErrorNoListings:
@@ -191,6 +193,9 @@ export const messages = {
   diagnosticsCheckpointTitle: "Checkpoint do Facebook detectado",
   diagnosticsCheckpointDescription:
     "O Facebook enviou a sessao do worker para um checkpoint. Rode npm run facebook:login localmente, resolva o prompt e tente de novo. Polls com falha nas ultimas 24h: {failedPolls}.",
+  diagnosticsBrowserProfileLockedTitle: "Perfil do navegador do Facebook ja aberto",
+  diagnosticsBrowserProfileLockedDescription:
+    "Outro Chrome/Playwright esta usando .facebook-profile. Feche facebook:login e janelas Chrome sobrando, depois tente Poll now. Polls com falha nas ultimas 24h: {failedPolls}.",
   diagnosticsParseEmptyTitle: "Pagina do Marketplace nao foi interpretada",
   diagnosticsParseEmptyDescription:
     "O Facebook abriu o Marketplace, mas o scraper nao leu os cards. Geralmente e mudanca de layout ou pagina pela metade — rode npm run facebook:login e tente Poll now. Polls com falha nas ultimas 24h: {failedPolls}.",

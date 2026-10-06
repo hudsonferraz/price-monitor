@@ -7,6 +7,8 @@ export function getPollErrorMessageKey(errorMessage: string | null | undefined):
   switch (issueCode) {
     case "FACEBOOK_CHECKPOINT":
       return "pollErrorCheckpoint";
+    case "BROWSER_PROFILE_LOCKED":
+      return "pollErrorBrowserProfileLocked";
     case "FACEBOOK_SESSION":
       return "pollErrorSession";
     case "PARSE_EMPTY":

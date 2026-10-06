@@ -1,6 +1,7 @@
 export type PollIssueCode =
   | "FACEBOOK_SESSION"
   | "FACEBOOK_CHECKPOINT"
+  | "BROWSER_PROFILE_LOCKED"
   | "NO_LISTINGS"
   | "PARSE_EMPTY"
   | "POLL_TIMEOUT"
@@ -15,6 +16,15 @@ export function getPollIssueCode(errorMessage: string | null | undefined): PollI
 
   if (normalized.includes("checkpoint")) {
     return "FACEBOOK_CHECKPOINT";
+  }
+
+  if (
+    normalized.includes("browser profile is already in use") ||
+    normalized.includes("existing browser session") ||
+    normalized.includes("sessao de navegador existente") ||
+    normalized.includes("sessão de navegador existente")
+  ) {
+    return "BROWSER_PROFILE_LOCKED";
   }
 
   if (
@@ -59,6 +69,10 @@ export function formatPollErrorForDisplay(errorMessage: string | null | undefine
 
   if (issueCode === "FACEBOOK_CHECKPOINT") {
     return "Facebook sent the worker to a checkpoint. Run npm run facebook:login locally and clear the prompt in the browser profile.";
+  }
+
+  if (issueCode === "BROWSER_PROFILE_LOCKED") {
+    return "The Facebook browser profile is already open in another Chrome/Playwright window. Close facebook:login and any Chrome using .facebook-profile, then retry the poll.";
   }
 
   if (issueCode === "FACEBOOK_SESSION") {

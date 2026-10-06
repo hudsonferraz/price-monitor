@@ -8,6 +8,9 @@ describe("getPollErrorMessageKey", () => {
   it("maps classified poll errors to message keys", () => {
     expect(getPollErrorMessageKey("Facebook redirected to login.")).toBe("pollErrorSession");
     expect(getPollErrorMessageKey("Facebook redirected to checkpoint")).toBe("pollErrorCheckpoint");
+    expect(getPollErrorMessageKey("Facebook browser profile is already in use")).toBe(
+      "pollErrorBrowserProfileLocked",
+    );
     expect(getPollErrorMessageKey("No Facebook Marketplace listings found")).toBe("pollErrorNoListings");
     expect(
       getPollErrorMessageKey(

@@ -144,6 +144,8 @@ export const messages = {
     "Facebook session expired or missing on the worker. Run npm run facebook:login locally.",
   pollErrorCheckpoint:
     "Facebook sent the worker to a checkpoint. Run npm run facebook:login locally and clear the prompt.",
+  pollErrorBrowserProfileLocked:
+    "The Facebook browser profile is already open in another window. Close npm run facebook:login and any Chrome using .facebook-profile, then retry.",
   pollErrorParseEmpty:
     "Facebook Marketplace loaded, but the scraper could not parse listing cards. Refresh the Facebook session or try again after a Marketplace layout change.",
   pollErrorNoListings:
@@ -185,6 +187,9 @@ export const messages = {
   diagnosticsCheckpointTitle: "Facebook checkpoint detected",
   diagnosticsCheckpointDescription:
     "Facebook sent the worker session to a checkpoint. Run npm run facebook:login locally, clear it, and try again. Failed polls in the last 24h: {failedPolls}.",
+  diagnosticsBrowserProfileLockedTitle: "Facebook browser profile already open",
+  diagnosticsBrowserProfileLockedDescription:
+    "Another Chrome/Playwright process is using .facebook-profile. Close facebook:login and leftover Chrome windows, then Poll now again. Failed polls in the last 24h: {failedPolls}.",
   diagnosticsParseEmptyTitle: "Marketplace page could not be parsed",
   diagnosticsParseEmptyDescription:
     "Facebook opened Marketplace, but the scraper could not read listing cards. This usually means a layout change or a half-loaded page — refresh the session with npm run facebook:login and try Poll now. Failed polls in the last 24h: {failedPolls}.",

@@ -60,6 +60,8 @@ function getTitle(kind: DiagnosticsKind, t: ReturnType<typeof useTranslations>):
       return t("diagnosticsCheckpointTitle");
     case "FACEBOOK_SESSION":
       return t("diagnosticsSessionTitle");
+    case "BROWSER_PROFILE_LOCKED":
+      return t("diagnosticsBrowserProfileLockedTitle");
     case "PARSE_EMPTY":
       return t("diagnosticsParseEmptyTitle");
     case "NO_LISTINGS":
@@ -81,6 +83,8 @@ function getDescription(
       return t("diagnosticsCheckpointDescription", values);
     case "FACEBOOK_SESSION":
       return t("diagnosticsSessionDescription", values);
+    case "BROWSER_PROFILE_LOCKED":
+      return t("diagnosticsBrowserProfileLockedDescription", values);
     case "PARSE_EMPTY":
       return t("diagnosticsParseEmptyDescription", values);
     case "NO_LISTINGS":
