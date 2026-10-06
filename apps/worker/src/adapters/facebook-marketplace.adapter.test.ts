@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
-import { collectAvailableListings, hasFacebookLoginWall } from "./facebook-marketplace.adapter";
+import { collectAvailableListings, hasFacebookLoginWall, looksLikeMarketplaceSearchPage } from "./facebook-marketplace.adapter";
 
 const fixturesDir = resolve(dirname(fileURLToPath(import.meta.url)), "../../../../fixtures");
 const domFixture = readFileSync(resolve(fixturesDir, "facebook-search-dom.mock.html"), "utf8");
@@ -32,12 +32,28 @@ describe("collectAvailableListings", () => {
     expect(listings).toHaveLength(2);
   });
 
-  it("prefers embedded JSON and ignores DOM when embedded data exists", () => {
+  it("prefers embedded JSON ids while still allowing DOM supplement", () => {
     const listings = collectAvailableListings(embeddedFixture, 24);
 
     expect(listings.length).toBeGreaterThan(0);
     expect(listings.every((listing) => listing.externalId.length > 0)).toBe(true);
   });
+
+  it("fills missing GraphQL imageUrl from DOM for the same externalId", () => {
+    const listings = collectAvailableListings(domFixture, 24, [
+      {
+        externalId: "4720490308074106",
+        title: "GraphQL listing",
+        price: "R$ 100",
+        url: "https://www.facebook.com/marketplace/item/4720490308074106",
+      },
+    ]);
+
+    const matched = listings.find((listing) => listing.externalId === "4720490308074106");
+    expect(matched?.title).toBe("GraphQL listing");
+    expect(matched?.imageUrl).toBeTruthy();
+  });
+
   it("keeps listings even when the page also contains login prompt text", () => {
     const html = `${domFixture}<div>Log in to Facebook</div>`;
     const listings = collectAvailableListings(html, 24);
@@ -46,6 +62,24 @@ describe("collectAvailableListings", () => {
     expect(listings).toHaveLength(1);
   });
 });
+
+describe("looksLikeMarketplaceSearchPage", () => {
+  it("detects marketplace search pages without login walls", () => {
+    expect(
+      looksLikeMarketplaceSearchPage(
+        domFixture,
+        "https://www.facebook.com/marketplace/search?query=iphone",
+      ),
+    ).toBe(true);
+    expect(
+      looksLikeMarketplaceSearchPage(
+        "<html><title>Log in to Facebook</title></html>",
+        "https://www.facebook.com/marketplace/search?query=iphone",
+      ),
+    ).toBe(false);
+  });
+});
+
 describe("hasFacebookLoginWall", () => {
   it("detects English and Portuguese Facebook login walls", () => {
     expect(hasFacebookLoginWall("<html><title>Log in to Facebook</title></html>")).toBe(true);

@@ -11,6 +11,7 @@ export function buildFacebookMarketplaceSearchUrl({
 }: FacebookSearchUrlOptions): string {
   const params = new URLSearchParams({
     query: keywords.trim(),
+    sortBy: "creation_time_descend",
   });
 
   if (minPriceCents != null && minPriceCents > 0) {

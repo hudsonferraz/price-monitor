@@ -58,27 +58,29 @@ npm install
 npx playwright install chromium
 cp .env.example .env
 cp apps/web/.env.example apps/web/.env.local
-npm run docker:up
-npm run db:push
-npm run facebook:login
-npm run spike:facebook
 ```
 
 Fill in `AUTH_*` OAuth values in `apps/web/.env.local`. The web app and worker must use the **same** `DATABASE_URL` and `REDIS_URL`.
 
-Terminal 1 — web:
+Cold path (full local — one install, one Facebook profile):
 
 ```bash
+npm run local:up          # docker Postgres/Redis + db push
+npm run facebook:login    # sign in once in the visible browser
+npm run spike:facebook    # optional smoke scrape
+```
+
+Then keep **two terminals** running:
+
+```bash
+# Terminal 1 — worker (must be up or polls look empty/delayed)
+npm run worker:dev
+
+# Terminal 2 — web
 npm run dev --workspace=@price-monitor/web
 ```
 
-Terminal 2 — worker:
-
-```bash
-npm run worker:dev
-```
-
-Open [http://localhost:3000](http://localhost:3000), sign in, create a search, and click **Poll now**. The dashboard should show the local worker heartbeat once `npm run worker:dev` is running.
+Open [http://localhost:3000](http://localhost:3000), sign in, create a search, and click **Poll now**. The dashboard should show the local worker heartbeat once `npm run worker:dev` is running. If the worker is missing/offline, fix that first — it is not a bad search keyword.
 
 ## Facebook Session Model
 

@@ -9,6 +9,8 @@ export function getPollErrorMessageKey(errorMessage: string | null | undefined):
       return "pollErrorCheckpoint";
     case "FACEBOOK_SESSION":
       return "pollErrorSession";
+    case "PARSE_EMPTY":
+      return "pollErrorParseEmpty";
     case "NO_LISTINGS":
       return "pollErrorNoListings";
     case "POLL_TIMEOUT":

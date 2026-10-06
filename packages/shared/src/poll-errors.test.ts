@@ -16,10 +16,18 @@ describe("getPollIssueCode", () => {
     expect(getPollIssueCode("Facebook redirected to checkpoint")).toBe("FACEBOOK_CHECKPOINT");
   });
 
-  it("classifies no-listings and timeout errors", () => {
+  it("classifies parse-empty separately from no-listings", () => {
+    expect(
+      getPollIssueCode(
+        "Failed to parse Marketplace listings from a loaded Facebook page. Current URL: https://www.facebook.com/marketplace/search?query=x",
+      ),
+    ).toBe("PARSE_EMPTY");
     expect(getPollIssueCode("No Facebook Marketplace listings found. Current URL: ...")).toBe(
       "NO_LISTINGS",
     );
+  });
+
+  it("classifies timeout errors", () => {
     expect(getPollIssueCode("Poll timed out before completing.")).toBe("POLL_TIMEOUT");
   });
 
@@ -56,9 +64,17 @@ describe("formatPollErrorForDisplay", () => {
     expect(formatPollErrorForDisplay("Facebook redirected to checkpoint")).toContain("checkpoint");
   });
 
+  it("returns parse-empty guidance", () => {
+    expect(
+      formatPollErrorForDisplay(
+        "Failed to parse Marketplace listings from a loaded Facebook page. Current URL: ...",
+      ),
+    ).toContain("could not parse");
+  });
+
   it("returns no-listings guidance", () => {
     expect(formatPollErrorForDisplay("No Facebook Marketplace listings found")).toContain(
-      "could not extract",
+      "no Marketplace listings matched",
     );
   });
 

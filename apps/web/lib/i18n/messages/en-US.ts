@@ -60,10 +60,11 @@ export const messages = {
   workerStatusTitle: "Local worker",
   workerStatusOnline: "Worker is online and writing heartbeats. Polls should run locally.",
   workerStatusStale:
-    "Worker heartbeat is stale. Restart the worker with: npm run worker:dev",
-  workerStatusOffline: "Worker stopped cleanly. Start it again with: npm run worker:dev",
+    "Worker heartbeat is stale. Restart with: npm run worker:dev (after npm run local:up if Docker is down).",
+  workerStatusOffline:
+    "Worker stopped. Start it again with: npm run worker:dev — polls will wait or fail until it is online.",
   workerStatusMissing:
-    "No local worker connected yet. Open a second terminal and run: npm run worker:dev",
+    "No local worker connected yet. Run npm run local:up if needed, then npm run facebook:login and npm run worker:dev in a second terminal.",
   workerStatusId: "Worker: {id}",
   workerStatusLastSeen: "Last seen: {date}",
   workerStatusRuntime: "Runtime",
@@ -143,8 +144,10 @@ export const messages = {
     "Facebook session expired or missing on the worker. Run npm run facebook:login locally.",
   pollErrorCheckpoint:
     "Facebook sent the worker to a checkpoint. Run npm run facebook:login locally and clear the prompt.",
+  pollErrorParseEmpty:
+    "Facebook Marketplace loaded, but the scraper could not parse listing cards. Refresh the Facebook session or try again after a Marketplace layout change.",
   pollErrorNoListings:
-    "Facebook loaded, but the worker could not extract Marketplace listings. Try a broader search or refresh the Facebook session if this repeats.",
+    "Facebook loaded, but no Marketplace listings matched this search. Try broader keywords, a wider price range, or confirm Marketplace shows results in your browser profile.",
   pollErrorTimeout:
     "Poll timed out. The worker may have been asleep or Facebook took too long to respond. Try Poll now again.",
   pollErrorUnknown: "Poll failed for an unknown reason.",
@@ -182,9 +185,12 @@ export const messages = {
   diagnosticsCheckpointTitle: "Facebook checkpoint detected",
   diagnosticsCheckpointDescription:
     "Facebook sent the worker session to a checkpoint. Run npm run facebook:login locally, clear it, and try again. Failed polls in the last 24h: {failedPolls}.",
-  diagnosticsNoListingsTitle: "No listings extracted",
+  diagnosticsParseEmptyTitle: "Marketplace page could not be parsed",
+  diagnosticsParseEmptyDescription:
+    "Facebook opened Marketplace, but the scraper could not read listing cards. This usually means a layout change or a half-loaded page — refresh the session with npm run facebook:login and try Poll now. Failed polls in the last 24h: {failedPolls}.",
+  diagnosticsNoListingsTitle: "No listings matched",
   diagnosticsNoListingsDescription:
-    "Facebook loaded, but the scraper could not find Marketplace listing data. This can happen with narrow searches, Marketplace layout changes, or a stale Facebook session. Failed polls in the last 24h: {failedPolls}.",
+    "Facebook loaded, but no Marketplace listings matched this search. Try broader keywords or a wider price range, and confirm results appear in your Facebook browser profile. Failed polls in the last 24h: {failedPolls}.",
   diagnosticsTimeoutTitle: "Poll timed out",
   diagnosticsTimeoutDescription:
     "The worker started a poll but did not finish in time. The local worker may be busy, asleep, or Facebook may be slow. Failed polls in the last 24h: {failedPolls}.",

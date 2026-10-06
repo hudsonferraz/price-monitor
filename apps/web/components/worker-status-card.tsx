@@ -233,6 +233,8 @@ function formatIssueCode(issueCode: PollIssueCode | null, t: ReturnType<typeof u
       return t("diagnosticsCheckpointTitle");
     case "FACEBOOK_SESSION":
       return t("diagnosticsSessionTitle");
+    case "PARSE_EMPTY":
+      return t("diagnosticsParseEmptyTitle");
     case "NO_LISTINGS":
       return t("diagnosticsNoListingsTitle");
     case "POLL_TIMEOUT":

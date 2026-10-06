@@ -2,6 +2,7 @@ export type PollIssueCode =
   | "FACEBOOK_SESSION"
   | "FACEBOOK_CHECKPOINT"
   | "NO_LISTINGS"
+  | "PARSE_EMPTY"
   | "POLL_TIMEOUT"
   | "UNKNOWN";
 
@@ -23,6 +24,10 @@ export function getPollIssueCode(errorMessage: string | null | undefined): PollI
     normalized.includes("facebook session")
   ) {
     return "FACEBOOK_SESSION";
+  }
+
+  if (normalized.includes("failed to parse marketplace listings")) {
+    return "PARSE_EMPTY";
   }
 
   if (normalized.includes("no facebook marketplace listings found")) {
@@ -60,8 +65,12 @@ export function formatPollErrorForDisplay(errorMessage: string | null | undefine
     return "Facebook session expired or missing on the worker. Run npm run facebook:login locally and confirm Marketplace loads.";
   }
 
+  if (issueCode === "PARSE_EMPTY") {
+    return "Facebook Marketplace loaded, but the scraper could not parse listing cards. Refresh the Facebook session or try again after a Marketplace layout change.";
+  }
+
   if (issueCode === "NO_LISTINGS") {
-    return "Facebook loaded, but the worker could not extract Marketplace listings. Try a broader search or refresh the Facebook session if this repeats.";
+    return "Facebook loaded, but no Marketplace listings matched this search. Try broader keywords, a wider price range, or confirm Marketplace shows results in your browser profile.";
   }
 
   if (issueCode === "POLL_TIMEOUT") {

@@ -65,10 +65,11 @@ export const messages = {
   workerStatusTitle: "Worker local",
   workerStatusOnline: "Worker online e escrevendo heartbeats. Os polls devem rodar localmente.",
   workerStatusStale:
-    "Heartbeat do worker esta antigo. Reinicie o worker com: npm run worker:dev",
-  workerStatusOffline: "Worker parou corretamente. Inicie de novo com: npm run worker:dev",
+    "Heartbeat do worker esta antigo. Reinicie com: npm run worker:dev (depois de npm run local:up se o Docker estiver parado).",
+  workerStatusOffline:
+    "Worker parado. Inicie de novo com: npm run worker:dev — polls esperam ou falham ate ele ficar online.",
   workerStatusMissing:
-    "Nenhum worker local conectado ainda. Abra um segundo terminal e rode: npm run worker:dev",
+    "Nenhum worker local conectado ainda. Rode npm run local:up se precisar, depois npm run facebook:login e npm run worker:dev em outro terminal.",
   workerStatusId: "Worker: {id}",
   workerStatusLastSeen: "Ultimo sinal: {date}",
   workerStatusRuntime: "Runtime",
@@ -149,8 +150,11 @@ export const messages = {
     "Sessao do Facebook expirou ou esta ausente no worker. Rode npm run facebook:login localmente e confirme que o Marketplace carrega.",
   pollErrorCheckpoint:
     "Facebook enviou o worker para um checkpoint. Rode npm run facebook:login localmente e resolva o prompt.",
+  pollErrorParseEmpty:
+    "O Facebook Marketplace carregou, mas o scraper nao conseguiu ler os cards de anuncios. Atualize a sessao ou tente de novo apos mudanca de layout.",
   pollErrorNoListings:
-    "Facebook carregou, mas o worker nao conseguiu extrair anuncios do Marketplace. Tente uma busca mais ampla ou atualize a sessao se isso se repetir.",  pollErrorTimeout:
+    "O Facebook carregou, mas nenhum anuncio do Marketplace bateu com esta busca. Tente palavras-chave mais amplas, faixa de preco maior, ou confirme resultados no perfil do navegador.",
+  pollErrorTimeout:
     "Poll expirou. O worker pode ter estado dormindo ou o Facebook demorou demais. Tente Poll now novamente.",
   pollErrorUnknown: "Poll falhou por motivo desconhecido.",
 
@@ -187,9 +191,12 @@ export const messages = {
   diagnosticsCheckpointTitle: "Checkpoint do Facebook detectado",
   diagnosticsCheckpointDescription:
     "O Facebook enviou a sessao do worker para um checkpoint. Rode npm run facebook:login localmente, resolva o prompt e tente de novo. Polls com falha nas ultimas 24h: {failedPolls}.",
-  diagnosticsNoListingsTitle: "Nenhum anuncio extraido",
+  diagnosticsParseEmptyTitle: "Pagina do Marketplace nao foi interpretada",
+  diagnosticsParseEmptyDescription:
+    "O Facebook abriu o Marketplace, mas o scraper nao leu os cards. Geralmente e mudanca de layout ou pagina pela metade — rode npm run facebook:login e tente Poll now. Polls com falha nas ultimas 24h: {failedPolls}.",
+  diagnosticsNoListingsTitle: "Nenhum anuncio correspondente",
   diagnosticsNoListingsDescription:
-    "O Facebook carregou, mas o scraper nao encontrou dados de anuncios do Marketplace. Isso pode acontecer com buscas muito restritas, mudancas no layout ou sessao antiga. Polls com falha nas ultimas 24h: {failedPolls}.",
+    "O Facebook carregou, mas nenhum anuncio bateu com esta busca. Tente palavras-chave mais amplas ou faixa de preco maior, e confirme resultados no perfil do navegador. Polls com falha nas ultimas 24h: {failedPolls}.",
   diagnosticsTimeoutTitle: "Poll expirou",
   diagnosticsTimeoutDescription:
     "O worker iniciou o poll, mas nao terminou a tempo. O worker local pode estar ocupado, parado ou o Facebook pode estar lento. Polls com falha nas ultimas 24h: {failedPolls}.",

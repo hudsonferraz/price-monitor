@@ -60,6 +60,8 @@ function getTitle(kind: DiagnosticsKind, t: ReturnType<typeof useTranslations>):
       return t("diagnosticsCheckpointTitle");
     case "FACEBOOK_SESSION":
       return t("diagnosticsSessionTitle");
+    case "PARSE_EMPTY":
+      return t("diagnosticsParseEmptyTitle");
     case "NO_LISTINGS":
       return t("diagnosticsNoListingsTitle");
     case "POLL_TIMEOUT":
@@ -79,6 +81,8 @@ function getDescription(
       return t("diagnosticsCheckpointDescription", values);
     case "FACEBOOK_SESSION":
       return t("diagnosticsSessionDescription", values);
+    case "PARSE_EMPTY":
+      return t("diagnosticsParseEmptyDescription", values);
     case "NO_LISTINGS":
       return t("diagnosticsNoListingsDescription", values);
     case "POLL_TIMEOUT":

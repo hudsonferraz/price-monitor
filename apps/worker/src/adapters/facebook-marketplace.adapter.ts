@@ -132,6 +132,24 @@ export async function dismissCookieBanner(page: Page): Promise<void> {
   }
 }
 
+export function collectAvailableListings(
+  html: string,
+  limit: number,
+  capturedApiListings: RawFacebookListing[] = [],
+): RawFacebookListing[] {
+  const embeddedListings = parseListingsFromEmbeddedJson(html, limit);
+  const domListings = parseListingsFromHtml(html, limit);
+  return dedupeRawListings([...capturedApiListings, ...embeddedListings, ...domListings]);
+}
+
+export function looksLikeMarketplaceSearchPage(html: string, url: string): boolean {
+  if (!/facebook\.com\/marketplace/i.test(url)) {
+    return false;
+  }
+
+  return /marketplace/i.test(html) && !hasFacebookLoginWall(html);
+}
+
 export async function waitForSearchResults(
   page: Page,
   minimumResults: number,
@@ -146,7 +164,7 @@ export async function waitForSearchResults(
     );
   }
 
-  const deadline = Date.now() + 35_000;
+  const deadline = Date.now() + 50_000;
 
   while (Date.now() < deadline) {
     const html = await page.content();
@@ -165,19 +183,17 @@ export async function waitForSearchResults(
     await page.waitForTimeout(1_000);
   }
 
-  throw new Error(
-    `No Facebook Marketplace listings found. Current URL: ${page.url()}. Run npm run facebook:login, confirm Marketplace works, and try again.`,
-  );
-}
+  const finalHtml = await page.content().catch(() => "");
+  const finalUrl = page.url();
+  if (looksLikeMarketplaceSearchPage(finalHtml, finalUrl)) {
+    throw new Error(
+      `Failed to parse Marketplace listings from a loaded Facebook page. Current URL: ${finalUrl}. Run npm run facebook:login if the page looks wrong, then try again.`,
+    );
+  }
 
-export function collectAvailableListings(
-  html: string,
-  limit: number,
-  capturedApiListings: RawFacebookListing[] = [],
-): RawFacebookListing[] {
-  const embeddedListings = parseListingsFromEmbeddedJson(html, limit);
-  const domListings = embeddedListings.length > 0 ? [] : parseListingsFromHtml(html, limit);
-  return dedupeRawListings([...capturedApiListings, ...embeddedListings, ...domListings]);
+  throw new Error(
+    `No Facebook Marketplace listings found. Current URL: ${finalUrl}. Try broader keywords or confirm Marketplace shows results in your local Facebook browser profile.`,
+  );
 }
 
 function normalizeListings(listings: RawFacebookListing[]): NormalizedListing[] {
@@ -242,11 +258,20 @@ function extractListingsFromGraphqlJson(payload: unknown, depth = 0): RawFaceboo
   const location = city && state ? `${city}, ${state}` : stringifyText(record.location);
 
   if (listingId && title) {
+    const photoRecord = record.primary_listing_photo as
+      | { image?: { uri?: string } }
+      | undefined;
+    const imageUrl =
+      (typeof photoRecord?.image?.uri === "string" && photoRecord.image.uri.trim()) ||
+      stringifyText(record.imageUrl || record.image_url) ||
+      undefined;
+
     listings.push({
       externalId: listingId,
       title,
       price,
       url: `https://www.facebook.com/marketplace/item/${listingId}`,
+      imageUrl: imageUrl || undefined,
       location: location || undefined,
     });
   }
@@ -296,19 +321,26 @@ function stringifyText(value: unknown): string {
 }
 
 function dedupeRawListings(listings: RawFacebookListing[]): RawFacebookListing[] {
-  const seen = new Set<string>();
-  const deduped: RawFacebookListing[] = [];
+  const byId = new Map<string, RawFacebookListing>();
 
   for (const listing of listings) {
-    if (seen.has(listing.externalId)) {
+    const existing = byId.get(listing.externalId);
+    if (!existing) {
+      byId.set(listing.externalId, listing);
       continue;
     }
 
-    seen.add(listing.externalId);
-    deduped.push(listing);
+    byId.set(listing.externalId, {
+      ...existing,
+      title: existing.title || listing.title,
+      price: existing.price || listing.price,
+      url: existing.url || listing.url,
+      imageUrl: existing.imageUrl || listing.imageUrl,
+      location: existing.location || listing.location,
+    });
   }
 
-  return deduped;
+  return [...byId.values()];
 }
 
 function applyPriceFilters(listings: NormalizedListing[], input: SearchInput): NormalizedListing[] {

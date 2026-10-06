@@ -33,3 +33,15 @@ jobs:
         env:
           CI: true
           DATABASE_URL: postgresql://ci:ci@localhost:5432/ci
+
+      - name: Build web app
+        run: npm run build
+        env:
+          CI: true
+          DATABASE_URL: postgresql://ci:ci@localhost:5432/ci
+          AUTH_SECRET: ci-secret-for-build-only
+          AUTH_URL: http://localhost:3000
+          AUTH_GITHUB_ID: ci
+          AUTH_GITHUB_SECRET: ci
+          AUTH_GOOGLE_ID: ci
+          AUTH_GOOGLE_SECRET: ci

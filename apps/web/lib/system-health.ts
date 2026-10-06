@@ -43,7 +43,8 @@ export function summarizeRecentPollHealth(
   return {
     failedPollCount24h: failedRuns.length,
     hasFacebookSessionIssue: failedRuns.some((run) => isFacebookSessionError(run.errorMessage)),
-    hasNoListingsIssue: issueCodes.includes("NO_LISTINGS"),
+    hasNoListingsIssue:
+      issueCodes.includes("NO_LISTINGS") || issueCodes.includes("PARSE_EMPTY"),
     hasTimeoutIssue: issueCodes.includes("POLL_TIMEOUT"),
     latestIssueCode: getPollIssueCode(latestFailedRun?.errorMessage),
     latestErrorMessage: latestFailedRun?.errorMessage ?? null,

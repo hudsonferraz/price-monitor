@@ -9,6 +9,11 @@ describe("getPollErrorMessageKey", () => {
     expect(getPollErrorMessageKey("Facebook redirected to login.")).toBe("pollErrorSession");
     expect(getPollErrorMessageKey("Facebook redirected to checkpoint")).toBe("pollErrorCheckpoint");
     expect(getPollErrorMessageKey("No Facebook Marketplace listings found")).toBe("pollErrorNoListings");
+    expect(
+      getPollErrorMessageKey(
+        "Failed to parse Marketplace listings from a loaded Facebook page. Current URL: ...",
+      ),
+    ).toBe("pollErrorParseEmpty");
     expect(getPollErrorMessageKey("Poll timed out before completing.")).toBe("pollErrorTimeout");
     expect(getPollErrorMessageKey("Something else")).toBe("pollErrorUnknown");
   });
