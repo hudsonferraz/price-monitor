@@ -1,5 +1,5 @@
 import type { MessageKey } from "@/lib/i18n/messages/en-US";
-import { getPollIssueCode } from "@price-monitor/shared/poll-errors";
+import { getPollIssueCode, sanitizePollErrorMessage } from "@price-monitor/shared/poll-errors";
 
 export function getPollErrorMessageKey(errorMessage: string | null | undefined): MessageKey {
   const issueCode = getPollIssueCode(errorMessage);
@@ -30,7 +30,7 @@ export function translatePollError(
   const issueCode = getPollIssueCode(errorMessage);
 
   if (issueCode === "UNKNOWN" && errorMessage) {
-    return errorMessage;
+    return sanitizePollErrorMessage(errorMessage);
   }
 
   return translate(getPollErrorMessageKey(errorMessage));

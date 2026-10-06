@@ -5,6 +5,7 @@ import {
   getPollIssueCode,
   isFacebookSessionError,
   isNoListingsPollError,
+  sanitizePollErrorMessage,
 } from "./poll-errors";
 
 describe("getPollIssueCode", () => {
@@ -17,6 +18,17 @@ describe("getPollIssueCode", () => {
     expect(getPollIssueCode("Abrindo em uma sessao de navegador existente.")).toBe(
       "BROWSER_PROFILE_LOCKED",
     );
+  });
+
+  it("classifies polluted Playwright launch dumps as profile locked", () => {
+    const dump = [
+      "browserType.launchPersistentContext: Target page, context or browser has been closed",
+      "Browser logs:",
+      "<launching> C:\\Users\\T-GAMER\\AppData\\Local\\ms-playwright\\chromium-1223\\chrome-win64\\chrome.exe --disable-gpu --user-data-dir=.facebook-profile",
+      "[pid=10724][out] Abrindo em uma sess�o de navegador existente.",
+    ].join("\n");
+
+    expect(getPollIssueCode(dump)).toBe("BROWSER_PROFILE_LOCKED");
   });
 
   it("classifies login redirect errors", () => {
@@ -47,6 +59,26 @@ describe("getPollIssueCode", () => {
   });
 });
 
+describe("sanitizePollErrorMessage", () => {
+  it("collapses Playwright dumps into a short profile-locked message", () => {
+    const dump = [
+      "browserType.launchPersistentContext: Target page, context or browser has been closed",
+      "Browser logs:",
+      "<launching> chrome.exe --disable-gpu --user-data-dir=.facebook-profile",
+    ].join("\n");
+
+    const sanitized = sanitizePollErrorMessage(dump);
+    expect(sanitized).toContain("browser profile is already in use");
+    expect(sanitized).not.toContain("Browser logs");
+    expect(sanitized).not.toContain("--disable-gpu");
+    expect(sanitized.length).toBeLessThan(200);
+  });
+
+  it("keeps short unknown errors readable", () => {
+    expect(sanitizePollErrorMessage("Database connection failed")).toBe("Database connection failed");
+  });
+});
+
 describe("isFacebookSessionError", () => {
   it("detects Facebook session and checkpoint issues", () => {
     expect(isFacebookSessionError("Facebook session expired or login wall detected")).toBe(true);
@@ -71,6 +103,13 @@ describe("formatPollErrorForDisplay", () => {
     expect(
       formatPollErrorForDisplay("Facebook browser profile is already in use"),
     ).toContain("already open");
+  });
+
+  it("returns friendly copy for polluted Playwright dumps", () => {
+    const dump =
+      "browserType.launchPersistentContext: Target page, context or browser has been closed\nBrowser logs:\n--disable-gpu";
+    expect(formatPollErrorForDisplay(dump)).toContain("already open");
+    expect(formatPollErrorForDisplay(dump)).not.toContain("--disable-gpu");
   });
 
   it("returns checkpoint guidance", () => {

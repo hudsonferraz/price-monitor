@@ -68,7 +68,9 @@ export function PollRunHistory({ pollRuns }: PollRunHistoryProps) {
               <p className="mt-1 text-[var(--muted)]">{t("pollCheckingMarketplace")}</p>
             ) : null}
             {run.status === "FAILED" && run.errorMessage ? (
-              <p className="mt-1 text-red-600">{translatePollError(run.errorMessage, t)}</p>
+              <p className="mt-1 break-words text-red-600">
+                {translatePollError(run.errorMessage, t)}
+              </p>
             ) : null}
           </li>
         ))}

@@ -28,7 +28,13 @@ describe("translatePollError", () => {
     expect(translatePollError("Poll timed out before completing.", translate)).toBe(messages.pollErrorTimeout);
   });
 
-  it("returns the raw message for unclassified errors", () => {
+  it("maps polluted Playwright dumps to the profile-locked message", () => {
+    const dump =
+      "browserType.launchPersistentContext: Target page, context or browser has been closed\nBrowser logs:\n--disable-gpu";
+    expect(translatePollError(dump, translate)).toBe(messages.pollErrorBrowserProfileLocked);
+  });
+
+  it("returns a short sanitized message for unclassified errors", () => {
     expect(translatePollError("Database connection failed", translate)).toBe("Database connection failed");
   });
 

@@ -3,7 +3,7 @@ import {
   isSearchDueForScheduledPoll,
 } from "@price-monitor/shared/poll-schedule";
 import { hasPriceDropped, shouldClearPriceDropEvent } from "@price-monitor/shared/price-drop";
-import { isFacebookSessionError } from "@price-monitor/shared/poll-errors";
+import { isFacebookSessionError, sanitizePollErrorMessage } from "@price-monitor/shared/poll-errors";
 import { normalizeListingLimit } from "@price-monitor/shared/sort-alerts";
 import type { NormalizedListing } from "@price-monitor/shared/types";
 import { markFacebookSessionAuthFailure, markFacebookSessionVerified } from "../lib/facebook-session";
@@ -218,7 +218,8 @@ export async function executePollSearch(savedSearchId: string): Promise<PollSear
       newAlerts,
     };
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : "Unknown poll error";
+    const rawMessage = error instanceof Error ? error.message : "Unknown poll error";
+    const errorMessage = sanitizePollErrorMessage(rawMessage);
     const finishedAt = new Date();
     const durationMs = finishedAt.getTime() - pollStartedAt;
 

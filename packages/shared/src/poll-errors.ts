@@ -7,6 +7,8 @@ export type PollIssueCode =
   | "POLL_TIMEOUT"
   | "UNKNOWN";
 
+const MAX_STORED_POLL_ERROR_CHARS = 280;
+
 export function getPollIssueCode(errorMessage: string | null | undefined): PollIssueCode | null {
   if (!errorMessage) {
     return null;
@@ -21,8 +23,10 @@ export function getPollIssueCode(errorMessage: string | null | undefined): PollI
   if (
     normalized.includes("browser profile is already in use") ||
     normalized.includes("existing browser session") ||
-    normalized.includes("sessao de navegador existente") ||
-    normalized.includes("sessão de navegador existente")
+    normalized.includes("navegador existente") ||
+    normalized.includes("launchpersistentcontext") ||
+    normalized.includes("target page, context or browser has been closed") ||
+    normalized.includes("browser logs:")
   ) {
     return "BROWSER_PROFILE_LOCKED";
   }
@@ -49,6 +53,54 @@ export function getPollIssueCode(errorMessage: string | null | undefined): PollI
   }
 
   return "UNKNOWN";
+}
+
+/**
+ * Strip Playwright/Chromium launch dumps down to a short, storable message.
+ * Classified failures become stable English keys that the UI can localize.
+ */
+export function sanitizePollErrorMessage(errorMessage: string | null | undefined): string {
+  if (!errorMessage?.trim()) {
+    return "Unknown poll error";
+  }
+
+  const issueCode = getPollIssueCode(errorMessage);
+
+  if (issueCode === "BROWSER_PROFILE_LOCKED") {
+    return "Facebook browser profile is already in use. Close other Chrome windows using .facebook-profile.";
+  }
+
+  if (issueCode === "FACEBOOK_CHECKPOINT") {
+    return "Facebook redirected to checkpoint";
+  }
+
+  if (issueCode === "FACEBOOK_SESSION") {
+    return "Facebook session expired or login wall detected";
+  }
+
+  if (issueCode === "PARSE_EMPTY") {
+    return "Failed to parse Marketplace listings from a loaded Facebook page.";
+  }
+
+  if (issueCode === "NO_LISTINGS") {
+    return "No Facebook Marketplace listings found.";
+  }
+
+  if (issueCode === "POLL_TIMEOUT") {
+    return "Poll timed out before completing.";
+  }
+
+  const firstLine = errorMessage
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .find((line) => line.length > 0 && !line.toLowerCase().startsWith("browser logs"));
+
+  const compact = (firstLine ?? errorMessage).replace(/\s+/g, " ").trim();
+  if (compact.length <= MAX_STORED_POLL_ERROR_CHARS) {
+    return compact;
+  }
+
+  return `${compact.slice(0, MAX_STORED_POLL_ERROR_CHARS - 1)}…`;
 }
 
 export function isFacebookSessionError(errorMessage: string | null | undefined): boolean {
@@ -91,7 +143,7 @@ export function formatPollErrorForDisplay(errorMessage: string | null | undefine
     return "Poll timed out. The local worker may have been busy or Facebook took too long to respond. Try Poll now again.";
   }
 
-  return errorMessage ?? "Poll failed for an unknown reason.";
+  return sanitizePollErrorMessage(errorMessage);
 }
 
 export function formatDurationMs(durationMs: number | null | undefined): string {
