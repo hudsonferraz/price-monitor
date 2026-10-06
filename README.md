@@ -91,7 +91,9 @@ FACEBOOK_BROWSER_PROFILE_DIR=.facebook-profile
 PLAYWRIGHT_HEADLESS=false
 ```
 
-Run `npm run facebook:login` whenever Facebook asks for login, 2FA, checkpoint, or confirmation. The profile is ignored by git and should never be committed.
+Run `npm run facebook:login` **once** whenever Facebook asks for login, 2FA, checkpoint, or confirmation — and **stop the worker first** so only one process uses `.facebook-profile`. After login, press Enter to close that browser, then start `npm run worker:dev` again. The worker keeps one Chromium window/process open and **reuses the same logged-in session** for every poll until you stop the worker.
+
+The profile is ignored by git and should never be committed.
 
 ## Tests
 

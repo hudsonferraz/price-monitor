@@ -56,15 +56,11 @@ async function main(): Promise<void> {
       const data = job.data as PollSearchJobData;
       console.log(`Polling search ${data.savedSearchId} (${data.triggeredBy})...`);
 
-      try {
-        const result = await executePollSearch(data.savedSearchId);
-        console.log(
-          `Poll complete: ${result.listingsFound} listings, ${result.newAlerts} new alerts`,
-        );
-        return result;
-      } finally {
-        await closeBrowser();
-      }
+      const result = await executePollSearch(data.savedSearchId);
+      console.log(
+        `Poll complete: ${result.listingsFound} listings, ${result.newAlerts} new alerts`,
+      );
+      return result;
     },
     {
       connection,

@@ -204,7 +204,7 @@ export function getFacebookSessionDiagnostics(
       lastVerifiedAt,
       lastFailureAt,
       message:
-        "Facebook session confirmed locally. Login is re-validated during each Marketplace poll.",
+        "Facebook session confirmed locally. The worker keeps one browser open and reuses that login across polls.",
     };
   }
 
@@ -216,7 +216,7 @@ export function getFacebookSessionDiagnostics(
     exists: true,
     ...emptyCookieFields,
     message:
-      "Facebook browser profile folder exists, but login has not been confirmed yet. Run npm run facebook:login or complete a successful poll.",
+      "Facebook browser profile folder exists, but login has not been confirmed yet. Run npm run facebook:login once (not while the worker is running), then start the worker.",
   };
 }
 
