@@ -1,7 +1,7 @@
 # Design: Full-local scraper reliability (phase 1)
 
 Date: 2026-10-06  
-Status: draft for review  
+Status: implemented (phase 1)  
 Repo: price-monitor
 
 ## Goal
