@@ -15,9 +15,13 @@ This is a **personal, educational, and portfolio project** for exploring scrapin
 
 **Scope and limits:** local worker required, Facebook session is manual — see [Legal notice](#legal-notice) and [design decisions](docs/design-decisions.md).
 
+![Demo: sign in as the demo user, review price drops and deal signals, create a search, and poll it twice](docs/images/demo.gif)
+
+*Recorded with `npm run demo`: simulated marketplace, real worker, queue, and diffing pipeline. [Try it locally](#try-the-demo-no-facebook-needed) in one command.*
+
 ## Highlights
 
-- **152 automated tests** — Brazilian price parsing, Facebook parsers, poll schedule backoff, rate limits, price-drop logic, deal-quality signals, localized poll queue messages, Zod schemas, adapter merge priority, poll job cleanup, API route auth/ownership/cooldown, middleware path guards
+- **191 automated tests** — deterministic mock marketplace catalog, demo-mode guards, Brazilian price parsing, Facebook parsers, poll schedule backoff, rate limits, price-drop logic, deal-quality signals, localized poll queue messages, Zod schemas, adapter merge priority, poll job cleanup, API route auth/ownership/cooldown, middleware path guards
 - **Local-first worker** — Facebook-facing browser/session stays on your machine in `.facebook-profile/`
 - **Worker heartbeat dashboard** — online/stale/offline state, Facebook session mode, latest successful scrape, and latest failure type
 - **Resilient Facebook scraping** — GraphQL interception + embedded JSON + DOM fallback with unified merge
