@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   generateMockCatalog,
+  getMockImageNumber,
   isMockListingExternalId,
   MOCK_CATALOG_MAX_RESULTS,
 } from "./mock-catalog";
@@ -110,5 +111,35 @@ describe("generateMockCatalog", () => {
 
   it("returns nothing when the price range cannot match", () => {
     expect(generateMockCatalog({ ...base, minPriceCents: 1, maxPriceCents: 500 })).toEqual([]);
+  });
+});
+
+describe("getMockImageNumber", () => {
+  it.each([
+    ["iPhone 13", 1],
+    ["celular samsung galaxy", 1],
+    ["Bicicleta aro 29", 2],
+    ["GELADEIRA frost free", 3],
+    ["Câmera fotográfica", 4],
+    ["notebook dell", 5],
+    ["sofá 3 lugares", 6],
+    ["Nintendo Switch", 7],
+    ["ps5 com 2 controles", 7],
+    ["guitarra", 8],
+    ["", 8],
+  ])("maps %j to image %i", (keywords, imageNumber) => {
+    expect(getMockImageNumber(keywords)).toBe(imageNumber);
+  });
+
+  it("matches whole words only", () => {
+    expect(getMockImageNumber("capacete")).toBe(8);
+    expect(getMockImageNumber("pcx 150")).toBe(8);
+  });
+
+  it("gives every listing of a search the keyword's image", () => {
+    const listings = generateMockCatalog({ ...base, pollSequence: 5 });
+    expect(new Set(listings.map((listing) => listing.imageUrl))).toEqual(
+      new Set(["/demo/listing-1.svg"]),
+    );
   });
 });
