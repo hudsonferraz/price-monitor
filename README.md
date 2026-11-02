@@ -21,7 +21,7 @@ This is a **personal, educational, and portfolio project** for exploring scrapin
 
 ## Highlights
 
-- **191 automated tests** — deterministic mock marketplace catalog, demo-mode guards, Brazilian price parsing, Facebook parsers, poll schedule backoff, rate limits, price-drop logic, deal-quality signals, localized poll queue messages, Zod schemas, adapter merge priority, poll job cleanup, API route auth/ownership/cooldown, middleware path guards
+- **204 automated tests** — deterministic mock marketplace catalog, demo-mode guards, Brazilian price parsing, Facebook parsers, poll schedule backoff, rate limits, price-drop logic, deal-quality signals, localized poll queue messages, Zod schemas, adapter merge priority, poll job cleanup, API route auth/ownership/cooldown, middleware path guards
 - **Local-first worker** — Facebook-facing browser/session stays on your machine in `.facebook-profile/`
 - **Worker heartbeat dashboard** — online/stale/offline state, Facebook session mode, latest successful scrape, and latest failure type
 - **Resilient Facebook scraping** — GraphQL interception + embedded JSON + DOM fallback with unified merge
@@ -121,11 +121,15 @@ Run `npm run facebook:login` **once** whenever Facebook asks for login, 2FA, che
 
 The profile is ignored by git and should never be committed.
 
-## Tests
+## Tests and checks
 
 ```bash
-npm test
+npm test           # Vitest suite
+npm run typecheck  # tsc --noEmit in every workspace
+npm run lint       # ESLint, zero warnings allowed
 ```
+
+CI runs all three, then the production build, on every push.
 
 ## API
 
