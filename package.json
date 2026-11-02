@@ -18,6 +18,8 @@
     "docker:logs": "docker compose logs -f postgres redis",
     "docker:ps": "docker compose ps",
     "local:up": "node scripts/local-up.mjs",
+    "demo": "node scripts/demo.mjs",
+    "demo:seed": "node scripts/demo.mjs --seed-only",
     "db:generate": "npm run db:generate --workspace=@price-monitor/database",
     "db:push": "npm run db:push --workspace=@price-monitor/database",
     "worker:dev": "npm run dev --workspace=@price-monitor/worker",

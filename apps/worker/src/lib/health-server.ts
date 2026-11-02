@@ -1,5 +1,5 @@
 import { createServer, type Server } from "node:http";
-import { getFacebookSessionDiagnostics } from "./facebook-session";
+import { getWorkerSessionDiagnostics } from "./facebook-session";
 
 export function startHealthServer(): Server {
   const port = Number(process.env.PORT ?? 10000);
@@ -7,7 +7,7 @@ export function startHealthServer(): Server {
 
   const server = createServer((request, response) => {
     if (request.url === "/health") {
-      const facebookSession = getFacebookSessionDiagnostics();
+      const facebookSession = getWorkerSessionDiagnostics();
       const status = facebookSession.status === "ok" ? "ok" : "degraded";
 
       response.writeHead(200, { "Content-Type": "application/json" });

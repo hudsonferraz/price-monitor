@@ -3,6 +3,7 @@ import { LanguageSwitch } from "@/components/language-switch";
 import { auth } from "@/auth";
 import { getTranslator } from "@/lib/i18n";
 import { getLocale } from "@/lib/i18n/get-locale";
+import { isDemoMode } from "@/lib/demo-mode";
 
 export async function SiteHeader() {
   const session = await auth();
@@ -12,9 +13,19 @@ export async function SiteHeader() {
   return (
     <header className="border-b border-[var(--border)] bg-[var(--card)]">
       <div className="mx-auto flex max-w-5xl items-center justify-between px-4 py-4">
-        <Link href="/" className="text-lg font-semibold tracking-tight">
-          {t("appName")}
-        </Link>
+        <div className="flex shrink-0 items-center gap-2">
+          <Link href="/" className="whitespace-nowrap text-lg font-semibold tracking-tight">
+            {t("appName")}
+          </Link>
+          {isDemoMode() ? (
+            <span
+              className="whitespace-nowrap rounded-full border border-amber-300 bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-900 dark:border-amber-700 dark:bg-amber-950/60 dark:text-amber-200"
+              title={t("demoBadgeHint")}
+            >
+              {t("demoBadge")}
+            </span>
+          ) : null}
+        </div>
         <nav className="flex flex-wrap items-center justify-end gap-3 text-sm">
           <LanguageSwitch />
           {session?.user ? (

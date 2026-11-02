@@ -8,6 +8,7 @@ import { normalizeListingLimit } from "@price-monitor/shared/sort-alerts";
 import type { NormalizedListing } from "@price-monitor/shared/types";
 import { markFacebookSessionAuthFailure, markFacebookSessionVerified } from "../lib/facebook-session";
 import { searchMarketplace } from "../lib/marketplace-browser";
+import { isMockMarketplaceEnabled } from "../lib/mock-marketplace";
 
 export const POLL_JOB_LOCK_MS = 10 * 60 * 1000;
 export const STALE_RUNNING_POLL_MS = POLL_JOB_LOCK_MS;
@@ -164,6 +165,9 @@ export async function executePollSearch(savedSearchId: string): Promise<PollSear
       minPriceCents: savedSearch.minPriceCents ?? undefined,
       maxPriceCents: savedSearch.maxPriceCents ?? undefined,
       limit: normalizeListingLimit(savedSearch.listingLimit),
+    }, {
+      savedSearchId: savedSearch.id,
+      pollSequence: successfulPollCountBeforeRun,
     });
 
     const abortedResult = await abortRunningPollIfSearchInactive(
@@ -210,7 +214,9 @@ export async function executePollSearch(savedSearchId: string): Promise<PollSear
       },
     });
 
-    markFacebookSessionVerified("successful_poll");
+    if (!isMockMarketplaceEnabled()) {
+      markFacebookSessionVerified("successful_poll");
+    }
 
     return {
       pollRunId: pollRun.id,
@@ -245,7 +251,7 @@ export async function executePollSearch(savedSearchId: string): Promise<PollSear
       },
     });
 
-    if (isFacebookSessionError(errorMessage)) {
+    if (!isMockMarketplaceEnabled() && isFacebookSessionError(errorMessage)) {
       markFacebookSessionAuthFailure();
     }
 
@@ -253,7 +259,7 @@ export async function executePollSearch(savedSearchId: string): Promise<PollSear
   }
 }
 
-interface PersistResult {
+export interface PersistResult {
   newAlerts: number;
 }
 
@@ -305,18 +311,24 @@ async function persistLatestListingPrices(
   );
 }
 
-async function persistListingsAndAlerts(
+/**
+ * Upserts listings, records snapshots and per-search prices, and creates/updates alerts.
+ * `now` is used for every timestamp written, so the demo seed can replay backdated polls.
+ */
+export async function persistListingsAndAlerts(
   savedSearchId: string,
   userId: string,
   pollRunId: string,
   listings: NormalizedListing[],
   isBaselinePoll: boolean,
+  now: Date = new Date(),
 ): Promise<PersistResult> {
   const alertIds: string[] = [];
   const snapshotEntries: Array<{
     pollRunId: string;
     listingId: string;
     priceCents: number | null;
+    createdAt: Date;
   }> = [];
 
   const existingListings = await prisma.listing.findMany({
@@ -365,6 +377,7 @@ async function persistListingsAndAlerts(
       pollRunId,
       listingId: storedListing.id,
       priceCents: listing.priceCents,
+      createdAt: now,
     });
 
     const existingAlert = await prisma.alert.findUnique({
@@ -388,7 +401,8 @@ async function persistListingsAndAlerts(
           userId,
           savedSearchId,
           listingId: storedListing.id,
-          seenAt: isBaselinePoll ? new Date() : null,
+          seenAt: isBaselinePoll ? now : null,
+          createdAt: now,
         },
       });
 
@@ -403,7 +417,7 @@ async function persistListingsAndAlerts(
         where: { id: existingAlert.id },
         data: {
           previousPriceCents,
-          priceDroppedAt: new Date(),
+          priceDroppedAt: now,
           seenAt: null,
         },
       });
@@ -415,7 +429,7 @@ async function persistListingsAndAlerts(
     await prisma.alert.update({
       where: { id: existingAlert.id },
       data: {
-        seenAt: new Date(),
+        seenAt: now,
         ...(existingAlert.priceDroppedAt != null &&
         shouldClearPriceDropEvent({
           recordedPreviousPriceCents: existingAlert.previousPriceCents,

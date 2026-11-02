@@ -48,7 +48,29 @@ This is a **personal, educational, and portfolio project** for exploring scrapin
 | **Auth** | GitHub + Google OAuth via NextAuth v5 |
 | **i18n** | Portuguese (default) and English |
 
-## Quickstart
+## Try the demo (no Facebook needed)
+
+Requires Node.js 18+ and Docker Desktop running. No Facebook account, no OAuth apps, no Playwright browsers, no `.env` files.
+
+```bash
+cd price-monitor
+npm install
+npm run demo
+```
+
+Open [http://localhost:3000](http://localhost:3000) and choose **Continue as demo user**.
+
+What you get:
+
+- A demo user with 3 saved searches and 5 days of poll history: new matches, price drops, deal-quality signals, and one failed poll
+- The real worker, queue, and diffing pipeline, fed by a **deterministic simulated marketplace** instead of Facebook: every poll adds new listings and drops some prices
+- **Poll now** with a 30-second cooldown (15 minutes in a real setup)
+
+What is mocked: the Facebook scrape (listings, images, and links are generated locally) and sign-in (a single demo user). Everything else is the production code path. The demo uses its own database (`price_monitor_demo`) and Redis DB (`/1`) in the same Docker containers, so it never touches a real local setup. `npm run demo:seed` resets the demo data. Press Ctrl+C to stop the worker and the web app.
+
+Demo sign-in is refused in production builds.
+
+## Quickstart (full local, real Facebook)
 
 Requires Node.js 18+, Docker Desktop, and Playwright Chromium.
 

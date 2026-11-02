@@ -5,6 +5,7 @@ import { useMemo, useState } from "react";
 import { useLocale, useTranslations } from "@/components/locale-provider";
 import { formatDateTime, formatPriceCents } from "@/lib/i18n";
 import { translateApiError } from "@/lib/api-error-i18n";
+import { isDemoListingUrl } from "@/lib/demo-mode";
 import type { AlertSortOption } from "@price-monitor/shared/sort-alerts";
 import { isActivePriceDropAlert } from "@price-monitor/shared/price-drop";
 import { sortAlerts } from "@price-monitor/shared/sort-alerts";
@@ -192,14 +193,20 @@ function AlertCard({
           })}
         </p>
         <div className="flex flex-wrap items-center gap-3 pt-0.5">
-          <a
-            href={alert.listing.url}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-sm text-[var(--accent)] hover:underline"
-          >
-            {t("alertsViewFacebook")}
-          </a>
+          {isDemoListingUrl(alert.listing.url) ? (
+            <a href={alert.listing.url} className="text-sm text-[var(--accent)] hover:underline">
+              {t("alertsViewDemo")}
+            </a>
+          ) : (
+            <a
+              href={alert.listing.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-sm text-[var(--accent)] hover:underline"
+            >
+              {t("alertsViewFacebook")}
+            </a>
+          )}
           {onDismiss ? (
             <button
               type="button"

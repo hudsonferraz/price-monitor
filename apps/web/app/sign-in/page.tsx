@@ -4,6 +4,7 @@ import { SignInButtons } from "@/components/sign-in-buttons";
 import { SignInErrorAlert } from "@/components/sign-in-error-alert";
 import { getTranslator } from "@/lib/i18n";
 import { getLocale } from "@/lib/i18n/get-locale";
+import { isDemoMode } from "@/lib/demo-mode";
 import { redirect } from "next/navigation";
 
 interface SignInPageProps {
@@ -20,11 +21,17 @@ export default async function SignInPage({ searchParams }: SignInPageProps) {
     redirect(callbackUrl ?? "/dashboard");
   }
 
+  const showDemo = isDemoMode();
+  const showGoogle = Boolean(process.env.AUTH_GOOGLE_ID);
+  const showGitHub = Boolean(process.env.AUTH_GITHUB_ID);
+  const description =
+    showDemo && !showGoogle && !showGitHub ? t("signInDescriptionDemo") : t("signInDescription");
+
   return (
     <div className="min-h-screen">
       <main className="mx-auto flex max-w-md flex-col px-4 py-16">
         <h1 className="text-2xl font-bold">{t("signInTitle")}</h1>
-        <p className="mt-2 text-sm text-[var(--muted)]">{t("signInDescription")}</p>
+        <p className="mt-2 text-sm text-[var(--muted)]">{description}</p>
 
         <SignInErrorAlert errorCode={error} />
 
@@ -32,6 +39,11 @@ export default async function SignInPage({ searchParams }: SignInPageProps) {
           callbackUrl={callbackUrl}
           googleLabel={t("signInGoogle")}
           githubLabel={t("signInGitHub")}
+          demoLabel={t("signInDemo")}
+          demoNote={t("signInDemoNote")}
+          showGoogle={showGoogle}
+          showGitHub={showGitHub}
+          showDemo={showDemo}
         />
 
         <p className="mt-6 text-center text-sm text-[var(--muted)]">

@@ -261,6 +261,19 @@ export const messages = {
   signInErrorAccessDenied: "Acesso negado. Você pode ter cancelado o login ou não ter permissão.",
   signInErrorVerification: "O link de login expirou ou já foi usado.",
   signInErrorDefault: "Não foi possível entrar. Tente novamente.",
+
+  signInDemo: "Continuar como usuário demo",
+  signInDemoNote: "Modo demo: dados de exemplo e marketplace simulado. Não precisa de conta.",
+  signInDescriptionDemo: "Esta é uma demo local. Continue como usuário demo para explorar o painel.",
+  demoBadge: "Modo demo",
+  demoBadgeHint: "Dados de exemplo e marketplace simulado. Nada aqui vem do Facebook.",
+  alertsViewDemo: "Ver anúncio demo",
+  workerFacebookSessionModeMock: "Demo (marketplace simulado)",
+  demoListingTitle: "Anúncio demo",
+  demoListingBody:
+    "Este anúncio foi gerado pelo marketplace simulado do modo demo. Na configuração real, este link abre o anúncio no Facebook Marketplace.",
+  demoListingId: "ID do anúncio: {id}",
+  demoListingBack: "Voltar ao painel",
 } as const;
 
 export type MessageKey = keyof typeof messages;
