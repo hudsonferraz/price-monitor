@@ -4,10 +4,10 @@ import { getOwnedBlockingSearchName } from "@/lib/poll-queue-context";
 import { getPollQueueContext, queuePollSearch } from "@/lib/queue";
 import { getLatestWorkerState } from "@/lib/worker-health";
 import { prisma } from "@price-monitor/database";
+import { getManualPollIntervalMs } from "@/lib/demo-mode";
 import {
   getPollCooldownRemainingMinutes,
   getPollCooldownRemainingMs,
-  MIN_MANUAL_POLL_INTERVAL_MS,
 } from "@price-monitor/shared/poll-rate-limit";
 import { resolvePollQueueMessage } from "@price-monitor/shared/poll-queue-messages";
 import { NextResponse } from "next/server";
@@ -61,13 +61,17 @@ export async function POST(_request: Request, context: RouteContext) {
     });
   }
 
-  const cooldownRemainingMs = getPollCooldownRemainingMs(savedSearch.lastAttemptedAt);
+  const manualPollIntervalMs = getManualPollIntervalMs();
+  const cooldownRemainingMs = getPollCooldownRemainingMs(
+    savedSearch.lastAttemptedAt,
+    manualPollIntervalMs,
+  );
   if (cooldownRemainingMs > 0) {
     const remainingMinutes = getPollCooldownRemainingMinutes(cooldownRemainingMs);
     return apiErrorResponse("POLL_COOLDOWN", 429, {
       remainingMinutes,
       retryAfterSeconds: Math.ceil(cooldownRemainingMs / 1000),
-      minPollIntervalMinutes: MIN_MANUAL_POLL_INTERVAL_MS / 60_000,
+      minPollIntervalMinutes: manualPollIntervalMs / 60_000,
     });
   }
 

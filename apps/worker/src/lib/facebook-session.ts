@@ -1,6 +1,7 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { isMockMarketplaceEnabled } from "./mock-marketplace";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const projectRoot = path.resolve(__dirname, "../../../..");
@@ -8,7 +9,7 @@ const projectRoot = path.resolve(__dirname, "../../../..");
 export const DEFAULT_FACEBOOK_BROWSER_PROFILE_DIR = ".facebook-profile";
 export const FACEBOOK_SESSION_VERIFICATION_FILE = ".facebook-session-verified.json";
 
-export type FacebookSessionMode = "browser_profile" | "none";
+export type FacebookSessionMode = "browser_profile" | "none" | "mock";
 export type FacebookSessionStatus = "ok" | "unverified" | "needs_login" | "not_configured";
 export type FacebookSessionVerificationSource = "facebook_login" | "successful_poll";
 
@@ -218,6 +219,34 @@ export function getFacebookSessionDiagnostics(
     message:
       "Facebook browser profile folder exists, but login has not been confirmed yet. Run npm run facebook:login once (not while the worker is running), then start the worker.",
   };
+}
+
+/**
+ * Session diagnostics for the running worker. In mock (demo) mode the Facebook profile is
+ * never read, and the worker reports itself as healthy with mode "mock".
+ */
+export function getWorkerSessionDiagnostics(): FacebookSessionDiagnostics {
+  if (isMockMarketplaceEnabled()) {
+    return {
+      status: "ok",
+      mode: "mock",
+      configured: true,
+      path: null,
+      exists: false,
+      validJson: false,
+      facebookCookieCount: 0,
+      hasCUserCookie: false,
+      hasXsCookie: false,
+      expiredCookieCount: 0,
+      persistentCookieCount: 0,
+      earliestExpiryIso: null,
+      lastVerifiedAt: null,
+      lastFailureAt: null,
+      message: "Demo mode: mock marketplace, no Facebook session used.",
+    };
+  }
+
+  return getFacebookSessionDiagnostics();
 }
 
 export function assertFacebookSessionReady(): void {

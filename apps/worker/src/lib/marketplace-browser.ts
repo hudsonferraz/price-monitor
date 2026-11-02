@@ -3,7 +3,11 @@ import { join } from "node:path";
 import { chromium, type BrowserContext, type BrowserContextOptions, type Page } from "playwright";
 import { FacebookMarketplaceAdapter } from "../adapters/facebook-marketplace.adapter";
 import { assertFacebookSessionReady, getFacebookBrowserProfileDir } from "./facebook-session";
-import { getMockListings, isMockMarketplaceEnabled } from "./mock-marketplace";
+import {
+  isMockMarketplaceEnabled,
+  searchMockMarketplace,
+  type MockSearchContext,
+} from "./mock-marketplace";
 import {
   BLOCKED_PLAYWRIGHT_RESOURCE_TYPES,
   CHROMIUM_MEMORY_ARGS,
@@ -138,9 +142,12 @@ async function getSharedMarketplaceBrowserContext(): Promise<BrowserContext> {
   return sharedContextLaunch;
 }
 
-export async function searchMarketplace(input: SearchInput): Promise<NormalizedListing[]> {
+export async function searchMarketplace(
+  input: SearchInput,
+  mockContext?: MockSearchContext,
+): Promise<NormalizedListing[]> {
   if (isMockMarketplaceEnabled()) {
-    return getMockListings(input.keywords);
+    return searchMockMarketplace(input, mockContext ?? { savedSearchId: "adhoc", pollSequence: 0 });
   }
 
   assertFacebookSessionReady();

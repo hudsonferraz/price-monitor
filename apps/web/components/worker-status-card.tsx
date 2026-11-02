@@ -188,6 +188,8 @@ function translateFacebookSessionMode(
       return t("workerFacebookSessionModeProfile");
     case "none":
       return t("workerFacebookSessionModeNone");
+    case "mock":
+      return t("workerFacebookSessionModeMock");
     default:
       return mode;
   }

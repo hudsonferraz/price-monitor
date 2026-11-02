@@ -1,6 +1,6 @@
 import os from "node:os";
 import { WorkerHeartbeatStatus, prisma } from "@price-monitor/database";
-import { getFacebookSessionDiagnostics } from "./facebook-session";
+import { getWorkerSessionDiagnostics } from "./facebook-session";
 
 const DEFAULT_HEARTBEAT_INTERVAL_MS = 30_000;
 
@@ -14,7 +14,7 @@ export function getWorkerId(): string {
 }
 
 export async function upsertWorkerHeartbeat(startedAt: Date, workerId = getWorkerId()): Promise<void> {
-  const facebookSession = getFacebookSessionDiagnostics();
+  const facebookSession = getWorkerSessionDiagnostics();
   const now = new Date();
   const data = {
     status: WorkerHeartbeatStatus.ONLINE,

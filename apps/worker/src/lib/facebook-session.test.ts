@@ -1,12 +1,13 @@
 import { mkdirSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   assertFacebookSessionReady,
   FACEBOOK_SESSION_VERIFICATION_FILE,
   getFacebookBrowserProfileDir,
   getFacebookSessionDiagnostics,
+  getWorkerSessionDiagnostics,
   isFacebookSessionAuthFailureActive,
   markFacebookSessionAuthFailure,
   markFacebookSessionVerified,
@@ -169,5 +170,27 @@ describe("assertFacebookSessionReady", () => {
         process.env.FACEBOOK_BROWSER_PROFILE_DIR = previous;
       }
     }
+  });
+});
+
+describe("getWorkerSessionDiagnostics", () => {
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
+  it("reports demo mock mode without reading the Facebook profile", () => {
+    vi.stubEnv("MOCK_MARKETPLACE", "true");
+    vi.stubEnv("FACEBOOK_BROWSER_PROFILE_DIR", join(tmpdir(), "price-monitor-missing-profile"));
+
+    const diagnostics = getWorkerSessionDiagnostics();
+
+    expect(diagnostics.status).toBe("ok");
+    expect(diagnostics.mode).toBe("mock");
+    expect(diagnostics.path).toBeNull();
+  });
+
+  it("falls back to Facebook diagnostics outside mock mode", () => {
+    vi.stubEnv("MOCK_MARKETPLACE", "false");
+    expect(getWorkerSessionDiagnostics().mode).not.toBe("mock");
   });
 });
