@@ -27,7 +27,7 @@ describe("/api/user/preferences", () => {
   });
 
   it("GET returns 401 when unauthenticated", async () => {
-    mockAuth.mockResolvedValue(null);
+    mockAuth.mockResolvedValue(null as never);
 
     const response = await GET();
     const body = await response.json();

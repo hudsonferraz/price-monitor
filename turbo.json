@@ -1,5 +1,6 @@
 {
   "$schema": "https://turbo.build/schema.json",
+  "globalPassThroughEnv": ["ComSpec"],
   "tasks": {
     "build": {
       "dependsOn": ["^build"],
@@ -11,6 +12,12 @@
     },
     "db:generate": {
       "cache": false
+    },
+    "lint": {
+      "outputs": []
+    },
+    "typecheck": {
+      "outputs": []
     }
   }
 }

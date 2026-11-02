@@ -8,7 +8,9 @@
     "start": "dotenv -e ../../.env -- tsx src/index.ts",
     "spike:facebook": "dotenv -e ../../.env -- tsx scripts/spike-facebook.ts",
     "facebook:login": "dotenv -e ../../.env -- tsx scripts/facebook-login.ts",
-    "seed:demo": "dotenv -e ../../.env -- tsx scripts/seed-demo.ts"
+    "seed:demo": "dotenv -e ../../.env -- tsx scripts/seed-demo.ts",
+    "lint": "eslint . --max-warnings=0",
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@price-monitor/database": "*",

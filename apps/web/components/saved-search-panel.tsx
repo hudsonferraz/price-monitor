@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { SearchAlertsSection, type AlertRecord } from "@/components/alerts-feed";
 import { useLocale, useTranslations } from "@/components/locale-provider";
 import { PollStatusBanner, type SearchPollState } from "@/components/poll-status-banner";
@@ -321,31 +321,38 @@ export function SavedSearchList({ searches, emptyMessage }: SavedSearchListProps
 
   translateRef.current = t;
 
-  function clearBannerDismissTimeout(searchId: string) {
+  // Stable helpers (refs and state setters only), so effects can depend on them without re-running.
+  const updateSearchPollState = useCallback(
+    (searchId: string, state: SearchPollState | null) => {
+      setSearchPollStates((current) => {
+        if (!state) {
+          const { [searchId]: _removed, ...rest } = current;
+          return rest;
+        }
+        return { ...current, [searchId]: state };
+      });
+    },
+    [],
+  );
+
+  const clearBannerDismissTimeout = useCallback((searchId: string) => {
     const timeoutId = bannerDismissTimeoutsRef.current[searchId];
     if (timeoutId != null) {
       window.clearTimeout(timeoutId);
       delete bannerDismissTimeoutsRef.current[searchId];
     }
-  }
+  }, []);
 
-  function scheduleBannerDismiss(searchId: string) {
-    clearBannerDismissTimeout(searchId);
-    bannerDismissTimeoutsRef.current[searchId] = window.setTimeout(() => {
-      delete bannerDismissTimeoutsRef.current[searchId];
-      updateSearchPollState(searchId, null);
-    }, 8_000);
-  }
-
-  function updateSearchPollState(searchId: string, state: SearchPollState | null) {
-    setSearchPollStates((current) => {
-      if (!state) {
-        const { [searchId]: _removed, ...rest } = current;
-        return rest;
-      }
-      return { ...current, [searchId]: state };
-    });
-  }
+  const scheduleBannerDismiss = useCallback(
+    (searchId: string) => {
+      clearBannerDismissTimeout(searchId);
+      bannerDismissTimeoutsRef.current[searchId] = window.setTimeout(() => {
+        delete bannerDismissTimeoutsRef.current[searchId];
+        updateSearchPollState(searchId, null);
+      }, 8_000);
+    },
+    [clearBannerDismissTimeout, updateSearchPollState],
+  );
 
   useEffect(() => {
     if (watchingPollSearchId) {
@@ -489,7 +496,7 @@ export function SavedSearchList({ searches, emptyMessage }: SavedSearchListProps
       cancelled = true;
       window.clearInterval(intervalId);
     };
-  }, [watchingPollSearchId, router]);
+  }, [watchingPollSearchId, router, scheduleBannerDismiss, updateSearchPollState]);
 
   async function pollNow(searchId: string) {
     const search = searches.find((item) => item.id === searchId);
@@ -514,7 +521,7 @@ export function SavedSearchList({ searches, emptyMessage }: SavedSearchListProps
       const data = await response.json().catch(() => null);
 
       if (!response.ok) {
-        let message = translateApiError(data?.errorCode, t, {
+        const message = translateApiError(data?.errorCode, t, {
           remainingMinutes:
             typeof data?.remainingMinutes === "number" ? data.remainingMinutes : undefined,
         });

@@ -25,7 +25,7 @@ describe("GET /api/alerts", () => {
   });
 
   it("returns 401 when unauthenticated", async () => {
-    mockAuth.mockResolvedValue(null);
+    mockAuth.mockResolvedValue(null as never);
 
     const response = await GET(new Request("http://localhost/api/alerts"));
     const body = await response.json();

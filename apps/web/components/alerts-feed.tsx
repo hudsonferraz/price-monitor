@@ -123,6 +123,9 @@ function AlertCard({
   return (
     <li className="flex flex-col gap-3 rounded-md border border-[var(--border)] bg-[var(--background)] p-3 sm:flex-row">
       {alert.listing.imageUrl ? (
+        // Plain <img>: listing images come from arbitrary marketplace CDNs (and local demo SVGs),
+        // so next/image would need an open remotePatterns allowlist.
+        // eslint-disable-next-line @next/next/no-img-element
         <img
           src={alert.listing.imageUrl}
           alt=""
