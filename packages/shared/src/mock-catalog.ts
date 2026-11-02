@@ -66,7 +66,6 @@ interface Candidate {
   basePriceCents: number;
   title: string;
   location: string;
-  imageNumber: number;
 }
 
 /** FNV-1a 32-bit string hash. */
@@ -89,6 +88,43 @@ export function createRandom(seed: number): () => number {
     t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
     return ((t ^ (t >>> 14)) >>> 0) / 4_294_967_296;
   };
+}
+
+/**
+ * Placeholder image per product category, matched on whole words of the keyword.
+ * Image numbers map to apps/web/public/demo/listing-N.svg. First matching category wins.
+ */
+const IMAGE_CATEGORIES: ReadonlyArray<{ imageNumber: number; terms: readonly string[] }> = [
+  {
+    imageNumber: 1,
+    terms: ["iphone", "celular", "smartphone", "telefone", "galaxy", "xiaomi", "redmi", "motorola", "moto"],
+  },
+  { imageNumber: 2, terms: ["bicicleta", "bike", "mtb", "bicicletas"] },
+  { imageNumber: 3, terms: ["geladeira", "refrigerador", "freezer", "geladeiras"] },
+  { imageNumber: 4, terms: ["camera", "cameras", "canon", "nikon", "gopro", "fotografica", "filmadora"] },
+  { imageNumber: 5, terms: ["notebook", "laptop", "macbook", "computador", "pc", "monitor", "ultrabook"] },
+  { imageNumber: 6, terms: ["sofa", "poltrona", "cadeira", "mesa", "cama", "guarda-roupa", "armario", "estante"] },
+  {
+    imageNumber: 7,
+    terms: ["playstation", "ps4", "ps5", "xbox", "nintendo", "switch", "videogame", "console", "controle"],
+  },
+];
+const GENERIC_IMAGE_NUMBER = MOCK_CATALOG_IMAGE_COUNT;
+
+function toSearchWords(keywords: string): string[] {
+  return keywords
+    .normalize("NFD")
+    .replace(/\p{Diacritic}/gu, "")
+    .toLowerCase()
+    .split(/[^a-z0-9-]+/)
+    .filter(Boolean);
+}
+
+/** Image number (1..MOCK_CATALOG_IMAGE_COUNT) for a keyword; unknown keywords get the generic image. */
+export function getMockImageNumber(keywords: string): number {
+  const words = new Set(toSearchWords(keywords));
+  const category = IMAGE_CATEGORIES.find(({ terms }) => terms.some((term) => words.has(term)));
+  return category?.imageNumber ?? GENERIC_IMAGE_NUMBER;
 }
 
 function normalizeKeywords(keywords: string): string {
@@ -134,7 +170,8 @@ function buildCandidate(
   const basePriceCents = roundToReais(centerPriceCents * (0.5 + random()));
   const suffix = TITLE_SUFFIXES[Math.floor(random() * TITLE_SUFFIXES.length)];
   const location = LOCATIONS[Math.floor(random() * LOCATIONS.length)];
-  const imageNumber = 1 + Math.floor(random() * MOCK_CATALOG_IMAGE_COUNT);
+  // Former per-listing image roll. Still drawn so existing seeds keep the same prices and titles.
+  random();
 
   return {
     index,
@@ -143,7 +180,6 @@ function buildCandidate(
     basePriceCents,
     title: `${capitalize(keywords)} - ${suffix}`,
     location,
-    imageNumber,
   };
 }
 
@@ -241,6 +277,7 @@ export function generateMockCatalog(input: MockCatalogInput): NormalizedListing[
     Math.max(1, input.limit ?? MOCK_CATALOG_MAX_RESULTS),
   );
 
+  const imageUrl = `/demo/listing-${getMockImageNumber(keywords)}.svg`;
   const poolSize = MOCK_CATALOG_INITIAL_LISTINGS + sequence;
   const candidates = Array.from({ length: poolSize }, (_, index) =>
     buildCandidate(index, catalogKey, keywords, centerPriceCents),
@@ -275,7 +312,7 @@ export function generateMockCatalog(input: MockCatalogInput): NormalizedListing[
         priceCents,
         currency: "BRL",
         url: `${MOCK_LISTING_URL_PREFIX}${externalId}`,
-        imageUrl: `/demo/listing-${candidate.imageNumber}.svg`,
+        imageUrl,
         location: candidate.location,
       };
     });
