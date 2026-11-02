@@ -20,25 +20,26 @@ describe("createApiErrorBody", () => {
   });
 
   it("covers all defined error codes", () => {
-    const codes: ApiErrorCode[] = [
-      "UNAUTHORIZED",
-      "SEARCH_NOT_FOUND",
-      "SEARCH_ID_REQUIRED",
-      "SEARCH_DISABLED",
-      "SEARCH_DELETE_ACTIVE_POLL",
-      "SEARCH_DELETE_CANCEL_FAILED",
-      "ALERT_NOT_FOUND",
-      "USER_NOT_FOUND",
-      "VALIDATION_FAILED",
-      "NO_PREFERENCE_FIELDS",
-      "EMAIL_NOTIFICATIONS_NOT_BOOLEAN",
-      "INVALID_PREFERRED_LOCALE",
-      "REDIS_NOT_CONFIGURED",
-      "POLL_QUEUE_FAILED",
-      "POLL_COOLDOWN",
-      "WORKER_OFFLINE",
-      "WORKER_STALE",
-    ];
+    // Record keyed by ApiErrorCode: the compiler fails if a code is missing or stale.
+    const allCodes: Record<ApiErrorCode, true> = {
+      UNAUTHORIZED: true,
+      SEARCH_NOT_FOUND: true,
+      SEARCH_ID_REQUIRED: true,
+      SEARCH_DISABLED: true,
+      SEARCH_DELETE_ACTIVE_POLL: true,
+      SEARCH_DELETE_CANCEL_FAILED: true,
+      ALERT_NOT_FOUND: true,
+      USER_NOT_FOUND: true,
+      VALIDATION_FAILED: true,
+      NO_PREFERENCE_FIELDS: true,
+      INVALID_PREFERRED_LOCALE: true,
+      REDIS_NOT_CONFIGURED: true,
+      POLL_QUEUE_FAILED: true,
+      POLL_COOLDOWN: true,
+      WORKER_OFFLINE: true,
+      WORKER_STALE: true,
+    };
+    const codes = Object.keys(allCodes) as ApiErrorCode[];
 
     for (const errorCode of codes) {
       expect(createApiErrorBody(errorCode).errorCode).toBe(errorCode);

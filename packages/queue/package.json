@@ -6,6 +6,10 @@
   "exports": {
     ".": "./src/index.ts"
   },
+  "scripts": {
+    "lint": "eslint . --max-warnings=0",
+    "typecheck": "tsc --noEmit"
+  },
   "dependencies": {
     "@price-monitor/shared": "*",
     "bullmq": "^5.53.2"

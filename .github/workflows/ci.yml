@@ -28,6 +28,12 @@ jobs:
           # prisma generate runs in postinstall and requires a URL string (no live DB)
           DATABASE_URL: postgresql://ci:ci@localhost:5432/ci
 
+      - name: Type-check
+        run: npm run typecheck
+
+      - name: Lint
+        run: npm run lint
+
       - name: Run tests
         run: npm test
         env:

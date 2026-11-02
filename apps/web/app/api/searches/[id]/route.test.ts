@@ -41,7 +41,7 @@ describe("DELETE /api/searches/[id]", () => {
   });
 
   it("returns 401 when the user is not authenticated", async () => {
-    mockAuth.mockResolvedValue(null);
+    mockAuth.mockResolvedValue(null as never);
 
     const response = await DELETE(new Request("http://localhost/api/searches/search-1", { method: "DELETE" }), createRequestContext("search-1"));
     const body = await response.json();

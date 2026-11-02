@@ -59,7 +59,7 @@ describe("POST /api/searches/[id]/poll", () => {
   });
 
   it("returns 401 when the user is not authenticated", async () => {
-    mockAuth.mockResolvedValue(null);
+    mockAuth.mockResolvedValue(null as never);
 
     const response = await POST(new Request("http://localhost/api/searches/search-1/poll", { method: "POST" }), createRequestContext("search-1"));
     const body = await response.json();
@@ -105,8 +105,8 @@ describe("POST /api/searches/[id]/poll", () => {
     } as never);
     mockGetPollQueueContext.mockResolvedValue({
       isQueued: false,
-      jobState: null,
-      waitingPosition: null,
+      jobState: undefined,
+      waitingPosition: undefined,
       blockingSavedSearchId: undefined,
     });
 
@@ -130,8 +130,8 @@ describe("POST /api/searches/[id]/poll", () => {
     } as never);
     mockGetPollQueueContext.mockResolvedValue({
       isQueued: false,
-      jobState: null,
-      waitingPosition: null,
+      jobState: undefined,
+      waitingPosition: undefined,
       blockingSavedSearchId: undefined,
     });
     mockGetLatestWorkerState.mockResolvedValue("missing");
@@ -154,8 +154,8 @@ describe("POST /api/searches/[id]/poll", () => {
     } as never);
     mockGetPollQueueContext.mockResolvedValue({
       isQueued: false,
-      jobState: null,
-      waitingPosition: null,
+      jobState: undefined,
+      waitingPosition: undefined,
       blockingSavedSearchId: undefined,
     });
     mockGetLatestWorkerState.mockResolvedValue("stale");
@@ -179,7 +179,7 @@ describe("POST /api/searches/[id]/poll", () => {
     mockGetPollQueueContext.mockResolvedValue({
       isQueued: true,
       jobState: "active",
-      waitingPosition: null,
+      waitingPosition: undefined,
       blockingSavedSearchId: "search-1",
     });
     mockGetOwnedBlockingSearchName.mockResolvedValue({
@@ -208,8 +208,8 @@ describe("POST /api/searches/[id]/poll", () => {
     mockGetPollQueueContext
       .mockResolvedValueOnce({
         isQueued: false,
-        jobState: null,
-        waitingPosition: null,
+        jobState: undefined,
+        waitingPosition: undefined,
         blockingSavedSearchId: undefined,
       })
       .mockResolvedValueOnce({
@@ -252,8 +252,8 @@ describe("POST /api/searches/[id]/poll", () => {
     } as never);
     mockGetPollQueueContext.mockResolvedValue({
       isQueued: false,
-      jobState: null,
-      waitingPosition: null,
+      jobState: undefined,
+      waitingPosition: undefined,
       blockingSavedSearchId: undefined,
     });
     mockQueuePollSearch.mockRejectedValue(new Error("REDIS_URL is not configured. Start the worker with Redis to enable polling."));

@@ -24,12 +24,15 @@ export function useWorkerState(heartbeat: WorkerHeartbeatSnapshot | null): Worke
     return () => clearInterval(interval);
   }, []);
 
+  const heartbeatLastSeenAt = heartbeat?.lastSeenAt;
+  const heartbeatStatus = heartbeat?.status;
+
   useEffect(() => {
-    if (!heartbeat || heartbeat.status === "OFFLINE") {
+    if (!heartbeatLastSeenAt || heartbeatStatus === "OFFLINE") {
       return;
     }
 
-    const lastSeenMs = new Date(heartbeat.lastSeenAt).getTime();
+    const lastSeenMs = new Date(heartbeatLastSeenAt).getTime();
     if (!Number.isFinite(lastSeenMs)) {
       return;
     }
@@ -44,7 +47,7 @@ export function useWorkerState(heartbeat: WorkerHeartbeatSnapshot | null): Worke
     }, staleInMs + 50);
 
     return () => clearTimeout(timeout);
-  }, [heartbeat?.lastSeenAt, heartbeat?.status]);
+  }, [heartbeatLastSeenAt, heartbeatStatus]);
 
   useEffect(() => {
     const interval = setInterval(() => {

@@ -11,6 +11,8 @@
     "build": "npm run build --workspace=@price-monitor/web",
     "test": "vitest run",
     "test:watch": "vitest",
+    "lint": "eslint scripts vitest.config.ts --max-warnings=0 && turbo run lint",
+    "typecheck": "turbo run typecheck",
     "spike:facebook": "npm run spike:facebook --workspace=@price-monitor/worker",
     "facebook:login": "npm run facebook:login --workspace=@price-monitor/worker",
     "docker:up": "docker compose up -d postgres redis",
@@ -26,9 +28,13 @@
     "postinstall": "npm run db:generate --workspace=@price-monitor/database"
   },
   "devDependencies": {
+    "@eslint/js": "^9.39.5",
     "@types/node": "^22.15.21",
+    "eslint": "^9.39.5",
+    "globals": "^17.14.0",
     "turbo": "^2.5.4",
     "typescript": "^5.8.3",
+    "typescript-eslint": "^8.72.1",
     "vitest": "^3.1.4"
   }
 }

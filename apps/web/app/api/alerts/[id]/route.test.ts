@@ -33,7 +33,7 @@ describe("DELETE /api/alerts/[id]", () => {
   });
 
   it("returns 401 when unauthenticated", async () => {
-    mockAuth.mockResolvedValue(null);
+    mockAuth.mockResolvedValue(null as never);
 
     const response = await DELETE(new Request("http://localhost/api/alerts/alert-1", { method: "DELETE" }), createRequestContext("alert-1"));
     const body = await response.json();

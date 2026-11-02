@@ -2,8 +2,8 @@ import { describe, expect, it } from "vitest";
 import { messages } from "@/lib/i18n/messages/en-US";
 import { getApiErrorMessageKey, translateApiError } from "./api-error-i18n";
 
-const translate = (key: keyof typeof messages, params?: Record<string, string | number>) => {
-  const template = messages[key];
+const translate = (key: keyof typeof messages, params?: Record<string, string | number>): string => {
+  const template: string = messages[key];
   if (!params) {
     return template;
   }
