@@ -6,8 +6,10 @@ import { useLocale, useTranslations } from "@/components/locale-provider";
 import { formatDateTime, formatPriceCents } from "@/lib/i18n";
 import { translateApiError } from "@/lib/api-error-i18n";
 import { isDemoListingUrl } from "@/lib/demo-mode";
+import { PriceTrend } from "@/components/price-trend";
 import type { AlertSortOption } from "@price-monitor/shared/sort-alerts";
 import { isActivePriceDropAlert } from "@price-monitor/shared/price-drop";
+import type { PricePoint } from "@price-monitor/shared/price-history";
 import { sortAlerts } from "@price-monitor/shared/sort-alerts";
 
 export interface AlertRecord {
@@ -16,6 +18,10 @@ export interface AlertRecord {
   previousPriceCents: number | null;
   priceDroppedAt: string | null;
   savedSearch: { id: string; name: string };
+  /** Downsampled price history for the card (empty when fewer than 2 observations). */
+  priceTrend?: PricePoint[];
+  /** Number of observations in the full history, before downsampling. */
+  priceHistoryCount?: number;
   dealQuality?: {
     isLowestSeen: boolean;
     isBelowRecentAverage: boolean;
@@ -222,6 +228,16 @@ function AlertCard({
           ) : null}
         </div>
       </div>
+
+      {alert.priceTrend && alert.priceTrend.length > 1 ? (
+        <PriceTrend
+          searchId={alert.savedSearch.id}
+          listingId={alert.listing.id}
+          listingTitle={alert.listing.title}
+          points={alert.priceTrend}
+          totalCount={alert.priceHistoryCount ?? alert.priceTrend.length}
+        />
+      ) : null}
     </li>
   );
 }

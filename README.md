@@ -21,10 +21,11 @@ This is a **personal, educational, and portfolio project** for exploring scrapin
 
 ## Highlights
 
-- **204 automated tests** — deterministic mock marketplace catalog, demo-mode guards, Brazilian price parsing, Facebook parsers, poll schedule backoff, rate limits, price-drop logic, deal-quality signals, localized poll queue messages, Zod schemas, adapter merge priority, poll job cleanup, API route auth/ownership/cooldown, middleware path guards
+- **222 automated tests** — price history series/downsampling, deterministic mock marketplace catalog, demo-mode guards, Brazilian price parsing, Facebook parsers, poll schedule backoff, rate limits, price-drop logic, deal-quality signals, localized poll queue messages, Zod schemas, adapter merge priority, poll job cleanup, API route auth/ownership/cooldown, middleware path guards
 - **Local-first worker** — Facebook-facing browser/session stays on your machine in `.facebook-profile/`
 - **Worker heartbeat dashboard** — online/stale/offline state, Facebook session mode, latest successful scrape, and latest failure type
 - **Resilient Facebook scraping** — GraphQL interception + embedded JSON + DOM fallback with unified merge
+- **Price history charts** — every listing card shows its price trend; click it for the full history with dated points, lowest/highest/first/latest, and a table view (inline SVG, no chart library)
 - **Per-search price memory** — `SavedSearchListingPrice` tracks last seen price per search so overlapping searches still detect drops correctly
 - **Reliable polling** — BullMQ job dedup, concurrency 1, exponential failure backoff, stale RUNNING recovery, and manual poll cooldown
 - **Brazil-first UX** — `pt-BR` default, BRL cents, Marketplace location hints, with English supported

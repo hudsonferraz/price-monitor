@@ -18,6 +18,13 @@ import {
   getDealQualityHistoryCutoff,
   groupSnapshotPricesByListing,
 } from "@price-monitor/shared/deal-quality";
+import {
+  downsamplePriceSeries,
+  getPriceSeriesKey,
+  groupPriceSeries,
+  MIN_POINTS_FOR_TREND,
+  PRICE_TREND_MAX_POINTS,
+} from "@price-monitor/shared/price-history";
 import { PollRunStatus, prisma } from "@price-monitor/database";
 import { redirect } from "next/navigation";
 
@@ -109,6 +116,15 @@ export default async function DashboardPage() {
     })),
   );
 
+  const priceSeriesByListing = groupPriceSeries(
+    snapshotPrices.map((snapshot) => ({
+      listingId: snapshot.listingId,
+      priceCents: snapshot.priceCents,
+      savedSearchId: snapshot.pollRun.savedSearchId,
+      observedAt: snapshot.pollRun.startedAt,
+    })),
+  );
+
   const pollHealth = summarizeRecentPollHealth(pollRunsForHealth);
 
   const serializedSearches: SavedSearchRecord[] = searches.map((search) => {
@@ -122,6 +138,7 @@ export default async function DashboardPage() {
         currentPriceCents: alert.listing.priceCents,
         snapshotPricesCents: snapshotPricesForListing,
       });
+      const priceSeries = priceSeriesByListing.get(getPriceSeriesKey(search.id, alert.listingId)) ?? [];
 
       return {
         id: alert.id,
@@ -129,6 +146,11 @@ export default async function DashboardPage() {
         previousPriceCents: alert.previousPriceCents,
         priceDroppedAt: alert.priceDroppedAt?.toISOString() ?? null,
         savedSearch: { id: search.id, name: search.name },
+        priceTrend:
+          priceSeries.length >= MIN_POINTS_FOR_TREND
+            ? downsamplePriceSeries(priceSeries, PRICE_TREND_MAX_POINTS)
+            : [],
+        priceHistoryCount: priceSeries.length,
         dealQuality: {
           isLowestSeen: dealQuality.isLowestSeen,
           isBelowRecentAverage: dealQuality.isBelowRecentAverage,

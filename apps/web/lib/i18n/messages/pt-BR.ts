@@ -274,6 +274,27 @@ export const messages = {
     "Este anúncio foi gerado pelo marketplace simulado do modo demo. Na configuração real, este link abre o anúncio no Facebook Marketplace.",
   demoListingId: "ID do anúncio: {id}",
   demoListingBack: "Voltar ao painel",
+
+  priceHistoryTrendLabel: "Histórico de preço: {count} observações, de {first} para {latest}, menor {lowest}. Abrir detalhes.",
+  priceHistoryTitle: "Histórico de preço",
+  priceHistoryClose: "Fechar",
+  priceHistoryLoading: "Carregando histórico de preço...",
+  priceHistoryError: "Não foi possível carregar o histórico de preço. Tente novamente.",
+  priceHistoryRetry: "Tentar novamente",
+  priceHistoryNotEnough: "Ainda não há observações suficientes para mostrar um histórico.",
+  priceHistoryChartHint: "Passe o mouse, toque ou use as setas para ver cada observação.",
+  priceHistoryPointReadout: "{date}: {price}",
+  priceHistoryLowest: "Menor",
+  priceHistoryHighest: "Maior",
+  priceHistoryFirst: "Primeira vez",
+  priceHistoryCurrent: "Atual",
+  priceHistoryChange: "Variação",
+  priceHistoryUnchanged: "Sem alteração",
+  priceHistoryObservations: "{count} observações nos últimos {days} dias",
+  priceHistoryShowTable: "Ver todas as observações",
+  priceHistoryTableDate: "Data",
+  priceHistoryTablePrice: "Preço",
+  priceHistoryTableCaption: "Preços observados, mais recentes primeiro",
 } as const;
 
 export type MessageKey = keyof typeof messages;

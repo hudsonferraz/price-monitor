@@ -360,6 +360,9 @@ export async function persistListingsAndAlerts(
         url: listing.url,
         imageUrl: listing.imageUrl,
         location: listing.location,
+        // Use the poll time so replayed (seeded) polls get matching "first/last seen" dates.
+        createdAt: now,
+        updatedAt: now,
       },
       update: {
         title: listing.title,
@@ -368,6 +371,7 @@ export async function persistListingsAndAlerts(
         url: listing.url,
         imageUrl: listing.imageUrl,
         location: listing.location,
+        updatedAt: now,
       },
     });
 
