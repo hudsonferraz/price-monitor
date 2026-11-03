@@ -123,7 +123,8 @@ describe("Telegram notifications (fake Telegram API, real worker, queue and data
 
   it("sends nothing for the baseline poll, then one message per new match and price drop", async () => {
     const { user, chatId } = await createConnectedUser("deals");
-    const search = await createSearchFor(user, "iphone 13", { maxPriceReais: 3_500 });
+    // No price filter: the mock catalog then guarantees a new listing on every poll, for any seed.
+    const search = await createSearchFor(user, "iphone 13");
     const searchRecord = await prisma.savedSearch.findUniqueOrThrow({ where: { id: search.id } });
 
     await pollAndWait(search.id, 0);
