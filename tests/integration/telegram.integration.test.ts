@@ -64,7 +64,7 @@ async function createConnectedUser(label: string) {
   const response = await createLink();
   expect(response.status).toBe(200);
   const { deepLink } = (await response.json()) as { deepLink: string };
-  expect(deepLink).toMatch(new RegExp(`^https://t\\.me/${FAKE_BOT_USERNAME}\\?start=[A-Za-z0-9_-]{32}$`));
+  expect(deepLink).toMatch(new RegExp(`^https://t\\.me/${FAKE_BOT_USERNAME}\\?start=[0-9a-f]{48}$`));
 
   telegram.pushMessage(Number(chatId), `/start ${new URL(deepLink).searchParams.get("start")}`);
   await waitFor(`chat ${chatId} to be linked`, async () => {

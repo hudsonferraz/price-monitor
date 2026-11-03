@@ -20,8 +20,9 @@ export async function POST() {
 
   const userId = session.user.id;
   const now = new Date();
-  // 24 random bytes -> 32 base64url chars (Telegram start parameters allow A-Z a-z 0-9 _ -).
-  const code = randomBytes(24).toString("base64url");
+  // 24 random bytes -> 48 hex chars (Telegram allows up to 64). Letters and digits only: a trailing
+  // "_" or "-" is dropped when a link is auto-linked in chat apps or Markdown, which broke the code.
+  const code = randomBytes(24).toString("hex");
   const expiresAt = new Date(now.getTime() + LINK_CODE_TTL_MS);
 
   await prisma.$transaction([
