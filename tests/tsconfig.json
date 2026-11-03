@@ -1,0 +1,7 @@
+{
+  "extends": "../apps/web/tsconfig.json",
+  "compilerOptions": {
+    "incremental": false
+  },
+  "include": ["../apps/web/next-env.d.ts", "**/*.ts", "../vitest.integration.config.ts"]
+}

@@ -21,7 +21,7 @@ This is a **personal, educational, and portfolio project** for exploring scrapin
 
 ## Highlights
 
-- **222 automated tests** — price history series/downsampling, deterministic mock marketplace catalog, demo-mode guards, Brazilian price parsing, Facebook parsers, poll schedule backoff, rate limits, price-drop logic, deal-quality signals, localized poll queue messages, Zod schemas, adapter merge priority, poll job cleanup, API route auth/ownership/cooldown, middleware path guards
+- **222 unit tests + 15 end-to-end integration tests** (real Postgres, Redis, queue and worker) — price history series/downsampling, deterministic mock marketplace catalog, demo-mode guards, Brazilian price parsing, Facebook parsers, poll schedule backoff, rate limits, price-drop logic, deal-quality signals, localized poll queue messages, Zod schemas, adapter merge priority, poll job cleanup, API route auth/ownership/cooldown, middleware path guards
 - **Local-first worker** — Facebook-facing browser/session stays on your machine in `.facebook-profile/`
 - **Worker heartbeat dashboard** — online/stale/offline state, Facebook session mode, latest successful scrape, and latest failure type
 - **Resilient Facebook scraping** — GraphQL interception + embedded JSON + DOM fallback with unified merge
@@ -125,12 +125,22 @@ The profile is ignored by git and should never be committed.
 ## Tests and checks
 
 ```bash
-npm test           # Vitest suite
-npm run typecheck  # tsc --noEmit in every workspace
-npm run lint       # ESLint, zero warnings allowed
+npm test                  # unit suite (no services needed)
+npm run typecheck         # tsc --noEmit in every workspace
+npm run lint              # ESLint, zero warnings allowed
+npm run test:integration  # end-to-end suite against real Postgres + Redis
 ```
 
-CI runs all three, then the production build, on every push.
+CI runs the first three and the production build in one job. A second job runs the integration suite against fresh Postgres and Redis service containers.
+
+### Integration suite
+
+`tests/integration/` drives the real pipeline end to end: API route → BullMQ queue (Redis) → worker poll job → Postgres. Only the marketplace (the deterministic mock catalog) and the signed-in session are substituted. It covers:
+
+- **Poll pipeline**: baseline poll, new-match and price-drop alerts on the next poll (checked against the expected catalog), failed polls leaving data untouched, and no duplicates when results are persisted twice
+- **API rules**: creation and ownership, 404s for other users across every search route, the manual poll cooldown, queued poll status, and refusing to delete a search mid-poll
+
+Locally, start the services first (`npm run docker:up`). The suite uses its own database (`price_monitor_test`) and Redis DB 2, and refuses to run against anything else, so real and demo data are never touched. Override the targets with `TEST_DATABASE_URL` / `TEST_REDIS_URL`. If a schema change ever makes `db push` refuse to sync the test database, drop it (`docker compose exec postgres dropdb -U price_monitor price_monitor_test`) and rerun.
 
 ## API
 

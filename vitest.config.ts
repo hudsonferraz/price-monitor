@@ -9,5 +9,7 @@ export default defineConfig({
   },
   test: {
     include: ["**/*.test.ts"],
+    // Integration tests need Postgres + Redis; they run via `npm run test:integration`.
+    exclude: ["**/node_modules/**", "**/*.integration.test.ts"],
   },
 });
