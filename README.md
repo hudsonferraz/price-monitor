@@ -15,7 +15,7 @@ This is a **personal, educational, and portfolio project** for exploring scrapin
 
 **Scope and limits:** local worker required, Facebook session is manual — see [Legal notice](#legal-notice) and [design decisions](docs/design-decisions.md).
 
-![Demo: sign in as the demo user, review price drops and deal signals, create a search, and poll it twice](docs/images/demo.gif)
+![Demo: sign in as the demo user, open the market price panel, inspect a below-market deal and its price history, create a search that excludes accessories, and poll it twice](docs/images/demo.gif)
 
 *Recorded with `npm run demo`: simulated marketplace, real worker, queue, and diffing pipeline. [Try it locally](#try-the-demo-no-facebook-needed) in one command.*
 
@@ -32,12 +32,22 @@ This is a **personal, educational, and portfolio project** for exploring scrapin
 - **Reliable polling** — BullMQ job dedup, concurrency 1, exponential failure backoff, stale RUNNING recovery, and manual poll cooldown
 - **Brazil-first UX** — `pt-BR` default, BRL cents, Marketplace location hints, with English supported
 
+### Deal intelligence
+
+| Market price per search | A below-market deal |
+|-------------------------|---------------------|
+| ![Market price panel: typical price, typical range and 30-day trend](docs/images/market-price.png) | ![Alert card with price drop, lowest seen and "Below market · −15%" badges, plus its price trend](docs/images/below-market-alert.png) |
+
+| Price history of a listing | Alerts on your phone (real Telegram bot) |
+|----------------------------|------------------------------------------|
+| ![Price history dialog with dated points, lowest, highest, first seen and latest price](docs/images/price-history.png) | ![Telegram chat with the bot: connected, test message, a price drop and a new deal](docs/images/telegram-alert.png) |
+
 | Landing | Sign in |
 |---------|---------|
 | ![Landing](docs/images/landing.png) | ![Sign in](docs/images/sign-in.png) |
 
-| Dashboard (local worker online) | Architecture |
-|---------------------------------|--------------|
+| Dashboard (worker online, Telegram connected) | Architecture |
+|-----------------------------------------------|--------------|
 | ![Dashboard](docs/images/dashboard.png) | ![Architecture](docs/images/architecture.png) |
 
 ### Real listing results
@@ -115,6 +125,10 @@ Open [http://localhost:3000](http://localhost:3000), sign in, create a search, a
 ## Telegram notifications
 
 Get new deals and price drops on your phone the moment a poll finds them. Free, and it works on a local machine with no public URL: the worker long-polls Telegram for messages instead of using a webhook.
+
+<img src="docs/images/telegram-alert.png" alt="Telegram chat with the bot: connected, test message, a price drop and a new deal" width="420">
+
+*Real messages from a test with a real bot, sent from demo mode. Demo listings have no photo because their images are served from `localhost`; real Marketplace alerts include the listing photo.*
 
 1. In Telegram, open **@BotFather**, send `/newbot`, and choose a name and a username. It replies with a token.
 2. Put the token in `.env` as `TELEGRAM_BOT_TOKEN=...` and restart the worker. The log says `Telegram notifications active as @your_bot`.
