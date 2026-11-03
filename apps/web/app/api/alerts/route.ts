@@ -2,6 +2,7 @@ import { auth } from "@/auth";
 import { apiErrorResponse } from "@/lib/api-responses";
 import { prisma } from "@price-monitor/database";
 import { parsePaginationLimit } from "@price-monitor/shared/pagination";
+import { isExcludedTitle } from "@price-monitor/shared/exclusions";
 import { NextResponse } from "next/server";
 
 export async function GET(request: Request) {
@@ -25,17 +26,21 @@ export async function GET(request: Request) {
     },
     include: {
       listing: true,
-      savedSearch: { select: { id: true, name: true } },
+      savedSearch: { select: { id: true, name: true, excludeKeywords: true } },
     },
     orderBy: { createdAt: "desc" },
     take: limit,
   });
+  // Alerts matching the search's current exclusions stay hidden (they come back if removed).
+  const visibleAlerts = alerts.filter(
+    (alert) => !isExcludedTitle(alert.listing.title, alert.savedSearch.excludeKeywords),
+  );
 
   return NextResponse.json(
-    alerts.map((alert) => ({
+    visibleAlerts.map((alert) => ({
       id: alert.id,
       createdAt: alert.createdAt.toISOString(),
-      savedSearch: alert.savedSearch,
+      savedSearch: { id: alert.savedSearch.id, name: alert.savedSearch.name },
       listing: {
         id: alert.listing.id,
         source: alert.listing.source,

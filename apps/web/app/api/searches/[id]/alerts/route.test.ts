@@ -10,6 +10,7 @@ vi.mock("@price-monitor/database", () => ({
       findFirst: vi.fn(),
     },
     alert: {
+      findMany: vi.fn(),
       updateMany: vi.fn(),
     },
   },
@@ -21,6 +22,7 @@ import { DELETE } from "./route";
 
 const mockAuth = vi.mocked(auth);
 const mockFindFirst = vi.mocked(prisma.savedSearch.findFirst);
+const mockFindAlerts = vi.mocked(prisma.alert.findMany);
 const mockUpdateMany = vi.mocked(prisma.alert.updateMany);
 
 function createRequestContext(searchId: string) {
@@ -50,7 +52,12 @@ describe("DELETE /api/searches/[id]/alerts", () => {
 
   it("dismisses all alerts for an owned search", async () => {
     mockAuth.mockResolvedValue({ user: { id: "user-1" } } as never);
-    mockFindFirst.mockResolvedValue({ id: "search-1", userId: "user-1" } as never);
+    mockFindFirst.mockResolvedValue({ id: "search-1", userId: "user-1", excludeKeywords: [] } as never);
+    mockFindAlerts.mockResolvedValue([
+      { id: "a1", listing: { title: "iPhone 13" } },
+      { id: "a2", listing: { title: "iPhone 13 Pro" } },
+      { id: "a3", listing: { title: "iPhone 13 mini" } },
+    ] as never);
     mockUpdateMany.mockResolvedValue({ count: 3 });
 
     const response = await DELETE(
@@ -61,5 +68,27 @@ describe("DELETE /api/searches/[id]/alerts", () => {
 
     expect(response.status).toBe(200);
     expect(body.dismissed).toBe(3);
+    expect(mockUpdateMany).toHaveBeenCalledWith(
+      expect.objectContaining({ where: { id: { in: ["a1", "a2", "a3"] }, dismissedAt: null } }),
+    );
+  });
+
+  it("leaves alerts hidden by exclusions undismissed, so they return if the exclusion is removed", async () => {
+    mockAuth.mockResolvedValue({ user: { id: "user-1" } } as never);
+    mockFindFirst.mockResolvedValue({ id: "search-1", userId: "user-1", excludeKeywords: ["capa"] } as never);
+    mockFindAlerts.mockResolvedValue([
+      { id: "a1", listing: { title: "iPhone 13" } },
+      { id: "a2", listing: { title: "Capa iPhone 13" } },
+    ] as never);
+    mockUpdateMany.mockResolvedValue({ count: 1 });
+
+    await DELETE(
+      new Request("http://localhost/api/searches/search-1/alerts", { method: "DELETE" }),
+      createRequestContext("search-1"),
+    );
+
+    expect(mockUpdateMany).toHaveBeenCalledWith(
+      expect.objectContaining({ where: { id: { in: ["a1"] }, dismissedAt: null } }),
+    );
   });
 });

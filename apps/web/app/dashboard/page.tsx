@@ -26,6 +26,7 @@ import {
   MIN_POINTS_FOR_TREND,
   PRICE_TREND_MAX_POINTS,
 } from "@price-monitor/shared/price-history";
+import { isExcludedTitle } from "@price-monitor/shared/exclusions";
 import { PollRunStatus, prisma } from "@price-monitor/database";
 import { redirect } from "next/navigation";
 
@@ -34,6 +35,7 @@ function serializePollRun(run: {
   status: PollRunStatus;
   listingsFound: number;
   newAlerts: number;
+  excludedCount: number;
   errorMessage: string | null;
   durationMs: number | null;
   startedAt: Date;
@@ -44,6 +46,7 @@ function serializePollRun(run: {
     status: run.status,
     listingsFound: run.listingsFound,
     newAlerts: run.newAlerts,
+    excludedCount: run.excludedCount,
     errorMessage: run.errorMessage,
     durationMs: run.durationMs,
     startedAt: run.startedAt.toISOString(),
@@ -132,7 +135,11 @@ export default async function DashboardPage() {
     const recentPollRuns = search.pollRuns.slice(0, 3).map(serializePollRun);
     const latestSuccessRun = search.pollRuns.find((run) => run.status === PollRunStatus.SUCCESS);
     const latestFailedRun = search.pollRuns.find((run) => run.status === PollRunStatus.FAILED);
-    const alerts: AlertRecord[] = search.alerts.map((alert) => {
+    // Alerts matching the search's current exclusions stay hidden (they come back if removed).
+    const visibleAlerts = search.alerts.filter(
+      (alert) => !isExcludedTitle(alert.listing.title, search.excludeKeywords),
+    );
+    const alerts: AlertRecord[] = visibleAlerts.map((alert) => {
       const snapshotPricesForListing =
         snapshotPricesByListing.get(`${search.id}:${alert.listingId}`) ?? [];
       const dealQuality = computeDealQualitySignals({
@@ -190,6 +197,7 @@ export default async function DashboardPage() {
       listingLimit: search.listingLimit,
       isEnabled: search.isEnabled,
       notificationsEnabled: search.notificationsEnabled,
+      excludeKeywords: search.excludeKeywords,
       lastAttemptedAt: search.lastAttemptedAt?.toISOString() ?? null,
       lastSuccessfulPollAt,
       createdAt: search.createdAt.toISOString(),

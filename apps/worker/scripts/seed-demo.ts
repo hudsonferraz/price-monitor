@@ -28,6 +28,7 @@ interface SeedSearch {
   listingLimit: number;
   /** Insert a failed run after this successful sequence (or never). */
   failAfterSequence: number | null;
+  excludeKeywords?: string[];
 }
 
 const SEED_SEARCHES: SeedSearch[] = [
@@ -39,6 +40,8 @@ const SEED_SEARCHES: SeedSearch[] = [
     pollIntervalMin: 30,
     listingLimit: 24,
     failAfterSequence: 2,
+    // Shows exclusions in action: accessory listings ("Capa para iphone 13") stay hidden.
+    excludeKeywords: ["capa", "película", "peças", "carregador"],
   },
   {
     name: "Bicicleta aro 29",
@@ -111,6 +114,7 @@ async function seedSearch(
       maxPriceCents: search.maxPriceCents,
       pollIntervalMin: search.pollIntervalMin,
       listingLimit: search.listingLimit,
+      excludeKeywords: search.excludeKeywords ?? [],
       createdAt: new Date(getRunStartedAt(now, 0, searchIndex).getTime() - HOUR_MS),
     },
   });
@@ -141,13 +145,14 @@ async function seedSearch(
       },
     });
 
-    const { newAlerts } = await persistListingsAndAlerts(
+    const { newAlerts, excludedCount } = await persistListingsAndAlerts(
       savedSearch.id,
       userId,
       pollRun.id,
       listings,
       sequence === 0,
       finishedAt,
+      savedSearch.excludeKeywords,
     );
 
     await prisma.pollRun.update({
@@ -156,6 +161,7 @@ async function seedSearch(
         status: PollRunStatus.SUCCESS,
         listingsFound: listings.length,
         newAlerts,
+        excludedCount,
         durationMs,
         finishedAt,
       },

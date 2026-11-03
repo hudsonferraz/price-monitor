@@ -2,6 +2,7 @@ import { prisma, MarketplaceSource, PollRunStatus } from "@price-monitor/databas
 import {
   isSearchDueForScheduledPoll,
 } from "@price-monitor/shared/poll-schedule";
+import { isExcludedTitle } from "@price-monitor/shared/exclusions";
 import { hasPriceDropped, shouldClearPriceDropEvent } from "@price-monitor/shared/price-drop";
 import { isFacebookSessionError, sanitizePollErrorMessage } from "@price-monitor/shared/poll-errors";
 import { normalizeListingLimit } from "@price-monitor/shared/sort-alerts";
@@ -180,12 +181,14 @@ export async function executePollSearch(savedSearchId: string): Promise<PollSear
       return abortedResult;
     }
 
-    const { newAlerts, newAlertIds, dropAlertIds } = await persistListingsAndAlerts(
+    const { newAlerts, newAlertIds, dropAlertIds, excludedCount } = await persistListingsAndAlerts(
       savedSearch.id,
       savedSearch.userId,
       pollRun.id,
       listings,
       isBaselinePoll,
+      new Date(),
+      savedSearch.excludeKeywords,
     );
 
     const finishedAt = new Date();
@@ -197,6 +200,7 @@ export async function executePollSearch(savedSearchId: string): Promise<PollSear
         status: PollRunStatus.SUCCESS,
         listingsFound: listings.length,
         newAlerts,
+        excludedCount,
         finishedAt,
         durationMs,
       },
@@ -271,6 +275,8 @@ export interface PersistResult {
   newAlertIds: string[];
   /** Existing alerts that recorded a price drop in this poll. */
   dropAlertIds: string[];
+  /** Listings kept out of alerts by the search's exclusion terms. */
+  excludedCount: number;
 }
 
 async function getLatestListingPricesForSearch(
@@ -324,6 +330,8 @@ async function persistLatestListingPrices(
 /**
  * Upserts listings, records snapshots and per-search prices, and creates/updates alerts.
  * `now` is used for every timestamp written, so the demo seed can replay backdated polls.
+ * Listings matching `excludeKeywords` keep their snapshots and prices (complete history if the
+ * exclusion is removed later) but never create or update alerts.
  */
 export async function persistListingsAndAlerts(
   savedSearchId: string,
@@ -332,7 +340,9 @@ export async function persistListingsAndAlerts(
   listings: NormalizedListing[],
   isBaselinePoll: boolean,
   now: Date = new Date(),
+  excludeKeywords: readonly string[] = [],
 ): Promise<PersistResult> {
+  let excludedCount = 0;
   const newAlertIds: string[] = [];
   const dropAlertIds: string[] = [];
   const snapshotEntries: Array<{
@@ -394,6 +404,11 @@ export async function persistListingsAndAlerts(
       priceCents: listing.priceCents,
       createdAt: now,
     });
+
+    if (isExcludedTitle(listing.title, excludeKeywords)) {
+      excludedCount += 1;
+      continue;
+    }
 
     const existingAlert = await prisma.alert.findUnique({
       where: {
@@ -475,6 +490,7 @@ export async function persistListingsAndAlerts(
     newAlerts: newAlertIds.length + dropAlertIds.length,
     newAlertIds,
     dropAlertIds,
+    excludedCount,
   };
 }
 

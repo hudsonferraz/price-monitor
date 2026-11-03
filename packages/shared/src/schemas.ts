@@ -1,5 +1,11 @@
 import { z } from "zod";
 
+import {
+  findKeywordConflict,
+  MAX_EXCLUSION_TERM_LENGTH,
+  MAX_EXCLUSION_TERMS,
+  normalizeExclusionTerms,
+} from "./exclusions";
 import { LISTING_LIMIT_OPTIONS } from "./queue";
 
 const listingLimitSchema = z.coerce
@@ -32,12 +38,29 @@ const savedSearchFieldsSchema = z.object({
   listingLimit: listingLimitSchema,
   isEnabled: z.boolean().default(true),
   notificationsEnabled: z.boolean().default(true),
+  excludeKeywords: z
+    .array(z.string().max(MAX_EXCLUSION_TERM_LENGTH, `Each exclusion can have at most ${MAX_EXCLUSION_TERM_LENGTH} characters`))
+    .transform((terms) => normalizeExclusionTerms(terms))
+    .refine((terms) => terms.length <= MAX_EXCLUSION_TERMS, `At most ${MAX_EXCLUSION_TERMS} exclusions`)
+    .default([]),
 });
 
-export const createSavedSearchSchema = savedSearchFieldsSchema.refine(
-  (data) => isPriceRangeValid(data.minPriceReais, data.maxPriceReais),
-  { message: PRICE_RANGE_ERROR },
-);
+export const EXCLUSION_CONFLICT_ERROR = "An exclusion matches the search keywords and would hide every result";
+
+/** Message for an exclusion that would hide the search's own keywords, or null. */
+export function getExclusionConflictError(keywords: string, excludeKeywords: readonly string[]): string | null {
+  const conflict = findKeywordConflict(keywords, excludeKeywords);
+  return conflict ? `${EXCLUSION_CONFLICT_ERROR}: "${conflict}"` : null;
+}
+
+export const createSavedSearchSchema = savedSearchFieldsSchema
+  .refine((data) => isPriceRangeValid(data.minPriceReais, data.maxPriceReais), {
+    message: PRICE_RANGE_ERROR,
+  })
+  .refine((data) => getExclusionConflictError(data.keywords, data.excludeKeywords) == null, {
+    message: EXCLUSION_CONFLICT_ERROR,
+    path: ["excludeKeywords"],
+  });
 
 export const savedSearchFieldsPartialSchema = savedSearchFieldsSchema.partial();
 

@@ -11,6 +11,8 @@ export interface PollRunRecord {
   status: "RUNNING" | "SUCCESS" | "FAILED";
   listingsFound: number;
   newAlerts: number;
+  /** Listings kept out by the search's exclusions (0 when none or unknown). */
+  excludedCount?: number;
   errorMessage: string | null;
   durationMs: number | null;
   startedAt: string;
@@ -61,6 +63,7 @@ export function PollRunHistory({ pollRuns }: PollRunHistoryProps) {
                   listings: run.listingsFound,
                   alerts: run.newAlerts,
                 })}
+                {run.excludedCount ? ` · ${t("pollExcludedCount", { count: run.excludedCount })}` : ""}
                 {run.durationMs != null ? ` - ${formatDurationMs(run.durationMs)}` : ""}
               </p>
             ) : null}

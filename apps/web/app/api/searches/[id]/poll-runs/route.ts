@@ -41,6 +41,7 @@ export async function GET(request: Request, context: RouteContext) {
       status: run.status,
       listingsFound: run.listingsFound,
       newAlerts: run.newAlerts,
+      excludedCount: run.excludedCount,
       errorMessage: run.errorMessage,
       durationMs: run.durationMs,
       startedAt: run.startedAt.toISOString(),

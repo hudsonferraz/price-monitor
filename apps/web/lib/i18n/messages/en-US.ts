@@ -328,6 +328,12 @@ export const messages = {
   telegramLastError: "Last delivery problem ({date}): {error}",
   searchFormNotifications: "Send Telegram notifications for this search",
   searchNotificationsOff: "Notifications off",
+  searchFormExclude: "Exclude words (optional)",
+  searchFormExcludePlaceholder: "capa, película, peças",
+  searchFormExcludeHint: "Comma-separated. Listings whose title contains any of these words are hidden. Case and accents are ignored; whole words only (\"capa\" does not hide \"capacete\").",
+  searchFormExcludeConflict: "\"{term}\" is part of the search keywords and would hide every result.",
+  searchExcluding: "Excluding",
+  pollExcludedCount: "{count} excluded",
   apiErrorTelegramNotConfigured: "Telegram is not set up on this server, or the worker is not running.",
   apiErrorTelegramNotConnected: "Connect Telegram first.",
 } as const;

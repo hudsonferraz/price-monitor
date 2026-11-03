@@ -5,6 +5,7 @@ import {
   centsToReais,
   createSavedSearchSchema,
   createUpdateSavedSearchSchema,
+  getExclusionConflictError,
   reaisToCents,
 } from "@price-monitor/shared/schemas";
 import { NextResponse } from "next/server";
@@ -19,6 +20,7 @@ function serializeSavedSearch(search: {
   listingLimit: number;
   isEnabled: boolean;
   notificationsEnabled: boolean;
+  excludeKeywords: string[];
   lastAttemptedAt: Date | null;
   lastSuccessfulPollAt: Date | null;
   createdAt: Date;
@@ -34,6 +36,7 @@ function serializeSavedSearch(search: {
     listingLimit: search.listingLimit,
     isEnabled: search.isEnabled,
     notificationsEnabled: search.notificationsEnabled,
+    excludeKeywords: search.excludeKeywords,
     lastAttemptedAt: search.lastAttemptedAt?.toISOString() ?? null,
     lastSuccessfulPollAt: search.lastSuccessfulPollAt?.toISOString() ?? null,
     createdAt: search.createdAt.toISOString(),
@@ -81,6 +84,7 @@ export async function POST(request: Request) {
       listingLimit: parsed.data.listingLimit,
       isEnabled: parsed.data.isEnabled,
       notificationsEnabled: parsed.data.notificationsEnabled,
+      excludeKeywords: parsed.data.excludeKeywords,
     },
   });
 
@@ -118,6 +122,16 @@ export async function PATCH(request: Request) {
     });
   }
 
+  const conflict = getExclusionConflictError(
+    parsed.data.keywords ?? existing.keywords,
+    parsed.data.excludeKeywords ?? existing.excludeKeywords,
+  );
+  if (conflict) {
+    return apiErrorResponse("VALIDATION_FAILED", 400, {
+      details: { formErrors: [], fieldErrors: { excludeKeywords: [conflict] } },
+    });
+  }
+
   const search = await prisma.savedSearch.update({
     where: { id: searchId },
     data: {
@@ -138,6 +152,9 @@ export async function PATCH(request: Request) {
       ...(parsed.data.isEnabled !== undefined ? { isEnabled: parsed.data.isEnabled } : {}),
       ...(parsed.data.notificationsEnabled !== undefined
         ? { notificationsEnabled: parsed.data.notificationsEnabled }
+        : {}),
+      ...(parsed.data.excludeKeywords !== undefined
+        ? { excludeKeywords: parsed.data.excludeKeywords }
         : {}),
     },
   });

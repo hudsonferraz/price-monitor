@@ -335,6 +335,12 @@ export const messages = {
   telegramLastError: "Último problema de envio ({date}): {error}",
   searchFormNotifications: "Enviar notificações no Telegram para esta busca",
   searchNotificationsOff: "Notificações desligadas",
+  searchFormExclude: "Excluir palavras (opcional)",
+  searchFormExcludePlaceholder: "capa, película, peças",
+  searchFormExcludeHint: "Separadas por vírgula. Anúncios com qualquer uma dessas palavras no título ficam ocultos. Maiúsculas e acentos são ignorados; só palavras inteiras (\"capa\" não oculta \"capacete\").",
+  searchFormExcludeConflict: "\"{term}\" faz parte das palavras-chave da busca e ocultaria todos os resultados.",
+  searchExcluding: "Excluindo",
+  pollExcludedCount: "{count} excluídos",
   apiErrorTelegramNotConfigured: "O Telegram não está configurado neste servidor, ou o worker não está rodando.",
   apiErrorTelegramNotConnected: "Conecte o Telegram primeiro.",
 } as const;

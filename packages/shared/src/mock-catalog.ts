@@ -127,6 +127,10 @@ export function getMockImageNumber(keywords: string): number {
   return category?.imageNumber ?? GENERIC_IMAGE_NUMBER;
 }
 
+/** A few listings per search are accessories ("Capa para iphone 13"): cheap, keyword-bearing noise. */
+const ACCESSORY_PREFIXES = ["Capa para", "Película para", "Carregador para", "Peças de"];
+const ACCESSORY_SHARE_PERCENT = 12;
+
 function normalizeKeywords(keywords: string): string {
   return keywords.trim().replace(/\s+/g, " ") || "item";
 }
@@ -172,6 +176,21 @@ function buildCandidate(
   const location = LOCATIONS[Math.floor(random() * LOCATIONS.length)];
   // Former per-listing image roll. Still drawn so existing seeds keep the same prices and titles.
   random();
+
+  // Decided by a separate hash so the main PRNG sequence (and every other listing) is unchanged.
+  const accessoryHash = hashString(`${catalogKey}|accessory|${index}`);
+  if (accessoryHash % 100 < ACCESSORY_SHARE_PERCENT) {
+    const prefix = ACCESSORY_PREFIXES[accessoryHash % ACCESSORY_PREFIXES.length];
+    return {
+      index,
+      appearsAt,
+      disappearsAt: delistRoll < DELIST_CHANCE ? appearsAt + delistDelay : null,
+      // 2–6% of the typical price, at least R$ 15.
+      basePriceCents: Math.max(1_500, roundToReais(centerPriceCents * (0.02 + (accessoryHash % 400) / 10_000))),
+      title: `${prefix} ${keywords}`,
+      location,
+    };
+  }
 
   return {
     index,

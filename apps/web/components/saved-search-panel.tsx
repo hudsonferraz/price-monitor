@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { findKeywordConflict, parseExclusionInput } from "@price-monitor/shared/exclusions";
 import { SearchAlertsSection, type AlertRecord } from "@/components/alerts-feed";
 import { useLocale, useTranslations } from "@/components/locale-provider";
 import { PollStatusBanner, type SearchPollState } from "@/components/poll-status-banner";
@@ -28,6 +29,7 @@ export interface SavedSearchRecord {
   listingLimit: number;
   isEnabled: boolean;
   notificationsEnabled: boolean;
+  excludeKeywords: string[];
   lastAttemptedAt: string | null;
   lastSuccessfulPollAt: string | null;
   createdAt: string;
@@ -83,6 +85,7 @@ export function SavedSearchForm({ initialSearch, onSuccess, onCancel }: SavedSea
   const [notificationsEnabled, setNotificationsEnabled] = useState(
     initialSearch?.notificationsEnabled ?? true,
   );
+  const [excludeInput, setExcludeInput] = useState((initialSearch?.excludeKeywords ?? []).join(", "));
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -91,6 +94,12 @@ export function SavedSearchForm({ initialSearch, onSuccess, onCancel }: SavedSea
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError(null);
+
+    const conflict = findKeywordConflict(keywords, parseExclusionInput(excludeInput));
+    if (conflict) {
+      setError(t("searchFormExcludeConflict", { term: conflict }));
+      return;
+    }
     setIsSubmitting(true);
 
     const payload = {
@@ -103,6 +112,7 @@ export function SavedSearchForm({ initialSearch, onSuccess, onCancel }: SavedSea
       listingLimit: Number(listingLimit),
       isEnabled,
       notificationsEnabled,
+      excludeKeywords: parseExclusionInput(excludeInput),
     };
 
     try {
@@ -224,6 +234,22 @@ export function SavedSearchForm({ initialSearch, onSuccess, onCancel }: SavedSea
           ))}
         </select>
         <p className="mt-1 text-xs text-[var(--muted)]">{t("searchFormListingLimitHint")}</p>
+      </div>
+
+      <div>
+        <label htmlFor="excludeKeywords" className="mb-1 block text-sm font-medium">
+          {t("searchFormExclude")}
+        </label>
+        <input
+          id="excludeKeywords"
+          type="text"
+          value={excludeInput}
+          onChange={(event) => setExcludeInput(event.target.value)}
+          placeholder={t("searchFormExcludePlaceholder")}
+          maxLength={1100}
+          className="w-full rounded-md border border-[var(--border)] bg-[var(--background)] px-3 py-2 text-sm"
+        />
+        <p className="mt-1 text-xs text-[var(--muted)]">{t("searchFormExcludeHint")}</p>
       </div>
 
       <label className="flex items-center gap-2 text-sm">
@@ -685,6 +711,12 @@ export function SavedSearchList({ searches, emptyMessage }: SavedSearchListProps
                           : t("searchNever")}
                       </dd>
                     </div>
+                    {search.excludeKeywords.length > 0 ? (
+                      <div className="sm:col-span-2">
+                        <dt className="text-[var(--muted)]">{t("searchExcluding")}</dt>
+                        <dd className="break-words">{search.excludeKeywords.join(", ")}</dd>
+                      </div>
+                    ) : null}
                   </dl>
 
                   <SearchReliabilitySummary search={search} />

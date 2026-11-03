@@ -84,6 +84,8 @@ model SavedSearch {
   lastSuccessfulPollAt DateTime?
   consecutiveFailures Int @default(0)
   notificationsEnabled Boolean @default(true)
+  /// Words or phrases that keep a listing out of this search's alerts (case- and accent-insensitive).
+  excludeKeywords String[] @default([])
   user            User          @relation(fields: [userId], references: [id], onDelete: Cascade)
   alerts          Alert[]
   pollRuns        PollRun[]
@@ -165,6 +167,7 @@ model PollRun {
   status        PollRunStatus @default(RUNNING)
   listingsFound Int           @default(0)
   newAlerts     Int           @default(0)
+  excludedCount Int           @default(0)
   errorMessage  String?
   durationMs    Int?
   startedAt     DateTime      @default(now())

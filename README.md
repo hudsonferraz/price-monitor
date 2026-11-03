@@ -21,7 +21,7 @@ This is a **personal, educational, and portfolio project** for exploring scrapin
 
 ## Highlights
 
-- **247 unit tests + 24 end-to-end integration tests** (real Postgres, Redis, queue and worker, plus a fake Telegram API) — Telegram notification rules, price history series/downsampling, deterministic mock marketplace catalog, demo-mode guards, Brazilian price parsing, Facebook parsers, poll schedule backoff, rate limits, price-drop logic, deal-quality signals, localized poll queue messages, Zod schemas, adapter merge priority, poll job cleanup, API route auth/ownership/cooldown, middleware path guards
+- **262 unit tests + 27 end-to-end integration tests** (real Postgres, Redis, queue and worker, plus a fake Telegram API) — exclusion matching, Telegram notification rules, price history series/downsampling, deterministic mock marketplace catalog, demo-mode guards, Brazilian price parsing, Facebook parsers, poll schedule backoff, rate limits, price-drop logic, deal-quality signals, localized poll queue messages, Zod schemas, adapter merge priority, poll job cleanup, API route auth/ownership/cooldown, middleware path guards
 - **Telegram deal alerts** — new matches and price drops pushed to your phone with photo, price and "was R$X (−Y%)"; one-tap linking, quiet hours, drops-only mode, minimum drop %, and per-search switches; works with no public URL
 - **Local-first worker** — Facebook-facing browser/session stays on your machine in `.facebook-profile/`
 - **Worker heartbeat dashboard** — online/stale/offline state, Facebook session mode, latest successful scrape, and latest failure type
@@ -47,7 +47,7 @@ This is a **personal, educational, and portfolio project** for exploring scrapin
 
 | Area | What you get |
 |------|----------------|
-| **Saved searches** | Keywords, optional min/max price (BRL), poll interval (5–1440 min), listing limit (12/24/48), enable/disable |
+| **Saved searches** | Keywords, exclude words (whole words, case- and accent-insensitive: "capa" hides "Capa iPhone" but not "Capacete"), optional min/max price (BRL), poll interval (5–1440 min), listing limit (12/24/48), enable/disable |
 | **Polling** | Manual **Poll now** (15 min cooldown) + scheduler every 60s; live status banner and poll run history |
 | **Alerts** | New matches and price-drop badges; deal-quality signals (lowest seen, below recent average); sort by date/price; dismiss per alert or clear all |
 | **Notifications** | Telegram bot: link from the dashboard, test message, pause, drops-only mode, minimum drop %, quiet hours, per-search on/off; max 5 messages per poll plus a summary |
