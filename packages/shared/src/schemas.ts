@@ -31,6 +31,7 @@ const savedSearchFieldsSchema = z.object({
   pollIntervalMin: z.coerce.number().int().min(5).max(1440).default(30),
   listingLimit: listingLimitSchema,
   isEnabled: z.boolean().default(true),
+  notificationsEnabled: z.boolean().default(true),
 });
 
 export const createSavedSearchSchema = savedSearchFieldsSchema.refine(
@@ -73,3 +74,38 @@ export function centsToReais(cents: number | null | undefined): number | null {
   }
   return cents / 100;
 }
+
+const minuteOfDaySchema = z.number().int().min(0).max(1439).nullable();
+
+/** PATCH /api/telegram: every field optional; at least one required. */
+export const telegramSettingsSchema = z
+  .object({
+    paused: z.boolean(),
+    mode: z.enum(["NEW_AND_DROPS", "DROPS_ONLY"]),
+    minDropPercent: z.number().int().min(0).max(90),
+    quietStartMinute: minuteOfDaySchema,
+    quietEndMinute: minuteOfDaySchema,
+    timeZone: z
+      .string()
+      .trim()
+      .min(1)
+      .max(64)
+      .refine((value) => {
+        try {
+          new Intl.DateTimeFormat("en-US", { timeZone: value });
+          return true;
+        } catch {
+          return false;
+        }
+      }, "Unknown time zone"),
+  })
+  .partial()
+  .strict()
+  .refine((data) => Object.keys(data).length > 0, { message: "No settings to update" })
+  .refine(
+    (data) =>
+      data.quietStartMinute === undefined ||
+      data.quietEndMinute === undefined ||
+      (data.quietStartMinute === null) === (data.quietEndMinute === null),
+    { message: "Quiet hours need both a start and an end" },
+  );

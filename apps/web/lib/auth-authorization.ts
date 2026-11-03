@@ -10,7 +10,8 @@ export function isProtectedPath(pathname: string): boolean {
   return (
     pathname.startsWith("/api/searches") ||
     pathname.startsWith("/api/alerts") ||
-    pathname.startsWith("/api/user")
+    pathname.startsWith("/api/user") ||
+    pathname.startsWith("/api/telegram")
   );
 }
 

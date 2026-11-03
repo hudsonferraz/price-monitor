@@ -8,4 +8,5 @@ export const protectedRouteMatchers = [
   "/api/searches/:path*",
   "/api/alerts/:path*",
   "/api/user/:path*",
+  "/api/telegram/:path*",
 ] as const;

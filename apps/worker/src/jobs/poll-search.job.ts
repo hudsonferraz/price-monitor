@@ -9,6 +9,7 @@ import type { NormalizedListing } from "@price-monitor/shared/types";
 import { markFacebookSessionAuthFailure, markFacebookSessionVerified } from "../lib/facebook-session";
 import { searchMarketplace } from "../lib/marketplace-browser";
 import { isMockMarketplaceEnabled } from "../lib/mock-marketplace";
+import { notifyPollEvents } from "../lib/telegram/notify";
 
 export const POLL_JOB_LOCK_MS = 10 * 60 * 1000;
 export const STALE_RUNNING_POLL_MS = POLL_JOB_LOCK_MS;
@@ -179,7 +180,7 @@ export async function executePollSearch(savedSearchId: string): Promise<PollSear
       return abortedResult;
     }
 
-    const { newAlerts } = await persistListingsAndAlerts(
+    const { newAlerts, newAlertIds, dropAlertIds } = await persistListingsAndAlerts(
       savedSearch.id,
       savedSearch.userId,
       pollRun.id,
@@ -216,6 +217,11 @@ export async function executePollSearch(savedSearchId: string): Promise<PollSear
 
     if (!isMockMarketplaceEnabled()) {
       markFacebookSessionVerified("successful_poll");
+    }
+
+    // After the run is recorded as successful: notification problems never affect the poll.
+    if (!isBaselinePoll && newAlertIds.length + dropAlertIds.length > 0) {
+      await notifyPollEvents({ savedSearchId, newAlertIds, dropAlertIds });
     }
 
     return {
@@ -261,6 +267,10 @@ export async function executePollSearch(savedSearchId: string): Promise<PollSear
 
 export interface PersistResult {
   newAlerts: number;
+  /** Alerts created by this poll (new matches). Empty for baseline polls. */
+  newAlertIds: string[];
+  /** Existing alerts that recorded a price drop in this poll. */
+  dropAlertIds: string[];
 }
 
 async function getLatestListingPricesForSearch(
@@ -323,7 +333,8 @@ export async function persistListingsAndAlerts(
   isBaselinePoll: boolean,
   now: Date = new Date(),
 ): Promise<PersistResult> {
-  const alertIds: string[] = [];
+  const newAlertIds: string[] = [];
+  const dropAlertIds: string[] = [];
   const snapshotEntries: Array<{
     pollRunId: string;
     listingId: string;
@@ -411,7 +422,7 @@ export async function persistListingsAndAlerts(
       });
 
       if (!isBaselinePoll) {
-        alertIds.push(alert.id);
+        newAlertIds.push(alert.id);
       }
       continue;
     }
@@ -426,7 +437,7 @@ export async function persistListingsAndAlerts(
         },
       });
 
-      alertIds.push(existingAlert.id);
+      dropAlertIds.push(existingAlert.id);
       continue;
     }
 
@@ -461,7 +472,9 @@ export async function persistListingsAndAlerts(
   }
 
   return {
-    newAlerts: alertIds.length,
+    newAlerts: newAlertIds.length + dropAlertIds.length,
+    newAlertIds,
+    dropAlertIds,
   };
 }
 

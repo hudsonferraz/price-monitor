@@ -1,5 +1,6 @@
 import { type AlertRecord } from "@/components/alerts-feed";
 import { PollDiagnosticsPanel } from "@/components/poll-diagnostics-panel";
+import { TelegramCard } from "@/components/telegram-card";
 import {
   WorkerStatusCard,
   type WorkerActivitySummary,
@@ -188,6 +189,7 @@ export default async function DashboardPage() {
       pollIntervalMin: search.pollIntervalMin,
       listingLimit: search.listingLimit,
       isEnabled: search.isEnabled,
+      notificationsEnabled: search.notificationsEnabled,
       lastAttemptedAt: search.lastAttemptedAt?.toISOString() ?? null,
       lastSuccessfulPollAt,
       createdAt: search.createdAt.toISOString(),
@@ -254,6 +256,8 @@ export default async function DashboardPage() {
 
 
         <WorkerStatusCard heartbeat={workerHeartbeat} activity={workerActivity} />
+
+        <TelegramCard />
 
         <PollDiagnosticsPanel
           latestIssueCode={pollHealth.latestIssueCode}

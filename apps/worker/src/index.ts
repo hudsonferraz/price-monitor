@@ -12,6 +12,7 @@ import { closeBrowser } from "./lib/marketplace-browser";
 import { getFacebookSessionDiagnostics } from "./lib/facebook-session";
 import { startHealthServer } from "./lib/health-server";
 import { markWorkerOffline, startWorkerHeartbeat } from "./lib/worker-heartbeat";
+import { startTelegramBot } from "./lib/telegram/bot";
 import {
   cleanupStaleRunningPolls,
   executePollSearch,
@@ -107,10 +108,23 @@ async function main(): Promise<void> {
   const heartbeat = startWorkerHeartbeat(startedAt);
   console.log(`Worker heartbeat active as ${heartbeat.workerId}.`);
   console.log("Scheduler registered (checks every 60 seconds).");
+
+  // Optional: Telegram notifications. A bad token must not stop polling.
+  const telegramBot = await startTelegramBot().catch((error: unknown) => {
+    const message = error instanceof Error ? error.message : String(error);
+    console.error(`Telegram bot failed to start (notifications disabled): ${message}`);
+    return null;
+  });
+  console.log(
+    telegramBot
+      ? `Telegram notifications active as @${telegramBot.username}.`
+      : "Telegram notifications off (set TELEGRAM_BOT_TOKEN to enable).",
+  );
   console.log("Worker is running. Press Ctrl+C to stop.");
 
   const shutdown = async () => {
     console.log("Shutting down worker...");
+    await telegramBot?.stop();
     await pollWorker.close();
     await scheduleWorker.close();
     await closeBrowser();

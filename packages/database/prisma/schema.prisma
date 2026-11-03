@@ -28,6 +28,8 @@ model User {
   sessions                  Session[]
   savedSearches             SavedSearch[]
   alerts                    Alert[]
+  telegramConnection        TelegramConnection?
+  telegramLinkCodes         TelegramLinkCode[]
   createdAt                 DateTime      @default(now())
   updatedAt                 DateTime      @updatedAt
 }
@@ -81,6 +83,7 @@ model SavedSearch {
   lastAttemptedAt DateTime?
   lastSuccessfulPollAt DateTime?
   consecutiveFailures Int @default(0)
+  notificationsEnabled Boolean @default(true)
   user            User          @relation(fields: [userId], references: [id], onDelete: Cascade)
   alerts          Alert[]
   pollRuns        PollRun[]
@@ -123,6 +126,7 @@ model Alert {
   user          User        @relation(fields: [userId], references: [id], onDelete: Cascade)
   savedSearch   SavedSearch @relation(fields: [savedSearchId], references: [id], onDelete: Cascade)
   listing       Listing     @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  notifications AlertNotification[]
   createdAt     DateTime    @default(now())
 
   @@unique([savedSearchId, listingId])
@@ -192,4 +196,70 @@ model WorkerHeartbeat {
   updatedAt              DateTime @updatedAt
 
   @@index([lastSeenAt(sort: Desc)])
+}
+
+enum NotificationMode {
+  NEW_AND_DROPS
+  DROPS_ONLY
+}
+
+enum NotificationStatus {
+  SENT
+  FAILED
+  SUMMARIZED
+  SKIPPED
+}
+
+/// Telegram link and notification settings for one user. chatId null = disconnected.
+model TelegramConnection {
+  id               String           @id @default(cuid())
+  userId           String           @unique
+  chatId           String?          @unique
+  paused           Boolean          @default(false)
+  mode             NotificationMode @default(NEW_AND_DROPS)
+  minDropPercent   Int              @default(0)
+  quietStartMinute Int?
+  quietEndMinute   Int?
+  timeZone         String           @default("America/Sao_Paulo")
+  linkedAt         DateTime?
+  testRequestedAt  DateTime?
+  lastErrorAt      DateTime?
+  lastErrorMessage String?
+  user             User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+}
+
+/// One-time code carried by the t.me deep link; expires after 15 minutes.
+model TelegramLinkCode {
+  code      String    @id
+  userId    String
+  expiresAt DateTime
+  usedAt    DateTime?
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime  @default(now())
+
+  @@index([userId])
+}
+
+/// Written by the worker (which holds the bot token) so the web app knows the bot is running.
+model TelegramBotState {
+  id          String   @id @default("default")
+  botUsername String
+  lastSeenAt  DateTime
+  lastError   String?
+  updatedAt   DateTime @updatedAt
+}
+
+/// One row per alert event (new match, or a drop at a given time): guarantees at most one message.
+model AlertNotification {
+  id        String             @id @default(cuid())
+  alertId   String
+  eventKey  String
+  status    NotificationStatus
+  reason    String?
+  alert     Alert              @relation(fields: [alertId], references: [id], onDelete: Cascade)
+  createdAt DateTime           @default(now())
+
+  @@unique([alertId, eventKey])
 }

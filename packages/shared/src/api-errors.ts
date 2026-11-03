@@ -14,7 +14,9 @@ export type ApiErrorCode =
   | "POLL_QUEUE_FAILED"
   | "POLL_COOLDOWN"
   | "WORKER_OFFLINE"
-  | "WORKER_STALE";
+  | "WORKER_STALE"
+  | "TELEGRAM_NOT_CONFIGURED"
+  | "TELEGRAM_NOT_CONNECTED";
 
 export function createApiErrorBody(
   errorCode: ApiErrorCode,

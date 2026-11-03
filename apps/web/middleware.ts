@@ -11,5 +11,6 @@ export const config = {
     "/api/searches/:path*",
     "/api/alerts/:path*",
     "/api/user/:path*",
+    "/api/telegram/:path*",
   ],
 };

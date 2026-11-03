@@ -27,6 +27,7 @@ export interface SavedSearchRecord {
   pollIntervalMin: number;
   listingLimit: number;
   isEnabled: boolean;
+  notificationsEnabled: boolean;
   lastAttemptedAt: string | null;
   lastSuccessfulPollAt: string | null;
   createdAt: string;
@@ -79,6 +80,9 @@ export function SavedSearchForm({ initialSearch, onSuccess, onCancel }: SavedSea
   );
   const [listingLimit, setListingLimit] = useState(String(initialSearch?.listingLimit ?? 24));
   const [isEnabled, setIsEnabled] = useState(initialSearch?.isEnabled ?? true);
+  const [notificationsEnabled, setNotificationsEnabled] = useState(
+    initialSearch?.notificationsEnabled ?? true,
+  );
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -98,6 +102,7 @@ export function SavedSearchForm({ initialSearch, onSuccess, onCancel }: SavedSea
       pollIntervalMin: Number(pollIntervalMin),
       listingLimit: Number(listingLimit),
       isEnabled,
+      notificationsEnabled,
     };
 
     try {
@@ -229,6 +234,16 @@ export function SavedSearchForm({ initialSearch, onSuccess, onCancel }: SavedSea
           className="rounded border-[var(--border)]"
         />
         {t("searchFormEnabled")}
+      </label>
+
+      <label className="flex items-center gap-2 text-sm">
+        <input
+          type="checkbox"
+          checked={notificationsEnabled}
+          onChange={(event) => setNotificationsEnabled(event.target.checked)}
+          className="rounded border-[var(--border)]"
+        />
+        {t("searchFormNotifications")}
       </label>
 
       {error ? <p className="text-sm text-red-600">{error}</p> : null}
@@ -638,6 +653,11 @@ export function SavedSearchList({ searches, emptyMessage }: SavedSearchListProps
                       >
                         {search.isEnabled ? t("searchEnabled") : t("searchDisabled")}
                       </span>
+                      {!search.notificationsEnabled ? (
+                        <span className="rounded-full bg-neutral-100 px-2.5 py-0.5 text-xs font-medium text-neutral-600 dark:bg-neutral-800 dark:text-neutral-400">
+                          {t("searchNotificationsOff")}
+                        </span>
+                      ) : null}
                     </div>
                   </div>
 

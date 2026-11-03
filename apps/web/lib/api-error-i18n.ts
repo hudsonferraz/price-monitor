@@ -18,6 +18,8 @@ const apiErrorMessageKeys: Record<ApiErrorCode, MessageKey> = {
   POLL_COOLDOWN: "pollCooldown",
   WORKER_OFFLINE: "apiErrorWorkerOffline",
   WORKER_STALE: "apiErrorWorkerStale",
+  TELEGRAM_NOT_CONFIGURED: "apiErrorTelegramNotConfigured",
+  TELEGRAM_NOT_CONNECTED: "apiErrorTelegramNotConnected",
 };
 
 export function getApiErrorMessageKey(errorCode: string | undefined): MessageKey | null {

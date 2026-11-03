@@ -21,7 +21,8 @@ This is a **personal, educational, and portfolio project** for exploring scrapin
 
 ## Highlights
 
-- **222 unit tests + 15 end-to-end integration tests** (real Postgres, Redis, queue and worker) — price history series/downsampling, deterministic mock marketplace catalog, demo-mode guards, Brazilian price parsing, Facebook parsers, poll schedule backoff, rate limits, price-drop logic, deal-quality signals, localized poll queue messages, Zod schemas, adapter merge priority, poll job cleanup, API route auth/ownership/cooldown, middleware path guards
+- **247 unit tests + 24 end-to-end integration tests** (real Postgres, Redis, queue and worker, plus a fake Telegram API) — Telegram notification rules, price history series/downsampling, deterministic mock marketplace catalog, demo-mode guards, Brazilian price parsing, Facebook parsers, poll schedule backoff, rate limits, price-drop logic, deal-quality signals, localized poll queue messages, Zod schemas, adapter merge priority, poll job cleanup, API route auth/ownership/cooldown, middleware path guards
+- **Telegram deal alerts** — new matches and price drops pushed to your phone with photo, price and "was R$X (−Y%)"; one-tap linking, quiet hours, drops-only mode, minimum drop %, and per-search switches; works with no public URL
 - **Local-first worker** — Facebook-facing browser/session stays on your machine in `.facebook-profile/`
 - **Worker heartbeat dashboard** — online/stale/offline state, Facebook session mode, latest successful scrape, and latest failure type
 - **Resilient Facebook scraping** — GraphQL interception + embedded JSON + DOM fallback with unified merge
@@ -49,6 +50,7 @@ This is a **personal, educational, and portfolio project** for exploring scrapin
 | **Saved searches** | Keywords, optional min/max price (BRL), poll interval (5–1440 min), listing limit (12/24/48), enable/disable |
 | **Polling** | Manual **Poll now** (15 min cooldown) + scheduler every 60s; live status banner and poll run history |
 | **Alerts** | New matches and price-drop badges; deal-quality signals (lowest seen, below recent average); sort by date/price; dismiss per alert or clear all |
+| **Notifications** | Telegram bot: link from the dashboard, test message, pause, drops-only mode, minimum drop %, quiet hours, per-search on/off; max 5 messages per poll plus a summary |
 | **Worker health** | Postgres heartbeat, session mode, latest scrape/failure summaries in the dashboard |
 | **Auth** | GitHub + Google OAuth via NextAuth v5 |
 | **i18n** | Portuguese (default) and English |
@@ -109,6 +111,16 @@ npm run dev --workspace=@price-monitor/web
 
 Open [http://localhost:3000](http://localhost:3000), sign in, create a search, and click **Poll now**. The dashboard should show the local worker heartbeat once `npm run worker:dev` is running. If the worker is missing/offline, fix that first — it is not a bad search keyword.
 
+## Telegram notifications
+
+Get new deals and price drops on your phone the moment a poll finds them. Free, and it works on a local machine with no public URL: the worker long-polls Telegram for messages instead of using a webhook.
+
+1. In Telegram, open **@BotFather**, send `/newbot`, and choose a name and a username. It replies with a token.
+2. Put the token in `.env` as `TELEGRAM_BOT_TOKEN=...` and restart the worker. The log says `Telegram notifications active as @your_bot`.
+3. On the dashboard, click **Connect Telegram**, then tap **Start** in the bot. The card switches to *Connected*; use **Send test message** to check.
+
+The token stays in the worker's `.env`; the web app never sees it. Each event (a new match, or a drop at a given time) is sent at most once. A poll sends at most 5 messages (biggest drops first) plus one "and N more" summary. Telegram problems never fail a poll: they show on the dashboard card instead. Send `/stop` to the bot, or click **Disconnect**, to stop notifications.
+
 ## Facebook Session Model
 
 The recommended workflow is a persistent local browser profile:
@@ -154,6 +166,9 @@ Locally, start the services first (`npm run docker:up`). The suite uses its own 
 | `GET /api/alerts` | Alert feed (`?savedSearchId=`, `?limit=`) |
 | `DELETE /api/alerts/[id]` | Dismiss alert |
 | `GET/PATCH /api/user/preferences` | Locale preference |
+| `GET/PATCH/DELETE /api/telegram` | Telegram status, notification settings, disconnect |
+| `POST /api/telegram/link` | One-time `t.me` link for connecting the bot |
+| `POST /api/telegram/test` | Ask the worker to send a test message |
 | `GET /health` (worker) | Local worker health and Facebook session check |
 
 ## Architecture
@@ -170,6 +185,7 @@ See `.env.example`. Key variables:
 | `REDIS_URL` | Redis for BullMQ, local Docker by default |
 | `AUTH_SECRET` | Auth.js / NextAuth secret |
 | `FACEBOOK_BROWSER_PROFILE_DIR` | Persistent local Facebook browser profile |
+| `TELEGRAM_BOT_TOKEN` | Optional. Enables Telegram notifications (worker only) |
 
 ## Design decisions
 

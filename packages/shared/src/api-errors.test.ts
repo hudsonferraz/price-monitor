@@ -38,6 +38,8 @@ describe("createApiErrorBody", () => {
       POLL_COOLDOWN: true,
       WORKER_OFFLINE: true,
       WORKER_STALE: true,
+      TELEGRAM_NOT_CONFIGURED: true,
+      TELEGRAM_NOT_CONNECTED: true,
     };
     const codes = Object.keys(allCodes) as ApiErrorCode[];
 

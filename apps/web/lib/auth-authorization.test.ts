@@ -18,6 +18,8 @@ describe("isProtectedPath", () => {
     expect(isProtectedPath("/api/alerts")).toBe(true);
     expect(isProtectedPath("/api/alerts/alert-1")).toBe(true);
     expect(isProtectedPath("/api/user/preferences")).toBe(true);
+    expect(isProtectedPath("/api/telegram")).toBe(true);
+    expect(isProtectedPath("/api/telegram/link")).toBe(true);
   });
 
   it("leaves public auth and locale routes open", () => {
@@ -38,6 +40,7 @@ describe("protectedRouteMatchers", () => {
       "/api/searches/:path*",
       "/api/alerts/:path*",
       "/api/user/:path*",
+      "/api/telegram/:path*",
     ]);
   });
 

@@ -18,6 +18,7 @@ function serializeSavedSearch(search: {
   pollIntervalMin: number;
   listingLimit: number;
   isEnabled: boolean;
+  notificationsEnabled: boolean;
   lastAttemptedAt: Date | null;
   lastSuccessfulPollAt: Date | null;
   createdAt: Date;
@@ -32,6 +33,7 @@ function serializeSavedSearch(search: {
     pollIntervalMin: search.pollIntervalMin,
     listingLimit: search.listingLimit,
     isEnabled: search.isEnabled,
+    notificationsEnabled: search.notificationsEnabled,
     lastAttemptedAt: search.lastAttemptedAt?.toISOString() ?? null,
     lastSuccessfulPollAt: search.lastSuccessfulPollAt?.toISOString() ?? null,
     createdAt: search.createdAt.toISOString(),
@@ -78,6 +80,7 @@ export async function POST(request: Request) {
       pollIntervalMin: parsed.data.pollIntervalMin,
       listingLimit: parsed.data.listingLimit,
       isEnabled: parsed.data.isEnabled,
+      notificationsEnabled: parsed.data.notificationsEnabled,
     },
   });
 
@@ -133,6 +136,9 @@ export async function PATCH(request: Request) {
         ? { listingLimit: parsed.data.listingLimit }
         : {}),
       ...(parsed.data.isEnabled !== undefined ? { isEnabled: parsed.data.isEnabled } : {}),
+      ...(parsed.data.notificationsEnabled !== undefined
+        ? { notificationsEnabled: parsed.data.notificationsEnabled }
+        : {}),
     },
   });
 
