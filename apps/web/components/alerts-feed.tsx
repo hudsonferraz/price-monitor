@@ -22,6 +22,8 @@ export interface AlertRecord {
   priceTrend?: PricePoint[];
   /** Number of observations in the full history, before downsampling. */
   priceHistoryCount?: number;
+  /** Whole percent below the search's market price (shown when at least 10%). */
+  belowMarketPercent?: number | null;
   dealQuality?: {
     isLowestSeen: boolean;
     isBelowRecentAverage: boolean;
@@ -183,6 +185,11 @@ function AlertCard({
               {t("alertsWhyBelowAverage", {
                 average: formatPriceCents(alert.dealQuality.recentAverageCents, locale),
               })}
+            </span>
+          ) : null}
+          {alert.belowMarketPercent ? (
+            <span className="inline-block rounded-full bg-indigo-100 px-2 py-0.5 text-xs font-medium text-indigo-900 dark:bg-indigo-900/40 dark:text-indigo-200">
+              {t("alertsBelowMarket", { percent: alert.belowMarketPercent })}
             </span>
           ) : null}
         </div>

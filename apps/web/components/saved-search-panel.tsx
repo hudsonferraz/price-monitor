@@ -3,6 +3,8 @@
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { findKeywordConflict, parseExclusionInput } from "@price-monitor/shared/exclusions";
+import type { SearchMarket } from "@price-monitor/shared/market-price";
+import { MarketPanel } from "@/components/market-panel";
 import { SearchAlertsSection, type AlertRecord } from "@/components/alerts-feed";
 import { useLocale, useTranslations } from "@/components/locale-provider";
 import { PollStatusBanner, type SearchPollState } from "@/components/poll-status-banner";
@@ -30,6 +32,7 @@ export interface SavedSearchRecord {
   isEnabled: boolean;
   notificationsEnabled: boolean;
   excludeKeywords: string[];
+  market: SearchMarket;
   lastAttemptedAt: string | null;
   lastSuccessfulPollAt: string | null;
   createdAt: string;
@@ -720,6 +723,8 @@ export function SavedSearchList({ searches, emptyMessage }: SavedSearchListProps
                   </dl>
 
                   <SearchReliabilitySummary search={search} />
+
+                  <MarketPanel market={search.market} />
 
                   {livePollState ? <PollStatusBanner pollState={livePollState} /> : null}
 

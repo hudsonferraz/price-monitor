@@ -21,11 +21,12 @@ This is a **personal, educational, and portfolio project** for exploring scrapin
 
 ## Highlights
 
-- **262 unit tests + 27 end-to-end integration tests** (real Postgres, Redis, queue and worker, plus a fake Telegram API) — exclusion matching, Telegram notification rules, price history series/downsampling, deterministic mock marketplace catalog, demo-mode guards, Brazilian price parsing, Facebook parsers, poll schedule backoff, rate limits, price-drop logic, deal-quality signals, localized poll queue messages, Zod schemas, adapter merge priority, poll job cleanup, API route auth/ownership/cooldown, middleware path guards
+- **273 unit tests + 28 end-to-end integration tests** (real Postgres, Redis, queue and worker, plus a fake Telegram API) — market price statistics, exclusion matching, Telegram notification rules, price history series/downsampling, deterministic mock marketplace catalog, demo-mode guards, Brazilian price parsing, Facebook parsers, poll schedule backoff, rate limits, price-drop logic, deal-quality signals, localized poll queue messages, Zod schemas, adapter merge priority, poll job cleanup, API route auth/ownership/cooldown, middleware path guards
 - **Telegram deal alerts** — new matches and price drops pushed to your phone with photo, price and "was R$X (−Y%)"; one-tap linking, quiet hours, drops-only mode, minimum drop %, and per-search switches; works with no public URL
 - **Local-first worker** — Facebook-facing browser/session stays on your machine in `.facebook-profile/`
 - **Worker heartbeat dashboard** — online/stale/offline state, Facebook session mode, latest successful scrape, and latest failure type
 - **Resilient Facebook scraping** — GraphQL interception + embedded JSON + DOM fallback with unified merge
+- **Market price comparison** — each search's typical price (outlier-trimmed median of the latest poll), its typical range and 30-day trend, and a "Below market · −22%" badge on clearly cheap listings, also included in Telegram alerts
 - **Price history charts** — every listing card shows its price trend; click it for the full history with dated points, lowest/highest/first/latest, and a table view (inline SVG, no chart library)
 - **Per-search price memory** — `SavedSearchListingPrice` tracks last seen price per search so overlapping searches still detect drops correctly
 - **Reliable polling** — BullMQ job dedup, concurrency 1, exponential failure backoff, stale RUNNING recovery, and manual poll cooldown
@@ -49,7 +50,7 @@ This is a **personal, educational, and portfolio project** for exploring scrapin
 |------|----------------|
 | **Saved searches** | Keywords, exclude words (whole words, case- and accent-insensitive: "capa" hides "Capa iPhone" but not "Capacete"), optional min/max price (BRL), poll interval (5–1440 min), listing limit (12/24/48), enable/disable |
 | **Polling** | Manual **Poll now** (15 min cooldown) + scheduler every 60s; live status banner and poll run history |
-| **Alerts** | New matches and price-drop badges; deal-quality signals (lowest seen, below recent average); sort by date/price; dismiss per alert or clear all |
+| **Alerts** | New matches and price-drop badges; deal-quality signals (lowest seen, below recent average, below market); sort by date/price; dismiss per alert or clear all |
 | **Notifications** | Telegram bot: link from the dashboard, test message, pause, drops-only mode, minimum drop %, quiet hours, per-search on/off; max 5 messages per poll plus a summary |
 | **Worker health** | Postgres heartbeat, session mode, latest scrape/failure summaries in the dashboard |
 | **Auth** | GitHub + Google OAuth via NextAuth v5 |

@@ -151,6 +151,16 @@ describe("formatNotification", () => {
     expect(message.photoUrl).toBe("https://scontent.xx.fbcdn.net/image.jpg");
   });
 
+  it("adds the market comparison when known", () => {
+    const message = formatNotification(
+      event({ priceCents: 154_000, belowMarketPercent: 22, marketPriceCents: 198_000 }),
+      "en-US",
+      "http://localhost:3000",
+    );
+    expect(message.plainText).toContain("📊 22% below market (R$1,980.00)");
+    expect(formatNotification(event(), "en-US", "http://x").plainText).not.toContain("below market");
+  });
+
   it("makes relative demo links absolute and skips non-public photos", () => {
     const message = formatNotification(
       event({ url: "/demo/listing/demo-1", imageUrl: "/demo/listing-1.svg" }),

@@ -28,6 +28,9 @@ export interface NotificationEvent {
   imageUrl?: string | null;
   searchName: string;
   occurredAt: Date;
+  /** Whole percent below the search's market price for this poll, when at least 10%. */
+  belowMarketPercent?: number | null;
+  marketPriceCents?: number | null;
 }
 
 export interface NotificationSettings {
@@ -160,6 +163,7 @@ const MESSAGES = {
     priceDrop: "Preço caiu",
     was: "era",
     search: "Busca",
+    belowMarket: (percent: number, market: string) => `📊 ${percent}% abaixo do mercado (${market})`,
     open: "Abrir anúncio",
     summary: (count: number, search: string) =>
       `E mais ${count} ${count === 1 ? "oferta" : "ofertas"} em "${search}". Veja no painel:`,
@@ -175,6 +179,7 @@ const MESSAGES = {
     priceDrop: "Price drop",
     was: "was",
     search: "Search",
+    belowMarket: (percent: number, market: string) => `📊 ${percent}% below market (${market})`,
     open: "Open listing",
     summary: (count: number, search: string) =>
       `And ${count} more ${count === 1 ? "deal" : "deals"} in "${search}". See the dashboard:`,
@@ -245,11 +250,16 @@ export function formatNotification(
         })`
       : price;
   const heading = event.kind === "drop" ? `📉 ${m.priceDrop}` : `🆕 ${m.newMatch}`;
+  const marketLine =
+    event.belowMarketPercent && event.marketPriceCents
+      ? m.belowMarket(event.belowMarketPercent, formatBrl(event.marketPriceCents, locale))
+      : null;
 
   const plainLines = [
     heading,
     event.title,
     priceLine,
+    ...(marketLine ? [marketLine] : []),
     ...(event.location ? [`📍 ${event.location}`] : []),
     `${m.search}: ${event.searchName}`,
     link,
@@ -258,6 +268,7 @@ export function formatNotification(
     `<b>${escapeHtml(heading)}</b>`,
     escapeHtml(event.title),
     `<b>${escapeHtml(priceLine)}</b>`,
+    ...(marketLine ? [escapeHtml(marketLine)] : []),
     ...(event.location ? [`📍 ${escapeHtml(event.location)}`] : []),
     `${escapeHtml(m.search)}: ${escapeHtml(event.searchName)}`,
     `<a href="${escapeHtml(link)}">${escapeHtml(m.open)}</a>`,

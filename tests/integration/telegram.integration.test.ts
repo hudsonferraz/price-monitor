@@ -11,11 +11,13 @@ import { POST as requestTest } from "@/app/api/telegram/test/route";
 import { startTelegramBot, type TelegramBotHandle } from "../../apps/worker/src/lib/telegram/bot";
 import { notifyPollEvents } from "../../apps/worker/src/lib/telegram/notify";
 import { MarketplaceSource, NotificationStatus, PollRunStatus, prisma } from "@price-monitor/database";
+import { computeMarketSnapshot, getBelowMarketPercent } from "@price-monitor/shared/market-price";
 import { FAKE_BOT_USERNAME, FakeTelegram } from "./fake-telegram";
 import {
   allowAnotherPoll,
   closeQueueResources,
   createTestUser,
+  expectedCatalog,
   jsonRequest,
   markWorkerOnline,
   routeContext,
@@ -122,6 +124,7 @@ describe("Telegram notifications (fake Telegram API, real worker, queue and data
   it("sends nothing for the baseline poll, then one message per new match and price drop", async () => {
     const { user, chatId } = await createConnectedUser("deals");
     const search = await createSearchFor(user, "iphone 13", { maxPriceReais: 3_500 });
+    const searchRecord = await prisma.savedSearch.findUniqueOrThrow({ where: { id: search.id } });
 
     await pollAndWait(search.id, 0);
     const afterBaseline = telegram.sends(chatId).length;
@@ -143,6 +146,20 @@ describe("Telegram notifications (fake Telegram API, real worker, queue and data
     expect(sent.length).toBeGreaterThan(0);
     expect(texts.filter((text) => text.includes("📉 Preço caiu") && text.includes("era"))).toHaveLength(sentDrops);
     expect(texts.filter((text) => text.includes("🆕 Nova oferta"))).toHaveLength(sent.length - sentDrops);
+
+    // "Below market" lines match the market of this poll recomputed from the marketplace results.
+    const catalog = expectedCatalog(searchRecord, 1);
+    const market = computeMarketSnapshot(catalog.map((listing) => listing.priceCents));
+    const sentListings = await prisma.alert.findMany({
+      where: { id: { in: sent.map((row) => row.alertId) } },
+      include: { listing: true },
+    });
+    const expectedMarketLines = sentListings.filter((alert) => getBelowMarketPercent(alert.listing.priceCents, market) != null);
+    expect(texts.filter((text) => text.includes("abaixo do mercado"))).toHaveLength(expectedMarketLines.length);
+    for (const alert of expectedMarketLines) {
+      const percent = getBelowMarketPercent(alert.listing.priceCents, market);
+      expect(texts.some((text) => text.includes(alert.listing.title) && text.includes(`📊 ${percent}% abaixo do mercado`))).toBe(true);
+    }
     expect(texts.every((text) => text.includes("http://localhost:3000/demo/listing/") || text.includes("/dashboard"))).toBe(true);
     // Demo images are local SVGs, which Telegram cannot fetch: plain messages, no photos.
     expect(messages.every((message) => message.method === "sendMessage")).toBe(true);

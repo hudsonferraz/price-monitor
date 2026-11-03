@@ -27,6 +27,7 @@ import {
   PRICE_TREND_MAX_POINTS,
 } from "@price-monitor/shared/price-history";
 import { isExcludedTitle } from "@price-monitor/shared/exclusions";
+import { computeSearchMarket, getBelowMarketPercent } from "@price-monitor/shared/market-price";
 import { PollRunStatus, prisma } from "@price-monitor/database";
 import { redirect } from "next/navigation";
 
@@ -104,6 +105,8 @@ export default async function DashboardPage() {
       select: {
         listingId: true,
         priceCents: true,
+        pollRunId: true,
+        listing: { select: { title: true } },
         pollRun: { select: { savedSearchId: true, startedAt: true } },
       },
       orderBy: {
@@ -135,6 +138,11 @@ export default async function DashboardPage() {
     const recentPollRuns = search.pollRuns.slice(0, 3).map(serializePollRun);
     const latestSuccessRun = search.pollRuns.find((run) => run.status === PollRunStatus.SUCCESS);
     const latestFailedRun = search.pollRuns.find((run) => run.status === PollRunStatus.FAILED);
+    const market = computeSearchMarket(
+      snapshotPrices.filter((snapshot) => snapshot.pollRun.savedSearchId === search.id),
+      (title) => isExcludedTitle(title, search.excludeKeywords),
+    );
+
     // Alerts matching the search's current exclusions stay hidden (they come back if removed).
     const visibleAlerts = search.alerts.filter(
       (alert) => !isExcludedTitle(alert.listing.title, search.excludeKeywords),
@@ -159,6 +167,7 @@ export default async function DashboardPage() {
             ? downsamplePriceSeries(priceSeries, PRICE_TREND_MAX_POINTS)
             : [],
         priceHistoryCount: priceSeries.length,
+        belowMarketPercent: getBelowMarketPercent(alert.listing.priceCents, market.snapshot),
         dealQuality: {
           isLowestSeen: dealQuality.isLowestSeen,
           isBelowRecentAverage: dealQuality.isBelowRecentAverage,
@@ -198,6 +207,7 @@ export default async function DashboardPage() {
       isEnabled: search.isEnabled,
       notificationsEnabled: search.notificationsEnabled,
       excludeKeywords: search.excludeKeywords,
+      market,
       lastAttemptedAt: search.lastAttemptedAt?.toISOString() ?? null,
       lastSuccessfulPollAt,
       createdAt: search.createdAt.toISOString(),

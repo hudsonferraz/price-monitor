@@ -1,4 +1,6 @@
-import { NotificationStatus, prisma } from "@price-monitor/database";
+import { NotificationStatus, PollRunStatus, prisma } from "@price-monitor/database";
+import { isExcludedTitle } from "@price-monitor/shared/exclusions";
+import { computeMarketSnapshot, getBelowMarketPercent, type MarketSnapshot } from "@price-monitor/shared/market-price";
 import {
   formatNotification,
   formatSummary,
@@ -40,6 +42,23 @@ export interface NotifyResult {
 
 const EMPTY_RESULT: NotifyResult = { sent: 0, failed: 0, summarized: 0, skipped: 0 };
 const defaultSleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
+
+/** Market price of the search's latest successful poll (the one being notified), exclusions applied. */
+async function getLatestPollMarket(savedSearchId: string, excludeKeywords: string[]): Promise<MarketSnapshot | null> {
+  const latestRun = await prisma.pollRun.findFirst({
+    where: { savedSearchId, status: PollRunStatus.SUCCESS },
+    orderBy: { startedAt: "desc" },
+    select: { id: true },
+  });
+  if (!latestRun) return null;
+  const snapshots = await prisma.pollSnapshotListing.findMany({
+    where: { pollRunId: latestRun.id },
+    select: { priceCents: true, listing: { select: { title: true } } },
+  });
+  return computeMarketSnapshot(
+    snapshots.filter((snapshot) => !isExcludedTitle(snapshot.listing.title, excludeKeywords)).map((snapshot) => snapshot.priceCents),
+  );
+}
 
 export function createConfiguredTelegramClient(): TelegramClient | null {
   const token = getTelegramBotToken();
@@ -129,6 +148,7 @@ async function notifyPollEventsUnsafe(input: NotifyPollEventsInput, deps: Notify
     include: { listing: true },
   });
   const dropIds = new Set(input.dropAlertIds);
+  const market = await getLatestPollMarket(search.id, search.excludeKeywords);
 
   const events: NotificationEvent[] = alerts.flatMap((alert) => {
     const isDrop = dropIds.has(alert.id);
@@ -146,6 +166,8 @@ async function notifyPollEventsUnsafe(input: NotifyPollEventsInput, deps: Notify
         imageUrl: alert.listing.imageUrl,
         searchName: search.name,
         occurredAt: isDrop ? (alert.priceDroppedAt as Date) : alert.createdAt,
+        belowMarketPercent: getBelowMarketPercent(alert.listing.priceCents, market),
+        marketPriceCents: market?.marketPriceCents ?? null,
       },
     ];
   });
