@@ -46,7 +46,11 @@ async function main(): Promise<void> {
 function waitForEnterKey(): Promise<void> {
   return new Promise((resolve) => {
     process.stdin.resume();
-    process.stdin.once("data", () => resolve());
+    process.stdin.once("data", () => {
+      // Stop reading, or the open stdin keeps the process alive after the browser closes.
+      process.stdin.pause();
+      resolve();
+    });
   });
 }
 
