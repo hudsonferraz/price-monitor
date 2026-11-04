@@ -1,12 +1,17 @@
 import type { Page, Response } from "playwright";
+import { classifyFacebookRedirect, FACEBOOK_REDIRECT_MESSAGES } from "@price-monitor/shared/facebook-redirects";
 import { buildFacebookMarketplaceSearchUrl } from "@price-monitor/shared/facebook-search-url";
+import { getPollIssueCode } from "@price-monitor/shared/poll-errors";
 import { parseBrazilianPriceToCents } from "@price-monitor/shared/parse-price";
 import type { NormalizedListing, SearchInput } from "@price-monitor/shared/types";
 import { SOURCE } from "@price-monitor/shared/types";
 import {
   getScrollAttemptsForLimit,
+  getScrollStopReason,
   MAX_GRAPHQL_RESPONSE_BYTES,
+  type ScrollStopReason,
 } from "@price-monitor/shared/scroll-attempts";
+import { saveFailureSnapshot } from "../lib/failure-snapshot";
 import { parseListingsFromEmbeddedJson } from "./facebook-embedded-json-parser";
 import { parseListingsFromHtml, type RawFacebookListing } from "./facebook-dom-parser";
 
@@ -26,6 +31,19 @@ export function hasFacebookLoginWall(html: string): boolean {
   return FACEBOOK_LOGIN_WALL_PATTERNS.some((pattern) => pattern.test(html));
 }
 
+/** Throws a classified error when Facebook sent the browser to login, a checkpoint or consent. */
+export function assertNotRedirectedAway(url: string): void {
+  const redirect = classifyFacebookRedirect(url);
+  if (redirect) {
+    throw new Error(FACEBOOK_REDIRECT_MESSAGES[redirect]);
+  }
+}
+
+/** Whether the search results so far are complete, as Facebook's own search data reports it. */
+export interface SearchProgress {
+  reachedEnd: boolean;
+}
+
 
 export class FacebookMarketplaceAdapter {
   readonly source = SOURCE.FACEBOOK;
@@ -35,6 +53,7 @@ export class FacebookMarketplaceAdapter {
     const apiListings: RawFacebookListing[] = [];
     const maxApiListings = limit * 2;
     const pendingResponses: Promise<void>[] = [];
+    const progress: SearchProgress = { reachedEnd: false };
 
     const responseListener = (response: Response) => {
       if (!shouldInspectGraphqlResponse(response.url(), response.request().method())) {
@@ -53,6 +72,10 @@ export class FacebookMarketplaceAdapter {
               return;
             }
 
+            if (hasSearchEndSignal(body)) {
+              progress.reachedEnd = true;
+            }
+
             const parsed = parseFacebookGraphqlPayload(body);
             if (parsed.length > 0) {
               apiListings.push(...parsed.slice(0, maxApiListings - apiListings.length));
@@ -66,7 +89,7 @@ export class FacebookMarketplaceAdapter {
 
     try {
       await navigateToSearchResults(page, input, apiListings);
-      await scrollSearchResults(page, limit, apiListings);
+      await scrollSearchResults(page, limit, apiListings, progress);
       await page.waitForTimeout(1_000);
       await Promise.allSettled(pendingResponses);
 
@@ -74,6 +97,13 @@ export class FacebookMarketplaceAdapter {
       const merged = collectAvailableListings(html, limit, apiListings).slice(0, limit);
 
       return applyPriceFilters(normalizeListings(merged), input);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      const folder = await saveFailureSnapshot(page, getPollIssueCode(message) ?? "unknown", error);
+      if (folder) {
+        console.warn(`[poll] Saved a snapshot of the failed Facebook page to ${folder}`);
+      }
+      throw error;
     } finally {
       page.off("response", responseListener);
     }
@@ -96,27 +126,48 @@ export async function navigateToSearchResults(
   await waitForSearchResults(page, input.limit ?? DEFAULT_MIN_RESULTS, capturedApiListings);
 }
 
+/** The parts of a Playwright page the scroll loop uses. */
+export interface ScrollablePage {
+  content(): Promise<string>;
+  mouse: { wheel(deltaX: number, deltaY: number): Promise<void> };
+  waitForTimeout(ms: number): Promise<void>;
+}
+
+/**
+ * Scrolls until the poll has enough listings, Facebook says there are no more results, or
+ * several scrolls in a row bring nothing new. One quiet scroll is not the end: Facebook sometimes
+ * answers late, or with an empty batch mid-way through the results.
+ */
 export async function scrollSearchResults(
-  page: Page,
+  page: ScrollablePage,
   targetCount: number,
   capturedApiListings: RawFacebookListing[] = [],
-): Promise<void> {
+  progress: SearchProgress = { reachedEnd: false },
+): Promise<ScrollStopReason> {
+  const maxScrolls = getScrollAttemptsForLimit(targetCount);
   let previousCount = 0;
-  const scrollAttempts = getScrollAttemptsForLimit(targetCount);
+  let idleScrolls = 0;
 
-  for (let attempt = 0; attempt < scrollAttempts; attempt += 1) {
+  for (let scrolls = 0; ; scrolls += 1) {
     const html = await page.content();
-    const currentCount = collectAvailableListings(html, targetCount, capturedApiListings).length;
+    const count = collectAvailableListings(html, targetCount, capturedApiListings).length;
+    if (scrolls > 0) {
+      idleScrolls = count > previousCount ? 0 : idleScrolls + 1;
+    }
+    previousCount = count;
 
-    if (currentCount >= targetCount) {
-      return;
+    const stopReason = getScrollStopReason({
+      count,
+      target: targetCount,
+      idleScrolls,
+      scrolls,
+      maxScrolls,
+      reachedEnd: progress.reachedEnd,
+    });
+    if (stopReason) {
+      return stopReason;
     }
 
-    if (currentCount === previousCount && attempt > 0) {
-      return;
-    }
-
-    previousCount = currentCount;
     await page.mouse.wheel(0, 1_800);
     await page.waitForTimeout(1_000);
   }
@@ -139,7 +190,9 @@ export function collectAvailableListings(
 ): RawFacebookListing[] {
   const embeddedListings = parseListingsFromEmbeddedJson(html, limit);
   const domListings = parseListingsFromHtml(html, limit);
-  return dedupeRawListings([...capturedApiListings, ...embeddedListings, ...domListings]);
+  return dedupeRawListings([...capturedApiListings, ...embeddedListings, ...domListings]).filter(
+    (listing) => !listing.unavailable,
+  );
 }
 
 export function looksLikeMarketplaceSearchPage(html: string, url: string): boolean {
@@ -157,16 +210,12 @@ export async function waitForSearchResults(
 ): Promise<void> {
   await page.waitForLoadState("domcontentloaded", { timeout: 25_000 }).catch(() => undefined);
 
-  const currentUrl = page.url();
-  if (/login|checkpoint/i.test(currentUrl)) {
-    throw new Error(
-      "Facebook redirected to login. Run npm run facebook:login and fix the local Facebook browser profile.",
-    );
-  }
+  assertNotRedirectedAway(page.url());
 
   const deadline = Date.now() + 50_000;
 
   while (Date.now() < deadline) {
+    assertNotRedirectedAway(page.url());
     const html = await page.content();
     const listings = collectAvailableListings(html, minimumResults, capturedApiListings);
 
@@ -258,6 +307,7 @@ function extractListingsFromGraphqlJson(payload: unknown, depth = 0): RawFaceboo
   const location = city && state ? `${city}, ${state}` : stringifyText(record.location);
 
   if (listingId && title) {
+    const unavailable = record.is_sold === true || record.is_pending === true;
     const photoRecord = record.primary_listing_photo as
       | { image?: { uri?: string } }
       | undefined;
@@ -273,6 +323,7 @@ function extractListingsFromGraphqlJson(payload: unknown, depth = 0): RawFaceboo
       url: `https://www.facebook.com/marketplace/item/${listingId}`,
       imageUrl: imageUrl || undefined,
       location: location || undefined,
+      ...(unavailable ? { unavailable: true } : {}),
     });
   }
 
@@ -320,6 +371,52 @@ function stringifyText(value: unknown): string {
   return "";
 }
 
+/**
+ * Whether a GraphQL answer says the search has no more results:
+ * `marketplace_search.feed_units.page_info.has_next_page === false`.
+ */
+export function hasSearchEndSignal(body: string): boolean {
+  if (!body.includes("has_next_page")) {
+    return false;
+  }
+
+  for (const line of body.split("\n")) {
+    if (!line.trim()) {
+      continue;
+    }
+
+    try {
+      if (findSearchEndSignal(JSON.parse(line), 0)) {
+        return true;
+      }
+    } catch {
+      continue;
+    }
+  }
+
+  return false;
+}
+
+function findSearchEndSignal(value: unknown, depth: number): boolean {
+  if (depth > 10 || value == null || typeof value !== "object") {
+    return false;
+  }
+
+  if (Array.isArray(value)) {
+    return value.some((entry) => findSearchEndSignal(entry, depth + 1));
+  }
+
+  const record = value as Record<string, unknown>;
+  const search = record.marketplace_search as
+    | { feed_units?: { page_info?: { has_next_page?: unknown } } }
+    | undefined;
+  if (search?.feed_units?.page_info?.has_next_page === false) {
+    return true;
+  }
+
+  return Object.values(record).some((entry) => findSearchEndSignal(entry, depth + 1));
+}
+
 function dedupeRawListings(listings: RawFacebookListing[]): RawFacebookListing[] {
   const byId = new Map<string, RawFacebookListing>();
 
@@ -337,6 +434,7 @@ function dedupeRawListings(listings: RawFacebookListing[]): RawFacebookListing[]
       url: existing.url || listing.url,
       imageUrl: existing.imageUrl || listing.imageUrl,
       location: existing.location || listing.location,
+      ...(existing.unavailable || listing.unavailable ? { unavailable: true } : {}),
     });
   }
 

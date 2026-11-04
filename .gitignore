@@ -15,3 +15,5 @@ test-results/
 .agents/
 skills-lock.json
 .facebook-profile/
+# Snapshots of failed Facebook polls (may contain personal data)
+.debug/

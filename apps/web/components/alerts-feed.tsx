@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useLocale, useTranslations } from "@/components/locale-provider";
 import { formatDateTime, formatPriceCents } from "@/lib/i18n";
 import { translateApiError } from "@/lib/api-error-i18n";
@@ -130,20 +130,7 @@ function AlertCard({
 
   return (
     <li className="flex flex-col gap-3 rounded-md border border-[var(--border)] bg-[var(--background)] p-3 sm:flex-row">
-      {alert.listing.imageUrl ? (
-        // Plain <img>: listing images come from arbitrary marketplace CDNs (and local demo SVGs),
-        // so next/image would need an open remotePatterns allowlist.
-        // eslint-disable-next-line @next/next/no-img-element
-        <img
-          src={alert.listing.imageUrl}
-          alt=""
-          className="h-40 w-full rounded-md object-cover sm:h-16 sm:w-16 sm:shrink-0"
-        />
-      ) : (
-        <div className="flex h-40 w-full items-center justify-center rounded-md bg-[var(--card)] text-xs text-[var(--muted)] sm:h-16 sm:w-16 sm:shrink-0">
-          {t("alertsNoImage")}
-        </div>
-      )}
+      <ListingImage key={alert.listing.imageUrl ?? "none"} src={alert.listing.imageUrl} />
 
       <div className="min-w-0 flex-1 space-y-1">
         <div className="flex flex-wrap gap-1.5">
@@ -577,4 +564,41 @@ function isListingWithinPriceRange(
   }
 
   return minPriceCents != null || maxPriceCents != null;
+}
+
+/**
+ * Listing photo, or the "no image" placeholder when there is none or it no longer loads:
+ * Facebook image links are signed and expire after some days, so old alerts lose their photo.
+ */
+function ListingImage({ src }: { src: string | null | undefined }) {
+  const t = useTranslations();
+  const [failed, setFailed] = useState(false);
+  const imageRef = useRef<HTMLImageElement>(null);
+
+  useEffect(() => {
+    // An image that failed before hydration fired its error event before React listened.
+    const image = imageRef.current;
+    if (image?.complete && image.naturalWidth === 0) setFailed(true);
+  }, []);
+
+  if (!src || failed) {
+    return (
+      <div className="flex h-40 w-full items-center justify-center rounded-md bg-[var(--card)] text-xs text-[var(--muted)] sm:h-16 sm:w-16 sm:shrink-0">
+        {t("alertsNoImage")}
+      </div>
+    );
+  }
+
+  return (
+    // Plain <img>: listing images come from arbitrary marketplace CDNs (and local demo SVGs),
+    // so next/image would need an open remotePatterns allowlist.
+    // eslint-disable-next-line @next/next/no-img-element
+    <img
+      ref={imageRef}
+      src={src}
+      alt=""
+      onError={() => setFailed(true)}
+      className="h-40 w-full rounded-md object-cover sm:h-16 sm:w-16 sm:shrink-0"
+    />
+  );
 }

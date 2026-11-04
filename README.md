@@ -149,6 +149,10 @@ Run `npm run facebook:login` **once** whenever Facebook asks for login, 2FA, che
 
 The profile is ignored by git and should never be committed.
 
+If Facebook shows its one-time **Marketplace data-usage consent** screen, polls fail with a checkpoint error that says so. Accept it yourself once through `npm run facebook:login`; the scraper never makes that privacy choice for you. Login, checkpoint and consent redirects are detected from the URL, so they work in any account language.
+
+When a real poll fails, the worker saves a screenshot, the page HTML and a short summary to `.debug/poll-failures/<time>_<reason>/` (newest 20 kept) and logs the folder. These files can contain personal data, stay on your machine and are git-ignored; set `POLL_SNAPSHOT_DIR` to move them.
+
 ## Tests and checks
 
 ```bash

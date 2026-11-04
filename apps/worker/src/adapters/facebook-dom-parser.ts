@@ -8,6 +8,8 @@ export interface RawFacebookListing {
   url: string;
   imageUrl?: string;
   location?: string;
+  /** Facebook marked it sold or pending. Kept until merging, so it also hides other sources' copies. */
+  unavailable?: boolean;
 }
 
 const LISTING_LINK_SELECTOR = "a[href*='/marketplace/item/']";

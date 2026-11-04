@@ -92,7 +92,7 @@ function mapRecordToListing(record: FacebookListingRecord): RawFacebookListing |
   const externalId = record.id?.trim();
   const title = record.marketplace_listing_title?.trim();
 
-  if (!externalId || !title || record.is_sold) {
+  if (!externalId || !title) {
     return null;
   }
 
@@ -107,5 +107,6 @@ function mapRecordToListing(record: FacebookListingRecord): RawFacebookListing |
     url: `https://www.facebook.com/marketplace/item/${externalId}`,
     imageUrl: record.primary_listing_photo?.image?.uri,
     location,
+    ...(record.is_sold === true || record.is_pending === true ? { unavailable: true } : {}),
   };
 }
