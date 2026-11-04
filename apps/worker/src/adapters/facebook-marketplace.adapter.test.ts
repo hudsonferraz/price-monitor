@@ -9,6 +9,7 @@ import {
   hasFacebookLoginWall,
   hasSearchEndSignal,
   looksLikeMarketplaceSearchPage,
+  normalizeListings,
   scrollSearchResults,
 } from "./facebook-marketplace.adapter";
 
@@ -189,5 +190,12 @@ describe("scrollSearchResults", () => {
     const page = fakePage([[listing("2"), listing("3")]], captured);
     expect(await scrollSearchResults(page, 3, captured)).toBe("limit_reached");
     expect(page.scrolls).toBe(1);
+  });
+});
+
+describe("normalizeListings", () => {
+  it("keeps titles on one line (seen on a real listing title with a line break)", () => {
+    const [normalized] = normalizeListings([listing("1", { title: "iPhone 13 mini 256gb 73% bateria\nTodo origin  " })]);
+    expect(normalized?.title).toBe("iPhone 13 mini 256gb 73% bateria Todo origin");
   });
 });

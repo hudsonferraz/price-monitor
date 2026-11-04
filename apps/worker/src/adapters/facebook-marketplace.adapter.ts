@@ -245,10 +245,11 @@ export async function waitForSearchResults(
   );
 }
 
-function normalizeListings(listings: RawFacebookListing[]): NormalizedListing[] {
+export function normalizeListings(listings: RawFacebookListing[]): NormalizedListing[] {
   return listings.map((listing) => ({
     externalId: listing.externalId,
-    title: listing.title,
+    // Sellers' titles can contain line breaks; keep one line for cards and Telegram messages.
+    title: listing.title.replace(/\s+/g, " ").trim(),
     priceCents: parseBrazilianPriceToCents(listing.price),
     currency: listing.price.includes("R$") ? "BRL" : "USD",
     url: listing.url,
